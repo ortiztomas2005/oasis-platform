@@ -1,188 +1,213 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-
-interface TicketTypeOption {
-  id: string;
-  name: string;
-}
 
 interface CourtesyModalProps {
   eventId: string;
-  ticketTypes: TicketTypeOption[];
+  eventName: string;
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess?: () => void;
 }
 
-export function CourtesyModal({ eventId, ticketTypes }: CourtesyModalProps) {
-  const router = useRouter();
-  const [isOpen, setIsOpen] = useState(false);
-  const [ticketTypeId, setTicketTypeId] = useState(ticketTypes[0]?.id || '');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [dni, setDni] = useState('');
-  const [email, setEmail] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+export default function CourtesyModal({
+  eventId,
+  eventName,
+  isOpen,
+  onClose,
+  onSuccess,
+}: CourtesyModalProps) {
+  const [holderName, setHolderName] = useState('');
+  const [holderEmail, setHolderEmail] = useState('');
+  const [holderDni, setHolderDni] = useState('');
+  const [tierName, setTierName] = useState('VIP INVITADO');
+  const [loading, setLoading] = useState(false);
+  const [generatedTicketUrl, setGeneratedTicketUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!ticketTypeId || !firstName || !lastName || !dni || !email) return;
+    setLoading(true);
 
-    setIsSubmitting(true);
     try {
-      const res = await fetch('/api/admin/courtesy', {
+      const res = await fetch('/api/tickets/courtesy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          eventId,
-          ticketTypeId,
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-          dni: dni.trim(),
-          email: email.trim(),
+          event_id: eventId,
+          holder_name: holderName,
+          holder_email: holderEmail,
+          holder_dni: holderDni,
+          tier_name: tierName,
         }),
       });
 
       const data = await res.json();
-      if (res.ok && data.success) {
-        setFirstName('');
-        setLastName('');
-        setDni('');
-        setEmail('');
-        setIsOpen(false);
-        router.refresh();
-      } else {
-        alert(data.error || 'Error al emitir cortesía');
-      }
-    } catch {
-      alert('Error de conexión');
+      if (!res.ok) throw new Error(data.error || 'Error al emitir cortesía');
+
+      // Tomamos el hash QR devuelto por la API
+      const qrCode = data.ticket?.qr_hash || data.qr_hash || data.code;
+      const fullUrl = `${window.location.origin}/ticket/${qrCode}`;
+      
+      setGeneratedTicketUrl(fullUrl);
+      if (onSuccess) onSuccess();
+    } catch (err: any) {
+      alert(err.message);
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
-  return (
-    <>
-      <button
-        onClick={() => setIsOpen(true)}
-        className="px-4 py-2.5 rounded-xl bg-amber-400/10 hover:bg-amber-400/20 text-amber-400 border border-amber-400/30 text-xs font-bold transition-all flex items-center gap-1.5"
-      >
-        <span>+ Emitir Cortesía / VIP</span>
-      </button>
+  const handleCopy = () => {
+    if (!generatedTicketUrl) return;
+    navigator.clipboard.writeText(generatedTicketUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-neutral-900 border border-neutral-800 w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between">
+  const handleResetAndClose = () => {
+    setGeneratedTicketUrl(null);
+    setHolderName('');
+    setHolderEmail('');
+    setHolderDni('');
+    setCopied(false);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 w-full max-w-md text-white shadow-2xl">
+        
+        {/* VISTA 1: ENLACE GENERADO */}
+        {generatedTicketUrl ? (
+          <div className="text-center space-y-4 py-2">
+            <div className="w-12 h-12 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-full flex items-center justify-center mx-auto text-xl">
+              ✓
+            </div>
+            <div>
+              <h3 className="text-lg font-bold">¡Cortesía Emitida con Éxito!</h3>
+              <p className="text-xs text-neutral-400 font-mono mt-1">Para: {holderName}</p>
+            </div>
+
+            <div className="bg-black/60 border border-neutral-800 rounded-2xl p-3 text-left">
+              <span className="text-[10px] font-mono text-neutral-500 uppercase block mb-1">Enlace del Ticket Digital</span>
+              <p className="text-xs font-mono text-amber-400 truncate select-all">{generatedTicketUrl}</p>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={handleCopy}
+                className="flex-1 py-3 bg-neutral-800 hover:bg-neutral-700 rounded-xl text-xs font-semibold font-mono flex items-center justify-center gap-1.5 transition-all"
+              >
+                {copied ? '✓ ¡Copiado!' : '📋 Copiar Enlace'}
+              </button>
+              <a
+                href={generatedTicketUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 py-3 bg-amber-400 hover:bg-amber-300 text-black rounded-xl text-xs font-bold font-mono text-center flex items-center justify-center transition-all"
+              >
+                Abrir Ticket ↗
+              </a>
+            </div>
+
+            <button
+              onClick={handleResetAndClose}
+              className="text-xs text-neutral-500 hover:text-neutral-300 font-mono pt-2 block mx-auto"
+            >
+              Cerrar y volver al panel
+            </button>
+          </div>
+        ) : (
+          /* VISTA 2: FORMULARIO DE EMISIÓN */
+          <>
+            <div className="flex justify-between items-center mb-4">
               <div>
-                <span className="text-[10px] uppercase font-bold tracking-wider text-amber-400">
-                  Pase Especial
-                </span>
-                <h3 className="text-base font-bold text-white">Emitir Cortesía / Invitación</h3>
+                <h3 className="text-lg font-bold">Emitir Cortesía / Invitación</h3>
+                <p className="text-xs text-neutral-400 font-mono">{eventName}</p>
               </div>
               <button
-                onClick={() => setIsOpen(false)}
-                className="text-neutral-500 hover:text-white text-sm"
+                onClick={onClose}
+                className="text-neutral-500 hover:text-neutral-300 text-lg leading-none"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-3">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-[11px] uppercase font-semibold text-neutral-400 mb-1">
-                  Tipo de Pase
-                </label>
+                <label className="text-[10px] font-mono text-neutral-400 uppercase">Nombre y Apellido</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="ej: Martín Gómez"
+                  value={holderName}
+                  onChange={(e) => setHolderName(e.target.value)}
+                  className="w-full mt-1 bg-black/60 border border-neutral-700 rounded-xl px-3 py-2 text-xs font-mono text-white focus:border-amber-400 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-mono text-neutral-400 uppercase">Email de Destino</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="ej: martin@oasis.com"
+                  value={holderEmail}
+                  onChange={(e) => setHolderEmail(e.target.value)}
+                  className="w-full mt-1 bg-black/60 border border-neutral-700 rounded-xl px-3 py-2 text-xs font-mono text-white focus:border-amber-400 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-mono text-neutral-400 uppercase">DNI / Documento</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="ej: 42123456"
+                  value={holderDni}
+                  onChange={(e) => setHolderDni(e.target.value)}
+                  className="w-full mt-1 bg-black/60 border border-neutral-700 rounded-xl px-3 py-2 text-xs font-mono text-white focus:border-amber-400 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-mono text-neutral-400 uppercase">Tipo de Acceso</label>
                 <select
-                  value={ticketTypeId}
-                  onChange={(e) => setTicketTypeId(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl bg-neutral-950 border border-neutral-800 text-xs text-white focus:outline-none focus:border-amber-400"
+                  value={tierName}
+                  onChange={(e) => setTierName(e.target.value)}
+                  className="w-full mt-1 bg-black/60 border border-neutral-700 rounded-xl px-3 py-2 text-xs font-mono text-white focus:border-amber-400 outline-none"
                 >
-                  {ticketTypes.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name}
-                    </option>
-                  ))}
+                  <option value="VIP INVITADO">VIP INVITADO</option>
+                  <option value="BACKSTAGE">BACKSTAGE</option>
+                  <option value="ACCESO GENERAL">ACCESO GENERAL</option>
+                  <option value="STAFF / PRENSA">STAFF / PRENSA</option>
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[11px] uppercase font-semibold text-neutral-400 mb-1">
-                    Nombre
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ej: Sofía"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-neutral-950 border border-neutral-800 text-xs text-white focus:outline-none focus:border-amber-400"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] uppercase font-semibold text-neutral-400 mb-1">
-                    Apellido
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ej: Rossi"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-neutral-950 border border-neutral-800 text-xs text-white focus:outline-none focus:border-amber-400"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[11px] uppercase font-semibold text-neutral-400 mb-1">
-                    DNI
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Sin puntos"
-                    value={dni}
-                    onChange={(e) => setDni(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-neutral-950 border border-neutral-800 text-xs text-white focus:outline-none focus:border-amber-400 font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] uppercase font-semibold text-neutral-400 mb-1">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="invitado@oasis.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-neutral-950 border border-neutral-800 text-xs text-white focus:outline-none focus:border-amber-400 font-mono"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-3 flex gap-2">
+              <div className="flex gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="w-1/2 py-2.5 rounded-xl border border-neutral-800 text-xs font-semibold text-neutral-400 hover:text-white transition-colors"
+                  onClick={onClose}
+                  className="flex-1 py-2.5 bg-neutral-800 hover:bg-neutral-700 rounded-xl text-xs font-semibold"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="w-1/2 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 disabled:opacity-50 text-neutral-950 text-xs font-bold transition-colors"
+                  disabled={loading}
+                  className="flex-1 py-2.5 bg-amber-400 hover:bg-amber-300 text-black rounded-xl text-xs font-bold disabled:opacity-50"
                 >
-                  {isSubmitting ? 'Generando...' : 'Generar Pase'}
+                  {loading ? 'Generando Pase...' : 'Generar Ticket'}
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-    </>
+          </>
+        )}
+
+      </div>
+    </div>
   );
 }
