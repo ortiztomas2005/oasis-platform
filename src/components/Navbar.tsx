@@ -180,3 +180,9 @@ export function Navbar() {
     </>
   );
 }
+<Link
+  href="/my-tickets"
+  className="text-xs font-mono text-neutral-300 hover:text-yellow-400 transition-colors px-3 py-1.5 rounded-lg border border-neutral-800 bg-neutral-900/60"
+>
+  🎟 Mis Entradas
+</Link>
