@@ -1,115 +1,122 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/core/supabase/admin';
-
-interface CheckoutItem {
-  ticketTypeId: string;
-  quantity: number;
-}
-
-interface CheckoutBody {
-  eventId: string;
-  items: CheckoutItem[];
-}
+import crypto from 'crypto';
 
 export async function POST(req: Request) {
   try {
-    const body: CheckoutBody = await req.json();
-    const { eventId, items } = body;
+    const body = await req.json();
+    const { eventId, ticketTypeId, quantity, attendee } = body;
 
-    const activeItems = items.filter((item) => item.quantity > 0);
-    if (activeItems.length === 0) {
-      return NextResponse.json(
-        { error: 'No se seleccionaron entradas válidas' },
-        { status: 400 }
-      );
+    if (!eventId || !ticketTypeId || !attendee?.firstName || !attendee?.lastName || !attendee?.dni) {
+      return NextResponse.json({ error: 'Faltan datos obligatorios' }, { status: 400 });
     }
 
-    // 1. Consultamos los tipos de tickets seleccionados desde la base de datos
-    const ticketIds = activeItems.map((i) => i.ticketTypeId);
-    const { data: tickets, error: ticketError } = await supabaseAdmin
+    const qty = quantity || 1;
+
+    // 1. Obtener datos de la tanda
+    const { data: tier, error: tierError } = await supabaseAdmin
       .from('ticket_types')
-      .select('*')
-      .in('id', ticketIds)
-      .eq('event_id', eventId);
+      .select('*, events(organization_id)')
+      .eq('id', ticketTypeId)
+      .single();
 
-    if (ticketError || !tickets || tickets.length === 0) {
-      return NextResponse.json(
-        { error: 'Error al consultar disponibilidad de tickets' },
-        { status: 400 }
-      );
+    if (tierError || !tier) {
+      return NextResponse.json({ error: 'Tanda de tickets no encontrada' }, { status: 404 });
     }
 
-    // 2. Validamos disponibilidad de stock y calculamos montos reales en el servidor
-    let subtotal = 0;
-    let serviceFee = 0;
-
-    for (const item of activeItems) {
-      const ticket = tickets.find((t) => t.id === item.ticketTypeId);
-      if (!ticket) {
-        return NextResponse.json(
-          { error: `Tipo de entrada no encontrado` },
-          { status: 400 }
-        );
-      }
-
-      if (ticket.available_quota < item.quantity) {
-        return NextResponse.json(
-          { error: `No hay stock suficiente para ${ticket.name}` },
-          { status: 409 }
-        );
-      }
-
-      subtotal += Number(ticket.price) * item.quantity;
-      serviceFee += Number(ticket.service_fee) * item.quantity;
+    if (tier.available_quota < qty) {
+      return NextResponse.json({ error: 'No hay cupo suficiente disponible' }, { status: 400 });
     }
 
-    const total = subtotal + serviceFee;
-    const orderNumber = `OASIS-${Date.now().toString(36).toUpperCase()}`;
+    const orgId = tier.events?.organization_id || tier.organization_id;
+    const unitPrice = Number(tier.price || 0);
+    const unitFee = Number(tier.service_fee || 0);
+    const totalAmount = (unitPrice + unitFee) * qty;
+    const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 1000)}`;
 
-    // 3. Obtenemos la organización del evento
-    const organizationId = tickets[0].organization_id;
-
-    // 4. Creamos la orden en estado PENDING con expiración en 15 minutos
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
-
+    // 2. Crear Orden en DB
     const { data: order, error: orderError } = await supabaseAdmin
       .from('orders')
       .insert({
-        organization_id: organizationId,
+        organization_id: orgId,
         event_id: eventId,
         order_number: orderNumber,
         order_type: 'TICKETING',
-        status: 'PENDING',
-        subtotal_amount: subtotal,
+        status: 'PAID',
+        subtotal_amount: unitPrice * qty,
         discount_amount: 0,
-        service_fee_amount: serviceFee,
-        total_amount: total,
+        service_fee_amount: unitFee * qty,
+        total_amount: totalAmount,
         currency: 'ARS',
-        expires_at: expiresAt,
       })
       .select()
       .single();
 
     if (orderError) {
-      console.error('Error creating order:', orderError);
-      return NextResponse.json(
-        { error: 'No se pudo crear la orden' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'Error al crear orden: ' + orderError.message }, { status: 500 });
     }
+
+    // 3. Crear Ítem de la Orden (Order Item)
+    const { data: orderItem, error: orderItemError } = await supabaseAdmin
+      .from('order_items')
+      .insert({
+        organization_id: orgId,
+        order_id: order.id,
+        item_type: 'TICKET',
+        ticket_type_id: ticketTypeId,
+        item_title_snapshot: tier.name,
+        unit_price_snapshot: unitPrice,
+        unit_fee_snapshot: unitFee,
+        quantity: qty,
+        total_line_amount: totalAmount,
+      })
+      .select()
+      .single();
+
+    if (orderItemError) {
+      return NextResponse.json({ error: 'Error al registrar ítem de orden: ' + orderItemError.message }, { status: 500 });
+    }
+
+    // 4. Generar Ticket con hashes y vincular a order_item_id
+    const uniqueHash = crypto.randomBytes(4).toString('hex').toUpperCase();
+    const ticketCode = `OASIS-${uniqueHash}`;
+    const qrHash = crypto.createHash('sha256').update(ticketCode + (process.env.NEXT_PUBLIC_SUPABASE_URL || 'oasis-salt')).digest('hex');
+
+    const { data: ticket, error: ticketError } = await supabaseAdmin
+      .from('issued_tickets')
+      .insert({
+        organization_id: orgId,
+        event_id: eventId,
+        ticket_type_id: ticketTypeId,
+        order_id: order.id,
+        order_item_id: orderItem.id,
+        ticket_code: ticketCode,
+        qr_hash: qrHash,
+        attendee_first_name: attendee.firstName.trim(),
+        attendee_last_name: attendee.lastName.trim(),
+        attendee_dni: attendee.dni.trim(),
+        status: 'ISSUED',
+        is_courtesy: false,
+      })
+      .select()
+      .single();
+
+    if (ticketError) {
+      return NextResponse.json({ error: 'Error al emitir ticket: ' + ticketError.message }, { status: 500 });
+    }
+
+    // 5. Descontar cupo
+    await supabaseAdmin
+      .from('ticket_types')
+      .update({ available_quota: tier.available_quota - qty })
+      .eq('id', tier.id);
 
     return NextResponse.json({
       success: true,
-      orderId: order.id,
+      ticketCode: ticket.ticket_code,
       orderNumber: order.order_number,
-      totalAmount: total,
-      expiresAt: order.expires_at,
     });
-  } catch (error) {
-    console.error('Checkout error:', error);
-    return NextResponse.json(
-      { error: 'Error interno en el procesamiento' },
-      { status: 500 }
-    );
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
