@@ -5,19 +5,25 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
-    const { identifier } = await req.json();
+    const { dni, email } = await req.json();
 
-    if (!identifier || identifier.trim() === '') {
-      return NextResponse.json({ error: 'Ingresá un DNI o Email válido' }, { status: 400 });
+    if (!dni || !email) {
+      return NextResponse.json(
+        { error: 'Por seguridad, ingresá tu DNI y el Email con el que compraste.' },
+        { status: 400 }
+      );
     }
 
-    const cleanId = identifier.trim();
+    const cleanDni = dni.trim();
+    const cleanEmail = email.trim().toLowerCase();
 
-    // Buscar coincidencia por DNI o por Email
+    // Verificación estricta de doble coincidencia (DNI + Email)
     const { data: tickets, error } = await supabaseAdmin
       .from('tickets')
       .select('*, events(*)')
-      .or(`holder_dni.eq.${cleanId},holder_email.ilike.%${cleanId}%`)
+      .eq('holder_dni', cleanDni)
+      .ilike('holder_email', cleanEmail)
+      .neq('status', 'RESOLD_BURNED') // No mostrar tickets que ya fueron revendidos y quemados
       .order('created_at', { ascending: false });
 
     if (error) {

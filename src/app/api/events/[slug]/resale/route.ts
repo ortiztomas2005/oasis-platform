@@ -3,37 +3,36 @@ import { supabaseAdmin } from '@/core/supabase/admin';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(
-  req: Request,
-  { params }: { params: Promise<{ slug: string }> }
-) {
+export async function GET(req: Request, context: { params: Promise<{ slug: string }> | { slug: string } }) {
   try {
-    const { slug } = await params;
+    const params = await context.params;
+    const slug = params.slug;
 
-    // 1. Obtener el evento por slug
-    const { data: event, error: eventErr } = await supabaseAdmin
-      .from('events')
-      .select('*')
-      .eq('slug', slug)
-      .single();
+    // 1. Buscar el evento por slug o ID
+    let query = supabaseAdmin.from('events').select('*');
+    if (slug.includes('-')) {
+      query = query.eq('slug', slug);
+    } else {
+      query = query.or(`slug.eq.${slug},id.eq.${slug}`);
+    }
 
-    if (eventErr || !event) {
+    const { data: event, error: eventError } = await query.single();
+
+    if (eventError || !event) {
       return NextResponse.json({ error: 'Evento no encontrado' }, { status: 404 });
     }
 
-    // 2. Traer publicaciones activas con datos del ticket
-    const { data: resales, error: resaleErr } = await supabaseAdmin
-      .from('ticket_resales')
-      .select('id, resale_price, platform_fee, seller_name, created_at, tickets(tier_name)')
+    // 2. Buscar tandas activas del evento
+    const { data: tiers } = await supabaseAdmin
+      .from('ticket_tiers')
+      .select('*')
       .eq('event_id', event.id)
-      .eq('status', 'AVAILABLE')
-      .order('created_at', { ascending: false });
+      .order('price', { ascending: true });
 
-    if (resaleErr) {
-      return NextResponse.json({ error: resaleErr.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ event, resales });
+    return NextResponse.json({
+      event,
+      tiers: tiers || [],
+    });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

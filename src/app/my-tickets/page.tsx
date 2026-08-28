@@ -1,279 +1,155 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import HoloTicket from '@/components/HoloTicket';
-import ResaleModal from '@/components/ResaleModal';
-
-interface TicketData {
-  id: string;
-  holder_name: string;
-  holder_dni: string;
-  holder_email: string;
-  tier_name: string;
-  qr_hash: string;
-  status: string;
-  purchase_price: number;
-  events: {
-    name: string;
-    date: string;
-    venue: string;
-    description: string;
-    slug: string;
-  };
-}
+import { QRCodeSVG } from 'qrcode.react';
+import { createClient } from '@/core/supabase/client';
 
 export default function MyTicketsPage() {
-  const [identifier, setIdentifier] = useState('');
-  const [tickets, setTickets] = useState<TicketData[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
 
-  // Cargar búsqueda previa del dispositivo
   useEffect(() => {
-    const saved = localStorage.getItem('oasis_user_identifier');
-    if (saved) {
-      setIdentifier(saved);
-      fetchTickets(saved);
-    }
-  }, []);
+    async function loadTickets() {
+      try {
+        setLoading(true);
+        const { data: { user } } = await supabase.auth.getUser();
 
-  const fetchTickets = async (query: string) => {
-    if (!query.trim()) return;
-    setLoading(true);
-    setHasSearched(true);
-    try {
-      const res = await fetch('/api/tickets/my', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: query.trim() }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setTickets(data.tickets || []);
-        localStorage.setItem('oasis_user_identifier', query.trim());
-      } else {
-        alert(data.error || 'Error al buscar pases');
+        let query = supabase.from('tickets').select('*, events(*)').order('created_at', { ascending: false });
+
+        if (user?.email) {
+          query = query.or(`customer_email.eq.${user.email},holder_email.eq.${user.email},user_id.eq.${user.id}`);
+        }
+
+        const { data, error } = await query;
+        if (!error && data) {
+          setTickets(data);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      alert('Error de conexión con el servidor.');
-    } finally {
-      setLoading(false);
     }
-  };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    fetchTickets(identifier);
-  };
-
-  const handleClearSession = () => {
-    localStorage.removeItem('oasis_user_identifier');
-    setIdentifier('');
-    setTickets([]);
-    setHasSearched(false);
-  };
+    loadTickets();
+  }, []);
 
   return (
     <main className="min-h-screen bg-black text-white p-4 sm:p-8 md:p-12">
-      <div className="max-w-4xl mx-auto">
-        
-        {/* Cabecera */}
-        <div className="flex justify-between items-center mb-8 border-b border-white/10 pb-5">
+      <div className="max-w-4xl mx-auto space-y-8">
+        <div className="flex justify-between items-center border-b border-neutral-800 pb-6">
           <div>
-            <Link href="/" className="text-xl font-black tracking-widest text-yellow-400">
-              • OASIS.
-            </Link>
-            <h1 className="text-2xl sm:text-3xl font-black uppercase mt-1 tracking-tight">
-              Mis Entradas & Pases
+            <span className="text-[10px] font-mono tracking-widest text-yellow-400 uppercase font-bold">
+              Bóveda Criptográfica Oficial
+            </span>
+            <h1 className="text-3xl font-black uppercase text-white mt-1">
+              Mis Entradas
             </h1>
-            <p className="text-xs text-neutral-400 font-mono mt-0.5">
-              Portal de acceso rápido a tus códigos QR y gestión de tickets oficiales.
-            </p>
           </div>
           <Link
-            href="/"
-            className="px-4 py-2 bg-neutral-900 border border-neutral-800 rounded-xl text-xs font-mono text-neutral-300 hover:text-white hover:border-neutral-700 transition-all"
+            href="/events"
+            className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded-xl font-mono text-xs text-neutral-300 transition-all"
           >
             ← Cartelera
           </Link>
         </div>
 
-        {/* Buscador de Entradas */}
-        <div className="bg-neutral-900/80 border border-neutral-800 rounded-3xl p-6 mb-8 backdrop-blur-md shadow-2xl">
-          <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                required
-                placeholder="Ingresá tu DNI o Email..."
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                className="w-full bg-black/60 border border-neutral-700 rounded-2xl px-4 py-3.5 text-sm font-mono text-white placeholder-neutral-500 focus:border-yellow-400 outline-none transition-all"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-8 py-3.5 bg-yellow-400 hover:bg-yellow-300 text-black font-bold text-xs uppercase font-mono rounded-2xl transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-yellow-400/10"
+        {loading ? (
+          <div className="text-center py-24 font-mono text-xs text-neutral-500">
+            Verificando credenciales en blockchain y base de datos...
+          </div>
+        ) : tickets.length === 0 ? (
+          <div className="border border-dashed border-neutral-800 rounded-3xl p-12 text-center space-y-4">
+            <p className="font-mono text-sm text-neutral-400">No tenés entradas emitidas en tu cuenta.</p>
+            <Link
+              href="/events"
+              className="inline-block px-5 py-2.5 bg-yellow-400 text-black font-mono font-bold text-xs uppercase rounded-xl hover:bg-yellow-300 transition-all"
             >
-              {loading ? (
-                <>
-                  <span className="w-3 h-3 border-2 border-black border-t-transparent rounded-full animate-spin"></span>
-                  Buscando...
-                </>
-              ) : (
-                'Buscar Mis Entradas'
-              )}
-            </button>
-          </form>
+              Explorar Próximos Eventos
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {tickets.map((ticket) => {
+              const hash = ticket.auth_code || ticket.qr_hash || ticket.id;
+              const eventTitle = ticket.events?.name || 'Evento OASIS';
+              const venue = ticket.events?.venue || 'Ubicación Central';
 
-          {hasSearched && (
-            <div className="flex justify-between items-center mt-3 pt-3 border-t border-neutral-800/60 text-[11px] font-mono text-neutral-500">
-              <span>Búsqueda activa: <b className="text-neutral-300">{identifier}</b></span>
-              <button
-                onClick={handleClearSession}
-                className="hover:text-rose-400 transition-colors underline"
-              >
-                Limpiar datos guardados
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Resultados */}
-        {hasSearched && (
-          <div className="space-y-10">
-            {tickets.length === 0 ? (
-              <div className="border border-dashed border-neutral-800 rounded-3xl p-12 text-center bg-neutral-900/20">
-                <div className="text-3xl mb-3">🔍</div>
-                <h3 className="text-base font-bold text-white mb-1">No se encontraron tickets</h3>
-                <p className="text-xs font-mono text-neutral-400 max-w-sm mx-auto">
-                  No hay entradas vinculadas a "<span className="text-white">{identifier}</span>". Verificá haber ingresado el mismo DNI o Email con el que compraste o te emitieron la cortesía.
-                </p>
-              </div>
-            ) : (
-              tickets.map((t) => (
+              return (
                 <div
-                  key={t.id}
-                  className="bg-neutral-900/50 border border-neutral-800 rounded-3xl p-6 sm:p-8 backdrop-blur-md shadow-2xl relative overflow-hidden"
+                  key={ticket.id}
+                  className="bg-neutral-900/90 border border-neutral-800 rounded-3xl p-6 flex flex-col justify-between shadow-2xl relative overflow-hidden"
                 >
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-                    
-                    {/* Render del Pase Holográfico */}
-                    <div className="lg:col-span-5 flex justify-center">
-                      <HoloTicket
-                        code={t.qr_hash}
-                        eventName={t.events?.name || 'Evento'}
-                        category={t.tier_name || 'GENERAL'}
-                        holderName={t.holder_name}
-                        date={new Date(t.events?.date).toLocaleDateString('es-AR', {
-                          weekday: 'long',
-                          day: 'numeric',
-                          month: 'long',
-                        })}
-                        status={t.status}
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <span className="bg-yellow-400/10 text-yellow-400 border border-yellow-400/30 text-[9px] font-mono font-bold uppercase px-2.5 py-1 rounded-full">
+                          {ticket.tier_name || 'GENERAL'}
+                        </span>
+                        <h2 className="text-xl font-black uppercase text-white mt-2">
+                          {eventTitle}
+                        </h2>
+                        <p className="text-xs font-mono text-neutral-400">{venue}</p>
+                      </div>
+
+                      <span className={`text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-full ${
+                        ticket.status === 'AVAILABLE'
+                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                          : 'bg-neutral-800 text-neutral-500'
+                      }`}>
+                        {ticket.status === 'AVAILABLE' ? '● Válido' : ticket.status}
+                      </span>
+                    </div>
+
+                    {/* QR Code Container */}
+                    <div className="bg-white p-4 rounded-2xl flex items-center justify-center max-w-[200px] mx-auto shadow-inner">
+                      <QRCodeSVG
+                        value={hash}
+                        size={170}
+                        level="H"
+                        includeMargin={false}
                       />
                     </div>
 
-                    {/* Detalle y Opciones del Pase */}
-                    <div className="lg:col-span-7 space-y-4 font-mono">
-                      <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="px-3 py-1 bg-yellow-400/10 border border-yellow-400/30 text-yellow-400 text-xs font-bold rounded-full uppercase">
-                            📍 {t.events?.venue || 'Predio'}
-                          </span>
-                          <span className="text-xs text-neutral-500 font-mono">
-                            {new Date(t.events?.date).toLocaleDateString('es-AR', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: 'numeric',
-                            })}
-                          </span>
-                        </div>
-                        <h2 className="text-2xl font-black text-white uppercase tracking-tight">
-                          {t.events?.name}
-                        </h2>
+                    {/* Ticket Details */}
+                    <div className="bg-black/60 border border-neutral-800/80 rounded-2xl p-3.5 font-mono text-xs space-y-1.5">
+                      <div className="flex justify-between text-[11px]">
+                        <span className="text-neutral-500 uppercase">Titular:</span>
+                        <span className="text-white font-bold uppercase">
+                          {ticket.customer_name || ticket.holder_name || 'Invitado'}
+                        </span>
                       </div>
-
-                      {/* Caja de Datos */}
-                      <div className="bg-black/50 border border-neutral-800/80 rounded-2xl p-4 space-y-2 text-xs">
-                        <div className="flex justify-between">
-                          <span className="text-neutral-500">TITULAR:</span>
-                          <span className="font-bold text-white">{t.holder_name}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-neutral-500">DNI:</span>
-                          <span className="text-neutral-300">{t.holder_dni}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-neutral-500">SECTOR / TANDA:</span>
-                          <span className="text-yellow-400 font-bold">{t.tier_name}</span>
-                        </div>
-                        <div className="flex justify-between items-center pt-2 border-t border-neutral-800">
-                          <span className="text-neutral-500">ESTADO DEL PASE:</span>
-                          <span
-                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase ${
-                              t.status === 'VALID'
-                                ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
-                                : t.status === 'USED'
-                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                                : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
-                            }`}
-                          >
-                            {t.status === 'VALID'
-                              ? 'VÁLIDO PARA INGRESAR'
-                              : t.status === 'USED'
-                              ? 'INGRESADO'
-                              : 'PUBLICADO EN REVENTA'}
-                          </span>
-                        </div>
+                      <div className="flex justify-between text-[11px]">
+                        <span className="text-neutral-500 uppercase">DNI:</span>
+                        <span className="text-neutral-300">
+                          {ticket.customer_dni || ticket.holder_dni || '-'}
+                        </span>
                       </div>
-
-                      {/* Acciones del Ticket */}
-                      <div className="pt-2 space-y-3">
-                        <div className="flex gap-2">
-                          <Link
-                            href={`/ticket/${t.qr_hash}`}
-                            className="flex-1 py-3 bg-neutral-800 hover:bg-neutral-700 text-white rounded-xl text-xs font-bold text-center transition-all flex items-center justify-center gap-1.5"
-                          >
-                            <span>📱</span> Ver en Pantalla Completa
-                          </Link>
-                          {t.events?.slug && (
-                            <Link
-                              href={`/events/${t.events.slug}`}
-                              className="px-4 py-3 bg-neutral-900 border border-neutral-800 hover:bg-neutral-800 text-neutral-300 rounded-xl text-xs font-semibold text-center transition-all"
-                            >
-                              Info Evento
-                            </Link>
-                          )}
-                        </div>
-
-                        {/* Módulo de Reventa si el ticket está válido */}
-                        {t.status === 'VALID' && (
-                          <div className="pt-2 border-t border-neutral-800/80">
-                            <ResaleModal
-                              ticketId={t.id}
-                              originalPrice={t.purchase_price}
-                              onSuccess={() => fetchTickets(identifier)}
-                            />
-                          </div>
-                        )}
-
-                        {t.status === 'FROZEN_RESALE' && (
-                          <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl text-center">
-                            <p className="text-xs text-yellow-400 font-mono">
-                              ⚠️ Ticket publicado en el Marketplace Oficial. Tu QR está pausado hasta que se venda o canceles la publicación.
-                            </p>
-                          </div>
-                        )}
+                      <div className="flex justify-between text-[10px] pt-1 border-t border-neutral-800">
+                        <span className="text-neutral-600">HASH:</span>
+                        <span className="text-neutral-500 truncate max-w-[160px]">{hash}</span>
                       </div>
-
                     </div>
                   </div>
+
+                  {/* Botón Apple Wallet */}
+                  <div className="mt-4 pt-4 border-t border-neutral-800">
+                    <a
+                      href={`/api/tickets/${ticket.id}/wallet`}
+                      download
+                      className="w-full flex items-center justify-center gap-2 bg-black hover:bg-neutral-950 border border-neutral-700 py-3 px-4 rounded-xl text-white font-mono text-xs font-bold transition-all shadow-md active:scale-98"
+                    >
+                      <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                        <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.61-.75 1.04-1.8 0.92-2.87-.93.04-2.03.63-2.68 1.38-.56.64-1.05 1.7-0.92 2.74 1.04.08 2.07-.5 2.68-1.25z"/>
+                      </svg>
+                      <span>Añadir a Apple Wallet</span>
+                    </a>
+                  </div>
                 </div>
-              ))
-            )}
+              );
+            })}
           </div>
         )}
       </div>

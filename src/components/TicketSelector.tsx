@@ -1,191 +1,355 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { createClient } from '@/core/supabase/client';
 
-interface TicketTier {
-  id: string;
+export interface TicketType {
   name: string;
   price: number;
-  description: string | null;
-  available_quota: number;
+  description: string;
 }
 
-interface AttendeeData {
-  firstName: string;
-  lastName: string;
-  dni: string;
-  email: string;
-}
-
-export function TicketSelector({
-  eventId,
+export default function TicketSelector({
+  event,
   ticketTypes,
 }: {
-  eventId: string;
-  ticketTypes: TicketTier[];
+  event: any;
+  ticketTypes: TicketType[];
 }) {
-  const router = useRouter();
-  const [selectedTierId, setSelectedTierId] = useState<string>(
-    ticketTypes.length > 0 ? ticketTypes[0].id : ''
+  const [selectedTier, setSelectedTier] = useState<TicketType>(
+    ticketTypes?.[0] || { name: 'General', price: 20000, description: 'Ingreso al evento' }
   );
-  const [quantity] = useState<number>(1);
-  const [attendee, setAttendee] = useState<AttendeeData>({
-    firstName: '',
-    lastName: '',
-    dni: '',
-    email: '',
-  });
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [dni, setDni] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'TRANSFER' | 'MP' | 'CARD_ASTROPAY'>('TRANSFER');
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [orderSuccess, setOrderSuccess] = useState<any | null>(null);
+  const [user, setUser] = useState<any>(null);
 
-  const activeTier = ticketTypes.find((t) => t.id === selectedTierId);
-  const unitPrice = activeTier ? Number(activeTier.price) : 0;
-  const totalPrice = unitPrice * quantity;
+  const supabase = createClient();
 
-  const handleCheckout = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedTierId || !attendee.firstName || !attendee.lastName || !attendee.dni || !attendee.email) {
-      alert('Por favor completá todos los campos.');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const res = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          eventId,
-          ticketTypeId: selectedTierId,
-          quantity,
-          attendee,
-        }),
-      });
-
-      const data = await res.json();
-      if (data.success && data.ticketCode) {
-        // Redirigir directamente al Ticket Digital del comprador
-        router.push(`/ticket/${data.ticketCode}`);
-      } else {
-        alert('Error: ' + (data.error || 'No se pudo procesar la compra'));
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data?.user) {
+        setUser(data.user);
+        setEmail(data.user.email || '');
+        setName(data.user.user_metadata?.full_name || data.user.user_metadata?.name || '');
       }
-    } catch {
-      alert('Error de conexión con la pasarela de pagos.');
+    });
+  }, []);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setReceiptFile(file);
+      setReceiptPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handlePurchase = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      if (paymentMethod === 'TRANSFER') {
+        let uploadedReceiptUrl = null;
+
+        // Si adjuntó comprobante, subirlo primero
+        if (receiptFile) {
+          const formData = new FormData();
+          formData.append('file', receiptFile);
+
+          const uploadRes = await fetch('/api/checkout/upload-receipt', {
+            method: 'POST',
+            body: formData,
+          });
+
+          const uploadData = await uploadRes.json();
+          if (uploadRes.ok && uploadData.url) {
+            uploadedReceiptUrl = uploadData.url;
+          }
+        }
+
+        const res = await fetch('/api/checkout/transfer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            eventId: event.id,
+            ticketTier: selectedTier.name,
+            amount: selectedTier.price,
+            customerName: name,
+            customerEmail: email,
+            customerDni: dni,
+            userId: user?.id || null,
+            receiptUrl: uploadedReceiptUrl,
+          }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error al procesar transferencia');
+        setOrderSuccess(data);
+
+      } else if (paymentMethod === 'MP') {
+        const res = await fetch('/api/checkout/mercadopago', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            eventId: event.id,
+            ticketTier: selectedTier.name,
+            amount: selectedTier.price,
+            customerName: name,
+            customerEmail: email,
+            customerDni: dni,
+            userId: user?.id || null,
+          }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error al conectar con Mercado Pago');
+
+        if (data.redirectUrl) {
+          window.location.href = data.redirectUrl;
+        } else {
+          alert(`Orden de Mercado Pago #${data.referenceCode} registrada.`);
+          window.location.href = '/my-tickets';
+        }
+
+      } else if (paymentMethod === 'CARD_ASTROPAY') {
+        const res = await fetch('/api/checkout/astropay', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            eventId: event.id,
+            ticketTier: selectedTier.name,
+            amount: selectedTier.price,
+            customerName: name,
+            customerEmail: email,
+            customerDni: dni,
+            userId: user?.id || null,
+          }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error al conectar con pasarela');
+
+        if (data.redirectUrl) {
+          window.location.href = data.redirectUrl;
+        } else {
+          alert(`Orden #${data.referenceCode} iniciada. En producción deriva al popup de Apple Pay.`);
+          window.location.href = '/my-tickets';
+        }
+      }
+    } catch (err: any) {
+      alert(err.message);
     } finally {
       setLoading(false);
     }
   };
 
+  if (orderSuccess) {
+    return (
+      <div className="bg-neutral-900 border border-yellow-400/40 rounded-3xl p-6 sm:p-8 space-y-6 text-center shadow-2xl">
+        <div className="w-12 h-12 bg-yellow-400/20 text-yellow-400 rounded-2xl flex items-center justify-center mx-auto text-2xl font-bold">
+          ✓
+        </div>
+
+        <div>
+          <span className="text-[10px] font-mono tracking-widest text-yellow-400 uppercase font-bold">
+            Orden #{orderSuccess.referenceCode} Registrada
+          </span>
+          <h2 className="text-2xl font-black uppercase text-white mt-1">
+            Comprobante Enviado
+          </h2>
+          <p className="text-xs font-mono text-neutral-400 mt-2">
+            Tu transferencia está en cola de verificación. Al ser confirmada, tu entrada con QR estará disponible inmediatamente.
+          </p>
+        </div>
+
+        <div className="bg-black/60 border border-neutral-800 rounded-2xl p-4 text-left font-mono space-y-2 text-xs">
+          <div className="flex justify-between border-b border-neutral-800 pb-2">
+            <span className="text-neutral-400">Monto:</span>
+            <span className="text-yellow-400 font-bold text-sm">${selectedTier.price.toLocaleString('es-AR')}</span>
+          </div>
+          <div className="flex justify-between border-b border-neutral-800 pb-2">
+            <span className="text-neutral-400">Alias CBU/CVU:</span>
+            <span className="text-white font-bold select-all">{event?.bank_alias || 'OASIS.OFICIAL.PROD'}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-neutral-400">Código Ref:</span>
+            <span className="text-amber-400 font-bold">{orderSuccess.referenceCode}</span>
+          </div>
+        </div>
+
+        <button
+          onClick={() => (window.location.href = '/my-tickets')}
+          className="w-full py-3 bg-yellow-400 hover:bg-yellow-300 text-black font-bold font-mono text-xs uppercase rounded-xl transition-all"
+        >
+          Ir a Mis Entradas →
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-6 shadow-2xl">
+    <div className="bg-neutral-900/80 border border-neutral-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl">
       <div>
-        <h3 className="text-base font-bold text-white uppercase tracking-wider">Seleccioná tu Entrada</h3>
-        <p className="text-xs text-neutral-500">Tickets digitales nominados intransferibles con QR único.</p>
+        <span className="text-[10px] font-mono tracking-widest text-amber-400 uppercase font-bold">
+          Paso 1: Seleccioná tu Tanda
+        </span>
+        <h2 className="text-xl sm:text-2xl font-black uppercase text-white mt-1">
+          Comprar Entradas
+        </h2>
       </div>
 
-      {/* Selector de Tandas */}
-      <div className="space-y-2.5">
-        {ticketTypes.map((tier) => {
-          const isSelected = tier.id === selectedTierId;
-          const isSoldOut = tier.available_quota <= 0;
-
-          return (
-            <div
-              key={tier.id}
-              onClick={() => !isSoldOut && setSelectedTierId(tier.id)}
-              className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
-                isSoldOut
-                  ? 'opacity-40 cursor-not-allowed bg-neutral-950 border-neutral-900'
-                  : isSelected
-                  ? 'bg-amber-400/10 border-amber-400 text-white shadow-lg shadow-amber-400/5'
-                  : 'bg-neutral-950 border-neutral-800 hover:border-neutral-700 text-neutral-300'
-              }`}
-            >
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-sm text-white">{tier.name}</span>
-                  {isSoldOut && (
-                    <span className="px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 text-[10px] font-bold">
-                      AGOTADO
-                    </span>
-                  )}
-                </div>
-                {tier.description && (
-                  <p className="text-xs text-neutral-400">{tier.description}</p>
-                )}
-              </div>
-
-              <div className="text-right font-mono">
-                <span className="text-base font-black text-amber-400">
-                  ${Number(tier.price).toLocaleString('es-AR')}
-                </span>
-                <span className="text-[10px] text-neutral-500 block">
-                  {tier.available_quota} disponibles
-                </span>
-              </div>
+      <div className="space-y-2">
+        {ticketTypes.map((tier) => (
+          <div
+            key={tier.name}
+            onClick={() => setSelectedTier(tier)}
+            className={`cursor-pointer p-4 rounded-2xl border transition-all flex justify-between items-center ${
+              selectedTier.name === tier.name
+                ? 'bg-yellow-400/10 border-yellow-400 text-white shadow-lg'
+                : 'bg-black/40 border-neutral-800 text-neutral-400 hover:border-neutral-700'
+            }`}
+          >
+            <div>
+              <p className="font-black uppercase text-sm text-white">{tier.name}</p>
+              <p className="text-[11px] font-mono text-neutral-400">{tier.description}</p>
             </div>
-          );
-        })}
+            <div className="text-right">
+              <span className="font-mono font-bold text-sm text-yellow-400">
+                ${tier.price.toLocaleString('es-AR')}
+              </span>
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* Formulario del Titular */}
-      <form onSubmit={handleCheckout} className="space-y-4 pt-4 border-t border-neutral-800">
-        <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-400">
-          Datos del Asistente (Ingreso con DNI)
-        </h4>
+      <div>
+        <span className="text-[10px] font-mono tracking-widest text-amber-400 uppercase font-bold block mb-2">
+          Paso 2: Método de Pago
+        </span>
+        <div className="grid grid-cols-3 gap-2">
+          <button
+            type="button"
+            onClick={() => setPaymentMethod('TRANSFER')}
+            className={`p-3 rounded-2xl border text-xs font-mono font-bold flex flex-col items-center gap-1 transition-all ${
+              paymentMethod === 'TRANSFER'
+                ? 'bg-yellow-400 text-black border-yellow-400 shadow-md'
+                : 'bg-black/40 border-neutral-800 text-neutral-400 hover:border-neutral-700'
+            }`}
+          >
+            <span className="text-base">🏦</span>
+            <span>Transferencia</span>
+          </button>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setPaymentMethod('MP')}
+            className={`p-3 rounded-2xl border text-xs font-mono font-bold flex flex-col items-center gap-1 transition-all ${
+              paymentMethod === 'MP'
+                ? 'bg-yellow-400 text-black border-yellow-400 shadow-md'
+                : 'bg-black/40 border-neutral-800 text-neutral-400 hover:border-neutral-700'
+            }`}
+          >
+            <span className="text-base">🟢</span>
+            <span>Mercado Pago</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setPaymentMethod('CARD_ASTROPAY')}
+            className={`p-3 rounded-2xl border text-xs font-mono font-bold flex flex-col items-center gap-1 transition-all ${
+              paymentMethod === 'CARD_ASTROPAY'
+                ? 'bg-yellow-400 text-black border-yellow-400 shadow-md'
+                : 'bg-black/40 border-neutral-800 text-neutral-400 hover:border-neutral-700'
+            }`}
+          >
+            <span className="text-base">🍎</span>
+            <span>Tarjetas/Apple</span>
+          </button>
+        </div>
+      </div>
+
+      {paymentMethod === 'TRANSFER' && (
+        <div className="p-4 bg-yellow-400/5 border border-yellow-400/20 rounded-2xl font-mono text-xs space-y-2">
+          <div className="flex justify-between">
+            <span className="text-neutral-400">Alias CBU/CVU:</span>
+            <span className="text-yellow-400 font-bold select-all">{event?.bank_alias || 'OASIS.OFICIAL.PROD'}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-neutral-400">Titular:</span>
+            <span className="text-white">{event?.bank_holder_name || 'OASIS Producciones S.A.'}</span>
+          </div>
+        </div>
+      )}
+
+      <form onSubmit={handlePurchase} className="space-y-3 font-mono">
+        <div>
+          <label className="text-[10px] text-neutral-400 uppercase">Nombre Completo (en DNI)</label>
           <input
             type="text"
             required
-            placeholder="Nombre"
-            value={attendee.firstName}
-            onChange={(e) => setAttendee({ ...attendee, firstName: e.target.value })}
-            className="px-3 py-2.5 rounded-xl bg-neutral-950 border border-neutral-800 text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-amber-400"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="ej: Lucas Rossi"
+            className="w-full mt-1 bg-black/60 border border-neutral-800 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none focus:border-yellow-400"
           />
+        </div>
+
+        <div>
+          <label className="text-[10px] text-neutral-400 uppercase">DNI / Documento</label>
           <input
             type="text"
             required
-            placeholder="Apellido"
-            value={attendee.lastName}
-            onChange={(e) => setAttendee({ ...attendee, lastName: e.target.value })}
-            className="px-3 py-2.5 rounded-xl bg-neutral-950 border border-neutral-800 text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-amber-400"
+            value={dni}
+            onChange={(e) => setDni(e.target.value)}
+            placeholder="ej: 40123456"
+            className="w-full mt-1 bg-black/60 border border-neutral-800 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none focus:border-yellow-400"
           />
-          <input
-            type="text"
-            required
-            placeholder="DNI (sin puntos)"
-            value={attendee.dni}
-            onChange={(e) => setAttendee({ ...attendee, dni: e.target.value })}
-            className="px-3 py-2.5 rounded-xl bg-neutral-950 border border-neutral-800 text-xs text-white font-mono placeholder:text-neutral-600 focus:outline-none focus:border-amber-400"
-          />
+        </div>
+
+        <div>
+          <label className="text-[10px] text-neutral-400 uppercase">Email de Entrega</label>
           <input
             type="email"
             required
-            placeholder="Email (para recibir el QR)"
-            value={attendee.email}
-            onChange={(e) => setAttendee({ ...attendee, email: e.target.value })}
-            className="px-3 py-2.5 rounded-xl bg-neutral-950 border border-neutral-800 text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-amber-400"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="ej: lucas@email.com"
+            className="w-full mt-1 bg-black/60 border border-neutral-800 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none focus:border-yellow-400"
           />
         </div>
 
-        {/* Resumen Total y Botón */}
-        <div className="pt-4 border-t border-neutral-800 flex items-center justify-between">
+        {paymentMethod === 'TRANSFER' && (
           <div>
-            <span className="text-[11px] text-neutral-500 uppercase tracking-wider block">Total a Pagar</span>
-            <span className="text-2xl font-black text-white font-mono">
-              ${totalPrice.toLocaleString('es-AR')}
-            </span>
+            <label className="text-[10px] text-neutral-400 uppercase block mb-1">
+              Adjuntar Comprobante de Transferencia (Captura / PDF)
+            </label>
+            <input
+              type="file"
+              accept="image/*,application/pdf"
+              onChange={handleFileChange}
+              className="w-full text-xs text-neutral-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-mono file:font-bold file:bg-neutral-800 file:text-white hover:file:bg-neutral-700 cursor-pointer"
+            />
+            {receiptPreview && (
+              <div className="mt-2 text-[10px] text-yellow-400 font-mono">
+                ✓ Comprobante listo para enviar ({receiptFile?.name})
+              </div>
+            )}
           </div>
+        )}
 
-          <button
-            type="submit"
-            disabled={loading || !selectedTierId}
-            className="px-6 py-3.5 rounded-xl bg-amber-400 hover:bg-amber-300 disabled:opacity-50 text-black font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-amber-400/10"
-          >
-            {loading ? 'Procesando...' : 'Comprar Entrada →'}
-          </button>
-        </div>
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full mt-4 py-3.5 bg-yellow-400 hover:bg-yellow-300 text-black font-black font-mono text-xs uppercase rounded-xl transition-all shadow-lg shadow-yellow-400/20 disabled:opacity-50"
+        >
+          {loading ? 'Subiendo y Procesando...' : `Confirmar Pase — $${selectedTier.price.toLocaleString('es-AR')}`}
+        </button>
       </form>
     </div>
   );

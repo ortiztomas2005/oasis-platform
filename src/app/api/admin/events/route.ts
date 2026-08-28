@@ -1,92 +1,68 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/core/supabase/admin';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const {
-      title,
-      description,
-      venueName,
-      venueAddress,
-      startTime,
-      endTime,
-      maxCapacity,
-      coverImageUrl,
-      ticketTiers, // Array de { name, price, quota, description }
-    } = body;
+    const { title, date, venue, capacity, cbuAlias, description, imageUrl } = await req.json();
 
-    if (!title || !venueName || !venueAddress || !startTime || !maxCapacity) {
-      return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
+    if (!title) {
+      return NextResponse.json({ error: 'El nombre del evento es obligatorio' }, { status: 400 });
     }
 
-    // 1. Obtener Organización base
-    const { data: orgs } = await supabaseAdmin.from('organizations').select('id').limit(1);
-    const organizationId = orgs && orgs.length > 0 ? orgs[0].id : '00000000-0000-0000-0000-000000000001';
+    // 1. Obtener primera organización si existe
+    let orgId = null;
+    try {
+      const { data: orgs } = await supabaseAdmin.from('organizations').select('id').limit(1);
+      if (orgs && orgs.length > 0) {
+        orgId = orgs[0].id;
+      }
+    } catch {
+      // Ignorar si no existe la tabla
+    }
 
     // 2. Generar slug único
-    const baseSlug = title
+    const slug = title
       .toLowerCase()
       .trim()
       .replace(/[^\w\s-]/g, '')
       .replace(/[\s_-]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-    const slug = `${baseSlug}-${Date.now().toString(36)}`;
+      .replace(/^-+|-+$/g, '') + '-' + Math.floor(1000 + Math.random() * 9000);
 
-    // 3. Insertar Evento
-    const { data: event, error: eventError } = await supabaseAdmin
+    const eventDate = date ? new Date(date).toISOString() : new Date().toISOString();
+    const eventVenue = venue || 'Ubicación Central OASIS';
+
+    // 3. Payload limpio y compatible
+    const eventPayload: Record<string, any> = {
+      title,
+      name: title,
+      slug,
+      date: eventDate,
+      start_date: eventDate,
+      venue: eventVenue,
+      venue_name: eventVenue,
+      capacity: parseInt(capacity) || 1000,
+      description: description || 'Evento Oficial producido por OASIS Platform.',
+      cbu_alias: cbuAlias || 'OASIS.OFICIAL',
+      image_url: imageUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=1200&auto=format&fit=crop',
+      status: 'ACTIVE',
+    };
+
+    if (orgId) {
+      eventPayload.organization_id = orgId;
+    }
+
+    const { data: newEvent, error } = await supabaseAdmin
       .from('events')
-      .insert({
-        organization_id: organizationId,
-        title: title.trim(),
-        slug,
-        description: description?.trim() || null,
-        venue_name: venueName.trim(),
-        venue_address: venueAddress.trim(),
-        start_time: new Date(startTime).toISOString(),
-        end_time: endTime ? new Date(endTime).toISOString() : null,
-        status: 'PUBLISHED',
-        cover_image_url: coverImageUrl || null,
-        max_capacity: parseInt(maxCapacity, 10),
-      })
+      .insert([eventPayload])
       .select()
       .single();
 
-    if (eventError) {
-      return NextResponse.json({ error: eventError.message }, { status: 500 });
-    }
+    if (error) throw error;
 
-    // 4. Insertar Tandas / Tickets
-    if (ticketTiers && Array.isArray(ticketTiers) && ticketTiers.length > 0) {
-      const now = new Date().toISOString();
-      const saleEnd = endTime ? new Date(endTime).toISOString() : new Date(new Date(startTime).getTime() + 86400000).toISOString();
-
-      const tiersPayload = ticketTiers.map((tier: any) => ({
-        organization_id: organizationId,
-        event_id: event.id,
-        name: tier.name.trim(),
-        description: tier.description?.trim() || null,
-        price: Number(tier.price || 0),
-        service_fee: 0,
-        total_quota: parseInt(tier.quota, 10) || 100,
-        available_quota: parseInt(tier.quota, 10) || 100,
-        max_per_order: 6,
-        sale_start_time: now,
-        sale_end_time: saleEnd,
-        is_visible: true,
-        is_guestlist: false,
-        version: 1,
-      }));
-
-      const { error: tiersError } = await supabaseAdmin.from('ticket_types').insert(tiersPayload);
-
-      if (tiersError) {
-        return NextResponse.json({ error: 'Evento creado pero fallaron las tandas: ' + tiersError.message }, { status: 500 });
-      }
-    }
-
-    return NextResponse.json({ success: true, event });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ success: true, event: newEvent });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

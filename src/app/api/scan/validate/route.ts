@@ -1,99 +1,88 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/core/supabase/admin';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const rawValue = body.rawValue || body.ticketCode || body.qrPayload || body.id || body.code;
+    const { code, eventId } = await req.json();
 
-    if (!rawValue) {
-      return NextResponse.json({ success: false, error: 'Código o DNI requerido' }, { status: 400 });
+    if (!code) {
+      return NextResponse.json({ error: 'Código o DNI no proporcionado' }, { status: 400 });
     }
 
-    const cleanInput = String(rawValue).trim();
+    const cleanCode = code.trim();
 
-    // Buscar en issued_tickets
-    const { data: tickets, error } = await supabaseAdmin
-      .from('issued_tickets')
-      .select('*, ticket_types(name)')
-      .or(`ticket_code.eq.${cleanInput},qr_hash.eq.${cleanInput},attendee_dni.eq.${cleanInput}`)
-      .limit(1);
+    // 1. Buscar el ticket por auth_code, qr_hash, id o DNI
+    let query = supabaseAdmin
+      .from('tickets')
+      .select('*, events(*)')
+      .or(`auth_code.eq.${cleanCode},qr_hash.eq.${cleanCode},id.eq.${cleanCode},customer_dni.eq.${cleanCode},holder_dni.eq.${cleanCode}`);
 
-    if (error || !tickets || tickets.length === 0) {
-      return NextResponse.json(
-        {
-          success: false,
-          valid: false,
-          status: 'NOT_FOUND',
-          message: 'Pase no encontrado',
-        },
-        { status: 404 }
-      );
+    if (eventId && eventId !== 'ALL') {
+      query = query.eq('event_id', eventId);
+    }
+
+    const { data: tickets, error: findError } = await query;
+
+    if (findError || !tickets || tickets.length === 0) {
+      return NextResponse.json({
+        valid: false,
+        status: 'INVALID',
+        message: 'Credencial no encontrada en la base de datos.',
+      });
     }
 
     const ticket = tickets[0];
-    const ticketTypeName = ticket.ticket_types?.name || 'General';
 
-    // Si ya fue utilizado
+    // 2. Evaluar estado
+    if (ticket.status === 'RESOLD_BURNED') {
+      return NextResponse.json({
+        valid: false,
+        status: 'RESOLD_BURNED',
+        ticket,
+        message: '¡ACCESO RECHAZADO! Esta entrada fue revendida y su código QR fue anulado.',
+      });
+    }
+
     if (ticket.status === 'USED') {
       return NextResponse.json({
-        success: false,
         valid: false,
         status: 'ALREADY_USED',
-        message: '¡PASE YA INGRESADO ANTERIORMENTE!',
-        attendee: {
-          name: `${ticket.attendee_first_name} ${ticket.attendee_last_name}`,
-          dni: ticket.attendee_dni,
-          tier: ticketTypeName,
-          usedAt: ticket.updated_at,
-        },
+        ticket,
+        scannedAt: ticket.scanned_at || ticket.updated_at,
+        message: '¡ALERTA! Esta entrada ya fue utilizada para ingresar.',
       });
     }
 
-    // Si no está en estado ISSUED
-    if (ticket.status !== 'ISSUED') {
+    if (ticket.status !== 'AVAILABLE' && ticket.status !== 'VALID') {
       return NextResponse.json({
-        success: false,
         valid: false,
-        status: 'INVALID_STATUS',
-        message: `Estado inválido: ${ticket.status}`,
+        status: ticket.status,
+        ticket,
+        message: `Estado no habilitado: ${ticket.status}`,
       });
     }
 
-    // Marcar como USED
+    // 3. Quemar ticket para marcar INGRESO VÁLIDO
     const now = new Date().toISOString();
-    const { error: updateError } = await supabaseAdmin
-      .from('issued_tickets')
+    await supabaseAdmin
+      .from('tickets')
       .update({
         status: 'USED',
+        scanned_at: now,
         updated_at: now,
       })
       .eq('id', ticket.id);
 
-    if (updateError) {
-      return NextResponse.json({ success: false, error: updateError.message }, { status: 500 });
-    }
-
     return NextResponse.json({
-      success: true,
       valid: true,
       status: 'APPROVED',
-      message: 'ACCESO AUTORIZADO',
-      ticket: {
-        id: ticket.id,
-        code: ticket.ticket_code,
-        name: `${ticket.attendee_first_name} ${ticket.attendee_last_name}`,
-        dni: ticket.attendee_dni,
-        type: ticketTypeName,
-        isCourtesy: ticket.is_courtesy,
-      },
-      attendee: {
-        name: `${ticket.attendee_first_name} ${ticket.attendee_last_name}`,
-        dni: ticket.attendee_dni,
-        tier: ticketTypeName,
-      },
+      ticket: { ...ticket, status: 'USED' },
+      scannedAt: now,
+      message: 'ACCESO AUTORIZADO - Bienvenido a OASIS.',
     });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
