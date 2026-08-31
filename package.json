@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "private": true,
 "scripts": {
-    "dev": "next dev --turbopack -H 127.0.0.1",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
-  },
+  "dev": "NODE_OPTIONS=\"--dns-result-order=ipv4first\" next dev",
+  "build": "next build",
+  "start": "next start",
+  "lint": "next lint"
+}
   "dependencies": {
     "@supabase/ssr": "^0.12.5",
     "@supabase/supabase-js": "^2.112.3",
