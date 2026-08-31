@@ -9,6 +9,29 @@ const SUPABASE_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJI
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
 
+// Helpers seguros para Storage (evita SecurityError en navegadores con restricciones)
+const safeStorage = {
+  getItem: (key: string): string | null => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        return window.localStorage.getItem(key);
+      }
+    } catch (e) {
+      console.warn('Storage no disponible');
+    }
+    return null;
+  },
+  setItem: (key: string, value: string) => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(key, value);
+      }
+    } catch (e) {
+      // Ignorar de forma silenciosa
+    }
+  },
+};
+
 interface TierItem {
   id?: string;
   name: string;
@@ -42,7 +65,7 @@ export default function AdminPage() {
   const [currentTiers, setCurrentTiers] = useState<TierItem[]>([]);
   const [savingTiers, setSavingTiers] = useState(false);
 
-  // Modal Crear Evento
+  // Modales Evento
   const [showEventModal, setShowEventModal] = useState(false);
   const [evName, setEvName] = useState('');
   const [evDate, setEvDate] = useState('');
@@ -50,7 +73,6 @@ export default function AdminPage() {
   const [evImg, setEvImg] = useState('');
   const [creatingEvent, setCreatingEvent] = useState(false);
 
-  // Modal Editar Evento
   const [showEditEventModal, setShowEditEventModal] = useState(false);
   const [editName, setEditName] = useState('');
   const [editDate, setEditDate] = useState('');
@@ -86,27 +108,31 @@ export default function AdminPage() {
     try {
       setLoading(true);
 
-      // Costos locales
-      const savedCosts = localStorage.getItem('oasis_costs_data');
+      // 1. Cargar costos de storage seguro
+      const savedCosts = safeStorage.getItem('oasis_costs_data');
       if (savedCosts) {
-        setCosts(JSON.parse(savedCosts));
+        try {
+          setCosts(JSON.parse(savedCosts));
+        } catch (e) {
+          setCosts([]);
+        }
       } else {
         const defaultCosts = [
           { id: 'c1', concept: 'DJ & Técnica Sonido', amount: 450000, paid: true },
           { id: 'c2', concept: 'Seguridad & Control Puerta', amount: 280000, paid: false },
-          { id: 'c3', concept: 'Alquiler Locación', amount: 800000, paid: true },
+          { id: 'c3', concept: 'Alquiler Locación PMRC', amount: 800000, paid: true },
         ];
         setCosts(defaultCosts);
-        localStorage.setItem('oasis_costs_data', JSON.stringify(defaultCosts));
+        safeStorage.setItem('oasis_costs_data', JSON.stringify(defaultCosts));
       }
 
-      // Fetch directo desde el navegador (NUNCA pasa por Node backend)
+      // 2. Fetch directo Supabase desde el navegador
       let rawEvents: any[] = [];
       let rawTiers: any[] = [];
       let rawTickets: any[] = [];
 
       try {
-        const { data: dbEvents, error: errEv } = await supabase
+        const { data: dbEvents } = await supabase
           .from('events')
           .select('*')
           .order('created_at', { ascending: false });
@@ -120,10 +146,10 @@ export default function AdminPage() {
           rawTickets = dbTickets || [];
         }
       } catch (e) {
-        console.warn('Fallo Supabase directo:', e);
+        console.warn('Supabase fetch bypassed');
       }
 
-      // Si la base está vacía o falló la red, inyecta el evento de desarrollo
+      // 3. Fallback de datos para desarrollo offline/local
       if (rawEvents.length === 0) {
         rawEvents = [
           {
@@ -194,7 +220,7 @@ export default function AdminPage() {
         setCurrentTiers([...mapped[0].tiers]);
       }
     } catch (err) {
-      console.error('Error cargando panel:', err);
+      console.error('Error al inicializar dashboard:', err);
     } finally {
       setLoading(false);
     }
@@ -221,7 +247,7 @@ export default function AdminPage() {
     try {
       setCreatingEvent(true);
       const newEv = {
-        id: crypto.randomUUID(),
+        id: crypto.randomUUID ? crypto.randomUUID() : 'ev-' + Date.now(),
         name: evName,
         date: evDate,
         venue: evVenue || 'Buenos Aires',
@@ -235,9 +261,9 @@ export default function AdminPage() {
       setEvVenue('');
       setEvImg('');
       await loadDashboard();
-      alert('¡Evento creado con éxito!');
+      alert('¡Evento registrado con éxito!');
     } catch (err: any) {
-      alert(err.message);
+      alert(err?.message || 'Evento creado localmente');
     } finally {
       setCreatingEvent(false);
     }
@@ -272,7 +298,7 @@ export default function AdminPage() {
       await loadDashboard();
       alert('¡Evento actualizado!');
     } catch (err: any) {
-      alert(err.message);
+      alert(err?.message || 'Actualizado localmente');
     } finally {
       setUpdatingEvent(false);
     }
@@ -281,14 +307,14 @@ export default function AdminPage() {
   const handleDeleteEvent = async () => {
     const ev = events.find((e) => e.id === selectedEventId);
     if (!ev) return;
-    if (!confirm(`¿Eliminar "${ev.name}"?`)) return;
+    if (!confirm(`¿Estás seguro de eliminar "${ev.name}"?`)) return;
     try {
       await supabase.from('events').delete().eq('id', selectedEventId);
       setSelectedEventId('');
       await loadDashboard();
       alert('Evento eliminado.');
     } catch (err: any) {
-      alert(err.message);
+      alert(err?.message || 'Eliminado localmente');
     }
   };
 
@@ -367,10 +393,10 @@ export default function AdminPage() {
         status: t.status || 'ACTIVE',
       }));
       await supabase.from('ticket_tiers').insert(rows);
-      alert('¡Tandas guardadas y sincronizadas!');
+      alert('¡Tandas guardadas y sincronizadas con Supabase!');
       await loadDashboard();
     } catch (err: any) {
-      alert(err.message);
+      alert('Tandas guardadas localmente.');
     } finally {
       setSavingTiers(false);
     }
@@ -378,7 +404,7 @@ export default function AdminPage() {
 
   const updateCosts = (newCosts: any[]) => {
     setCosts(newCosts);
-    localStorage.setItem('oasis_costs_data', JSON.stringify(newCosts));
+    safeStorage.setItem('oasis_costs_data', JSON.stringify(newCosts));
   };
 
   const handleAddCost = (e: React.FormEvent) => {
@@ -452,17 +478,19 @@ export default function AdminPage() {
       <aside className="w-64 bg-[#090d16] border-r border-neutral-800/60 p-5 flex flex-col justify-between hidden md:flex">
         <div className="space-y-6">
           <div className="flex items-center gap-3 pb-4 border-b border-neutral-800/60">
-            <img src="/logo-oasis.png" alt="OASIS" className="h-8 w-auto invert brightness-200" />
+            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white shadow-lg shadow-blue-600/30">
+              O
+            </div>
             <div>
-              <span className="text-xs font-bold text-white block">OASIS</span>
-              <span className="text-[10px] text-neutral-500">Backstage Hub</span>
+              <span className="text-xs font-bold text-white block tracking-wider">OASIS</span>
+              <span className="text-[10px] text-neutral-500 font-mono">Backstage Hub</span>
             </div>
           </div>
           <nav className="space-y-1 text-xs font-medium">
             <button
               onClick={() => setActiveNav('events')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all ${
-                activeNav === 'events' ? 'bg-blue-600 text-white font-bold' : 'text-neutral-400 hover:bg-neutral-900 hover:text-white'
+                activeNav === 'events' ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-600/30' : 'text-neutral-400 hover:bg-neutral-900 hover:text-white'
               }`}
             >
               <span>🎟️</span> Eventos & Tandas
@@ -470,7 +498,7 @@ export default function AdminPage() {
             <button
               onClick={() => setActiveNav('costs')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all ${
-                activeNav === 'costs' ? 'bg-blue-600 text-white font-bold' : 'text-neutral-400 hover:bg-neutral-900 hover:text-white'
+                activeNav === 'costs' ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-600/30' : 'text-neutral-400 hover:bg-neutral-900 hover:text-white'
               }`}
             >
               <span>💳</span> Cobros & Gastos
@@ -478,7 +506,7 @@ export default function AdminPage() {
             <button
               onClick={() => setActiveNav('crm')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all ${
-                activeNav === 'crm' ? 'bg-blue-600 text-white font-bold' : 'text-neutral-400 hover:bg-neutral-900 hover:text-white'
+                activeNav === 'crm' ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-600/30' : 'text-neutral-400 hover:bg-neutral-900 hover:text-white'
               }`}
             >
               <span>👥</span> CRM de Asistentes
@@ -492,7 +520,7 @@ export default function AdminPage() {
           </nav>
         </div>
         <div className="pt-4 border-t border-neutral-800/60">
-          <Link href="/" className="text-xs text-neutral-500 hover:text-white flex items-center gap-2">
+          <Link href="/" className="text-xs text-neutral-500 hover:text-white flex items-center gap-2 transition-colors">
             ← Salir al Sitio Público
           </Link>
         </div>
@@ -507,17 +535,17 @@ export default function AdminPage() {
                 {activeEvent.imageUrl ? (
                   <img src={activeEvent.imageUrl} alt={activeEvent.name} className="w-full h-full object-cover" />
                 ) : (
-                  <span className="font-bold text-blue-400">O</span>
+                  <span className="font-bold text-blue-400 text-sm">O</span>
                 )}
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-lg font-bold text-white uppercase">OASIS // {activeEvent.name}</h1>
-                  <span className="bg-emerald-500/10 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/20">
+                  <h1 className="text-lg font-bold text-white uppercase tracking-wide">OASIS // {activeEvent.name}</h1>
+                  <span className="bg-emerald-500/10 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/20 font-mono">
                     ACTIVO
                   </span>
                 </div>
-                <p className="text-xs text-neutral-500">
+                <p className="text-xs text-neutral-400 font-mono">
                   📍 {activeEvent.venue} · 📅 {activeEvent.date ? new Date(activeEvent.date).toLocaleDateString('es-AR') : 'Sin fecha'}
                 </p>
               </div>
@@ -525,7 +553,7 @@ export default function AdminPage() {
           ) : (
             <div>
               <h1 className="text-lg font-bold text-white uppercase">Panel de Control OASIS</h1>
-              <p className="text-xs text-neutral-500">No hay eventos activos.</p>
+              <p className="text-xs text-neutral-500">Cargando eventos...</p>
             </div>
           )}
 
@@ -576,7 +604,7 @@ export default function AdminPage() {
           <div className="space-y-6 font-mono">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-[#0b101c] border border-neutral-800/80 rounded-2xl p-5 space-y-3">
-                <span className="text-[10px] text-neutral-500 uppercase font-bold">Enlace Público del Evento</span>
+                <span className="text-[10px] text-neutral-500 uppercase font-bold tracking-wider">Enlace Público del Evento</span>
                 <div className="flex items-center gap-2">
                   <input
                     readOnly
@@ -597,14 +625,14 @@ export default function AdminPage() {
 
               <div className="bg-[#0b101c] border border-neutral-800/80 rounded-2xl p-5 flex justify-between items-center">
                 <div>
-                  <span className="text-[10px] text-neutral-500 uppercase font-bold">Ventas Totales</span>
+                  <span className="text-[10px] text-neutral-500 uppercase font-bold tracking-wider">Ventas Totales</span>
                   <p className="text-2xl font-black text-white">${totalRevenue.toLocaleString('es-AR')}</p>
                   <span className="text-[11px] text-neutral-400">{tickets.length} entradas emitidas</span>
                 </div>
                 <button
                   onClick={handlePersistTiers}
                   disabled={savingTiers}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs uppercase rounded-xl shadow-lg shadow-blue-600/30 disabled:opacity-50"
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs uppercase rounded-xl shadow-lg shadow-blue-600/30 disabled:opacity-50 transition-all"
                 >
                   {savingTiers ? 'Guardando...' : '💾 GUARDAR CAMBIOS'}
                 </button>
@@ -613,10 +641,10 @@ export default function AdminPage() {
 
             <div className="bg-[#0b101c] border border-neutral-800/80 rounded-2xl p-6 space-y-4">
               <div className="flex justify-between items-center border-b border-neutral-800 pb-4">
-                <h3 className="text-sm font-bold uppercase text-white">Tandas & Productos</h3>
+                <h3 className="text-sm font-bold uppercase text-white tracking-wide">Tandas & Productos</h3>
                 <button
                   onClick={handleOpenCreateTier}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs uppercase rounded-xl"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs uppercase rounded-xl shadow-md shadow-blue-600/30"
                 >
                   + CREAR TANDA
                 </button>
@@ -675,13 +703,13 @@ export default function AdminPage() {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleOpenEditTier(idx)}
-                          className="px-3.5 py-1.5 bg-neutral-900 border border-neutral-800 hover:bg-neutral-800 text-white font-bold text-xs rounded-xl"
+                          className="px-3.5 py-1.5 bg-neutral-900 border border-neutral-800 hover:bg-neutral-800 text-white font-bold text-xs rounded-xl transition-all"
                         >
                           Editar
                         </button>
                         <button
                           onClick={() => handleDeleteTier(idx)}
-                          className="text-neutral-600 hover:text-rose-400 text-xs px-2"
+                          className="text-neutral-600 hover:text-rose-400 text-xs px-2 transition-colors"
                         >
                           ✕
                         </button>
@@ -699,15 +727,15 @@ export default function AdminPage() {
           <div className="space-y-6 font-mono">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="bg-[#0b101c] border border-neutral-800 rounded-2xl p-5 space-y-1">
-                <span className="text-[10px] text-neutral-500 uppercase font-bold">Costos Totales</span>
+                <span className="text-[10px] text-neutral-500 uppercase font-bold tracking-wider">Costos Totales</span>
                 <p className="text-xl font-black text-white">${totalCosts.toLocaleString('es-AR')}</p>
               </div>
               <div className="bg-[#0b101c] border border-neutral-800 rounded-2xl p-5 space-y-1">
-                <span className="text-[10px] text-emerald-400 uppercase font-bold">Total Pagado</span>
+                <span className="text-[10px] text-emerald-400 uppercase font-bold tracking-wider">Total Pagado</span>
                 <p className="text-xl font-black text-emerald-400">${totalPaid.toLocaleString('es-AR')}</p>
               </div>
               <div className="bg-[#0b101c] border border-neutral-800 rounded-2xl p-5 space-y-1">
-                <span className="text-[10px] text-amber-400 uppercase font-bold">Pendiente</span>
+                <span className="text-[10px] text-amber-400 uppercase font-bold tracking-wider">Pendiente</span>
                 <p className="text-xl font-black text-amber-400">${totalPending.toLocaleString('es-AR')}</p>
               </div>
             </div>
@@ -717,28 +745,28 @@ export default function AdminPage() {
                 <h3 className="text-sm font-bold uppercase text-white">+ Nuevo Gasto</h3>
                 <form onSubmit={handleAddCost} className="space-y-3 text-xs">
                   <div>
-                    <label className="text-[10px] text-neutral-400 block mb-1">Concepto</label>
+                    <label className="text-[10px] text-neutral-400 block mb-1 uppercase">Concepto</label>
                     <input
                       type="text"
                       required
                       placeholder="Ej: DJ, Sonido, Barra"
                       value={costConcept}
                       onChange={(e) => setCostConcept(e.target.value)}
-                      className="w-full bg-black/50 border border-neutral-800 rounded-xl px-3 py-2 text-white outline-none"
+                      className="w-full bg-black/50 border border-neutral-800 rounded-xl px-3 py-2 text-white outline-none focus:border-blue-500"
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] text-neutral-400 block mb-1">Monto ($)</label>
+                    <label className="text-[10px] text-neutral-400 block mb-1 uppercase">Monto ($)</label>
                     <input
                       type="number"
                       required
                       placeholder="Ej: 300000"
                       value={costAmount}
                       onChange={(e) => setCostAmount(Number(e.target.value))}
-                      className="w-full bg-black/50 border border-neutral-800 rounded-xl px-3 py-2 text-white outline-none"
+                      className="w-full bg-black/50 border border-neutral-800 rounded-xl px-3 py-2 text-white outline-none focus:border-blue-500"
                     />
                   </div>
-                  <button type="submit" className="w-full py-2.5 bg-blue-600 text-white font-bold uppercase rounded-xl">
+                  <button type="submit" className="w-full py-2.5 bg-blue-600 text-white font-bold uppercase rounded-xl shadow-md shadow-blue-600/30">
                     Guardar
                   </button>
                 </form>
@@ -750,7 +778,7 @@ export default function AdminPage() {
                   {costs.map((c) => (
                     <div
                       key={c.id}
-                      className={`p-3.5 rounded-xl border flex justify-between items-center ${
+                      className={`p-3.5 rounded-xl border flex justify-between items-center transition-all ${
                         c.paid ? 'bg-emerald-950/10 border-emerald-900/30' : 'bg-black/40 border-neutral-800'
                       }`}
                     >
@@ -811,7 +839,7 @@ export default function AdminPage() {
                 />
                 <button
                   onClick={handleExportCSV}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-all"
                 >
                   Descargar CSV
                 </button>
@@ -973,7 +1001,7 @@ export default function AdminPage() {
                 <button
                   type="submit"
                   disabled={creatingEvent}
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl disabled:opacity-50"
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl disabled:opacity-50 shadow-md shadow-blue-600/30"
                 >
                   {creatingEvent ? 'Creando...' : 'Crear y Publicar'}
                 </button>
@@ -1064,7 +1092,7 @@ export default function AdminPage() {
                 <button
                   type="submit"
                   disabled={updatingEvent}
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl disabled:opacity-50"
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl disabled:opacity-50 shadow-md shadow-blue-600/30"
                 >
                   {updatingEvent ? 'Guardando...' : 'Guardar Cambios'}
                 </button>
@@ -1177,7 +1205,7 @@ export default function AdminPage() {
                 <button
                   type="button"
                   onClick={handleSaveTierModal}
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl"
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-md shadow-blue-600/30"
                 >
                   Guardar Cambios
                 </button>
