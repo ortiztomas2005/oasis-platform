@@ -2,11 +2,11 @@
   "name": "oasis-platform",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
-    "dev": "next dev",
+"scripts": {
+    "dev": "next dev --turbopack -H 127.0.0.1",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "next lint"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.5",

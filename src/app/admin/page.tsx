@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabase-client';
 
 interface TierItem {
   id?: string;
@@ -28,7 +29,6 @@ interface EventItem {
 export default function AdminPage() {
   const [activeNav, setActiveNav] = useState<'events' | 'crm' | 'costs'>('events');
   const [loading, setLoading] = useState(true);
-
   const [events, setEvents] = useState<EventItem[]>([]);
   const [tickets, setTickets] = useState<any[]>([]);
   const [costs, setCosts] = useState<any[]>([]);
@@ -82,6 +82,7 @@ export default function AdminPage() {
     try {
       setLoading(true);
 
+      // 1. Cargar costos de localStorage
       const savedCosts = localStorage.getItem('oasis_costs_data');
       if (savedCosts) {
         setCosts(JSON.parse(savedCosts));
@@ -95,51 +96,96 @@ export default function AdminPage() {
         localStorage.setItem('oasis_costs_data', JSON.stringify(defaultCosts));
       }
 
-      const res = await fetch('/api/admin/events-data', { cache: 'no-store' });
-      if (res.ok) {
-        const json = await res.json();
-        setTickets(json.tickets || []);
+      // 2. Obtener datos directamente desde el cliente Supabase (evita fallos de red en Node Windows)
+      let rawEvents: any[] = [];
+      let rawTiers: any[] = [];
+      let rawTickets: any[] = [];
 
-        const mapped: EventItem[] = (json.events || []).map((e: any) => {
-          const rawTiers = (json.tiers || []).filter((t: any) => t.event_id === e.id);
-          const mappedTiers: TierItem[] = rawTiers.map((t: any) => ({
-            id: t.id,
-            name: t.name,
-            description: t.description || '',
-            price: Number(t.price),
-            capacity: Number(t.total_capacity || t.capacity || 100),
-            maxPerBuy: 10,
-            visible: t.status !== 'PAUSED',
-            isSoldOut: t.status === 'SOLD_OUT',
-            status: t.status || 'ACTIVE',
-          }));
+      try {
+        const { data: dbEvents } = await supabase
+          .from('events')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-          return {
-            id: e.id,
-            name: e.name || e.title,
-            date: e.date,
-            venue: e.venue || 'Buenos Aires',
-            imageUrl: e.image_url || '',
-            slug: e.slug || e.id,
-            tiers: mappedTiers.length > 0 ? mappedTiers : [
-              { name: 'Early Bird', price: 12000, capacity: 100, visible: true, isSoldOut: false, status: 'ACTIVE' },
-              { name: 'General T1', price: 15000, capacity: 250, visible: true, isSoldOut: false, status: 'ACTIVE' },
-            ],
-          };
-        });
+        const { data: dbTiers } = await supabase
+          .from('ticket_tiers')
+          .select('*');
 
-        setEvents(mapped);
-        if (mapped.length > 0) {
-          const current = selectedEventId ? mapped.find((m) => m.id === selectedEventId) || mapped[0] : mapped[0];
-          setSelectedEventId(current.id);
-          setCurrentTiers([...current.tiers]);
-        } else {
-          setSelectedEventId('');
-          setCurrentTiers([]);
+        const { data: dbTickets } = await supabase
+          .from('tickets')
+          .select('*');
+
+        if (dbEvents && dbEvents.length > 0) {
+          rawEvents = dbEvents;
+          rawTiers = dbTiers || [];
+          rawTickets = dbTickets || [];
+        }
+      } catch (clientErr) {
+        console.warn('Fallo Supabase directo, probando API Route...', clientErr);
+      }
+
+      // Fallback a la API route local si el cliente directo no trajo eventos
+      if (rawEvents.length === 0) {
+        try {
+          const res = await fetch('/api/admin/events-data', { cache: 'no-store' });
+          if (res.ok) {
+            const json = await res.json();
+            rawEvents = json.events || [];
+            rawTiers = json.tiers || [];
+            rawTickets = json.tickets || [];
+          }
+        } catch (apiErr) {
+          console.error('Fallo API local:', apiErr);
         }
       }
+
+      setTickets(rawTickets);
+
+      const mapped: EventItem[] = rawEvents.map((e: any) => {
+        const matchingTiers = rawTiers.filter((t: any) => t.event_id === e.id);
+        const mappedTiers: TierItem[] = matchingTiers.map((t: any) => ({
+          id: t.id,
+          name: t.name,
+          description: t.description || '',
+          price: Number(t.price),
+          capacity: Number(t.total_capacity || t.capacity || 100),
+          maxPerBuy: 10,
+          visible: t.status !== 'PAUSED',
+          isSoldOut: t.status === 'SOLD_OUT',
+          status: t.status || 'ACTIVE',
+        }));
+
+        return {
+          id: e.id,
+          name: e.name || e.title,
+          date: e.date,
+          venue: e.venue || 'Buenos Aires',
+          imageUrl: e.image_url || '',
+          slug: e.slug || e.id,
+          tiers:
+            mappedTiers.length > 0
+              ? mappedTiers
+              : [
+                  { name: 'Early Bird', price: 12000, capacity: 100, visible: true, isSoldOut: false, status: 'ACTIVE' },
+                  { name: 'General T1', price: 15000, capacity: 250, visible: true, isSoldOut: false, status: 'ACTIVE' },
+                ],
+        };
+      });
+
+      setEvents(mapped);
+
+      if (mapped.length > 0) {
+        const current = selectedEventId
+          ? mapped.find((m) => m.id === selectedEventId) || mapped[0]
+          : mapped[0];
+        setSelectedEventId(current.id);
+        setCurrentTiers([...current.tiers]);
+      } else {
+        setSelectedEventId('');
+        setCurrentTiers([]);
+      }
     } catch (err) {
-      console.error(err);
+      console.error('Error general cargando panel:', err);
     } finally {
       setLoading(false);
     }
@@ -151,7 +197,10 @@ export default function AdminPage() {
     if (ev) setCurrentTiers([...ev.tiers]);
   };
 
-  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>, setter: (val: string) => void) => {
+  const handleImageFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    setter: (val: string) => void
+  ) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
@@ -165,7 +214,6 @@ export default function AdminPage() {
   const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!evName || !evDate) return;
-
     try {
       setCreatingEvent(true);
       const res = await fetch('/api/admin/create-event', {
@@ -186,7 +234,7 @@ export default function AdminPage() {
         setEvImg('');
         setShowEventModal(false);
         await loadDashboard();
-        alert('✅ ¡Evento creado con éxito!');
+        alert('¡Evento creado con éxito!');
       } else {
         alert('Error al crear el evento');
       }
@@ -210,10 +258,9 @@ export default function AdminPage() {
   const handleSaveEditEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedEventId || selectedEventId === 'undefined') {
-      alert('Seleccioná un evento válido antes de editar.');
+      alert('Selecciona un evento válido antes de editar.');
       return;
     }
-
     try {
       setUpdatingEvent(true);
       const res = await fetch(`/api/admin/events/${selectedEventId}`, {
@@ -226,12 +273,11 @@ export default function AdminPage() {
           imageUrl: editImg,
         }),
       });
-
       const data = await res.json();
       if (res.ok && data.success) {
         setShowEditEventModal(false);
         await loadDashboard();
-        alert('✅ ¡Evento y portada actualizados!');
+        alert('¡Evento y portada actualizados!');
       } else {
         alert(data.error || 'Error al actualizar evento');
       }
@@ -252,10 +298,9 @@ export default function AdminPage() {
       const res = await fetch(`/api/admin/events/${selectedEventId}`, {
         method: 'DELETE',
       });
-
       const data = await res.json();
       if (res.ok && data.success) {
-        alert('🗑️ Evento eliminado con éxito.');
+        alert('Evento eliminado con éxito.');
         setSelectedEventId('');
         await loadDashboard();
       } else {
@@ -270,7 +315,6 @@ export default function AdminPage() {
     const newTiers = [...currentTiers];
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= newTiers.length) return;
-
     const [moved] = newTiers.splice(index, 1);
     newTiers.splice(targetIndex, 0, moved);
     setCurrentTiers(newTiers);
@@ -303,7 +347,6 @@ export default function AdminPage() {
 
   const handleSaveTierModal = () => {
     if (!tierName.trim()) return;
-
     const updatedTier: TierItem = {
       name: tierName.trim(),
       description: tierDesc,
@@ -321,7 +364,6 @@ export default function AdminPage() {
     } else {
       nextTiers.push(updatedTier);
     }
-
     setCurrentTiers(nextTiers);
     setShowTierModal(false);
   };
@@ -343,11 +385,14 @@ export default function AdminPage() {
           tiers: currentTiers,
         }),
       });
-
       const json = await res.json();
       if (res.ok && json.success) {
-        setEvents(events.map((ev) => (ev.id === selectedEventId ? { ...ev, tiers: currentTiers } : ev)));
-        alert('✅ ¡Tandas guardadas y sincronizadas con el checkout!');
+        setEvents(
+          events.map((ev) =>
+            ev.id === selectedEventId ? { ...ev, tiers: currentTiers } : ev
+          )
+        );
+        alert('¡Tandas guardadas y sincronizadas con el checkout!');
       } else {
         alert(json.error || 'Error al guardar');
       }
@@ -366,7 +411,15 @@ export default function AdminPage() {
   const handleAddCost = (e: React.FormEvent) => {
     e.preventDefault();
     if (!costConcept.trim() || !costAmount) return;
-    updateCosts([...costs, { id: 'c-' + Date.now(), concept: costConcept.trim(), amount: Number(costAmount), paid: false }]);
+    updateCosts([
+      ...costs,
+      {
+        id: 'c-' + Date.now(),
+        concept: costConcept.trim(),
+        amount: Number(costAmount),
+        paid: false,
+      },
+    ]);
     setCostConcept('');
     setCostAmount('');
   };
@@ -393,6 +446,7 @@ export default function AdminPage() {
         t.auth_code || t.qr_hash || t.id,
       ]),
     ];
+
     const encodedUri = encodeURI('data:text/csv;charset=utf-8,' + rows.map((e) => e.join(',')).join('\n'));
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
@@ -421,7 +475,6 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-[#06080e] text-white flex font-sans antialiased">
-      
       {/* SIDEBAR */}
       <aside className="w-64 bg-[#090d16] border-r border-neutral-800/60 p-5 flex flex-col justify-between hidden md:flex">
         <div className="space-y-6">
@@ -432,20 +485,23 @@ export default function AdminPage() {
               <span className="text-[10px] text-neutral-500">Backstage Hub</span>
             </div>
           </div>
-
           <nav className="space-y-1 text-xs font-medium">
             <button
               onClick={() => setActiveNav('events')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all ${
-                activeNav === 'events' ? 'bg-blue-600 text-white font-bold' : 'text-neutral-400 hover:bg-neutral-900 hover:text-white'
+                activeNav === 'events'
+                  ? 'bg-blue-600 text-white font-bold'
+                  : 'text-neutral-400 hover:bg-neutral-900 hover:text-white'
               }`}
             >
-              <span>📅</span> Eventos & Tandas
+              <span>🎟️</span> Eventos & Tandas
             </button>
             <button
               onClick={() => setActiveNav('costs')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all ${
-                activeNav === 'costs' ? 'bg-blue-600 text-white font-bold' : 'text-neutral-400 hover:bg-neutral-900 hover:text-white'
+                activeNav === 'costs'
+                  ? 'bg-blue-600 text-white font-bold'
+                  : 'text-neutral-400 hover:bg-neutral-900 hover:text-white'
               }`}
             >
               <span>💳</span> Cobros & Gastos
@@ -453,7 +509,9 @@ export default function AdminPage() {
             <button
               onClick={() => setActiveNav('crm')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all ${
-                activeNav === 'crm' ? 'bg-blue-600 text-white font-bold' : 'text-neutral-400 hover:bg-neutral-900 hover:text-white'
+                activeNav === 'crm'
+                  ? 'bg-blue-600 text-white font-bold'
+                  : 'text-neutral-400 hover:bg-neutral-900 hover:text-white'
               }`}
             >
               <span>👥</span> CRM de Asistentes
@@ -466,7 +524,6 @@ export default function AdminPage() {
             </Link>
           </nav>
         </div>
-
         <div className="pt-4 border-t border-neutral-800/60">
           <Link href="/" className="text-xs text-neutral-500 hover:text-white flex items-center gap-2">
             ← Salir al Sitio Público
@@ -476,7 +533,6 @@ export default function AdminPage() {
 
       {/* CONTENIDO PRINCIPAL */}
       <main className="flex-1 min-w-0 bg-[#06080e] p-6 lg:p-10 space-y-6">
-        
         {/* HEADER EVENTO ACTIVO + ACCIONES */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-neutral-800/60 pb-6">
           {activeEvent ? (
@@ -495,7 +551,9 @@ export default function AdminPage() {
                     ACTIVO
                   </span>
                 </div>
-                <p className="text-xs text-neutral-500">📍 {activeEvent.venue} • 📅 {activeEvent.date ? new Date(activeEvent.date).toLocaleDateString('es-AR') : 'Sin fecha'}</p>
+                <p className="text-xs text-neutral-500">
+                  📍 {activeEvent.venue} · 📅 {activeEvent.date ? new Date(activeEvent.date).toLocaleDateString('es-AR') : 'Sin fecha'}
+                </p>
               </div>
             </div>
           ) : (
@@ -513,7 +571,9 @@ export default function AdminPage() {
                 className="bg-[#0b101c] border border-neutral-800 rounded-xl px-3 py-2 text-xs text-white outline-none font-mono"
               >
                 {events.map((ev) => (
-                  <option key={ev.id} value={ev.id}>{ev.name}</option>
+                  <option key={ev.id} value={ev.id}>
+                    {ev.name}
+                  </option>
                 ))}
               </select>
             )}
@@ -540,12 +600,12 @@ export default function AdminPage() {
               onClick={() => setShowEventModal(true)}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs uppercase rounded-xl transition-all shadow-md shadow-blue-600/30"
             >
-              + Nuevo Evento
+              + NUEVO EVENTO
             </button>
           </div>
         </div>
 
-        {/* 1. SECCIÓN DE TANDAS */}
+        {/* 1. SECCION DE TANDAS */}
         {activeNav === 'events' && (
           <div className="space-y-6 font-mono">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -554,7 +614,7 @@ export default function AdminPage() {
                 <div className="flex items-center gap-2">
                   <input
                     readOnly
-                    value={`http://localhost:3000/events/${activeEvent?.slug || activeEvent?.id}`}
+                    value={`http://localhost:3000/events/${activeEvent?.slug || activeEvent?.id || ''}`}
                     className="w-full bg-black/50 border border-neutral-800 rounded-xl px-3 py-2 text-xs text-neutral-300 outline-none"
                   />
                   <button
@@ -580,7 +640,7 @@ export default function AdminPage() {
                   disabled={savingTiers}
                   className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs uppercase rounded-xl shadow-lg shadow-blue-600/30 disabled:opacity-50"
                 >
-                  {savingTiers ? 'Guardando...' : '💾 Guardar Cambios'}
+                  {savingTiers ? 'Guardando...' : '💾 GUARDAR CAMBIOS'}
                 </button>
               </div>
             </div>
@@ -592,7 +652,7 @@ export default function AdminPage() {
                   onClick={handleOpenCreateTier}
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs uppercase rounded-xl"
                 >
-                  + Crear Tanda
+                  + CREAR TANDA
                 </button>
               </div>
 
@@ -626,7 +686,6 @@ export default function AdminPage() {
                             ▼
                           </button>
                         </div>
-
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="font-bold text-white text-sm uppercase">{t.name}</span>
@@ -639,15 +698,14 @@ export default function AdminPage() {
                                   : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
                               }`}
                             >
-                              {!t.visible ? '⚪ OCULTA' : t.isSoldOut ? '🔴 SOLD OUT' : '🟢 ACTIVA'}
+                              {!t.visible ? 'OCULTA' : t.isSoldOut ? 'SOLD OUT' : 'ACTIVA'}
                             </span>
                           </div>
                           <p className="text-[11px] text-neutral-500">
-                            ${t.price.toLocaleString('es-AR')} • Stock: {t.capacity} disponibles
+                            ${t.price.toLocaleString('es-AR')} · Stock: {t.capacity} disponibles
                           </p>
                         </div>
                       </div>
-
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleOpenEditTier(idx)}
@@ -679,11 +737,11 @@ export default function AdminPage() {
                 <p className="text-xl font-black text-white">${totalCosts.toLocaleString('es-AR')}</p>
               </div>
               <div className="bg-[#0b101c] border border-neutral-800 rounded-2xl p-5 space-y-1">
-                <span className="text-[10px] text-emerald-400 uppercase font-bold">✓ Total Pagado</span>
+                <span className="text-[10px] text-emerald-400 uppercase font-bold">Total Pagado</span>
                 <p className="text-xl font-black text-emerald-400">${totalPaid.toLocaleString('es-AR')}</p>
               </div>
               <div className="bg-[#0b101c] border border-neutral-800 rounded-2xl p-5 space-y-1">
-                <span className="text-[10px] text-amber-400 uppercase font-bold">⏳ Pendiente</span>
+                <span className="text-[10px] text-amber-400 uppercase font-bold">Pendiente</span>
                 <p className="text-xl font-black text-amber-400">${totalPending.toLocaleString('es-AR')}</p>
               </div>
             </div>
@@ -765,7 +823,6 @@ export default function AdminPage() {
                 <h3 className="text-sm font-bold uppercase text-white">CRM de Asistentes</h3>
                 <span className="text-xs text-neutral-400">Mostrando {filteredTickets.length} entradas</span>
               </div>
-
               <div className="flex flex-wrap gap-2 text-xs">
                 <select
                   value={selectedEventFilter}
@@ -774,10 +831,11 @@ export default function AdminPage() {
                 >
                   <option value="ALL">Todos los Eventos</option>
                   {events.map((e) => (
-                    <option key={e.id} value={e.id}>{e.name}</option>
+                    <option key={e.id} value={e.id}>
+                      {e.name}
+                    </option>
                   ))}
                 </select>
-
                 <input
                   type="text"
                   placeholder="Buscar por nombre o DNI..."
@@ -785,7 +843,6 @@ export default function AdminPage() {
                   onChange={(e) => setCrmSearch(e.target.value)}
                   className="bg-black/50 border border-neutral-800 rounded-xl px-3 py-2 text-xs text-white outline-none"
                 />
-
                 <button
                   onClick={handleExportCSV}
                   className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl"
@@ -809,7 +866,7 @@ export default function AdminPage() {
                 </thead>
                 <tbody className="divide-y divide-neutral-800/40">
                   {filteredTickets.map((t: any) => {
-                    const ticketName = t.customer_name || t.holder_name || 'Titular';
+                    const ticketName = t.customer_name || t.holder_name || 'Sin nombre';
                     const ticketHash = t.auth_code || t.qr_hash || t.id;
                     const ticketEmail = t.customer_email || t.holder_email || '';
                     const whatsappMsg = encodeURIComponent(
@@ -823,10 +880,14 @@ export default function AdminPage() {
                         <td className="py-3 text-neutral-400">{ticketEmail}</td>
                         <td className="py-3 uppercase text-white font-bold">{t.tier_name || 'General'}</td>
                         <td className="py-3">
-                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
-                            t.status === 'AVAILABLE' || t.status === 'VALID' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-neutral-800 text-neutral-400'
-                          }`}>
-                            {t.status}
+                          <span
+                            className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
+                              t.status === 'AVAILABLE' || t.status === 'VALID'
+                                ? 'bg-emerald-500/10 text-emerald-400'
+                                : 'bg-neutral-800 text-neutral-400'
+                            }`}
+                          >
+                            {t.status || 'ACTIVE'}
                           </span>
                         </td>
                         <td className="py-3 text-right">
@@ -861,7 +922,6 @@ export default function AdminPage() {
             </div>
           </div>
         )}
-
       </main>
 
       {/* MODAL CREAR NUEVO EVENTO */}
@@ -870,9 +930,10 @@ export default function AdminPage() {
           <div className="bg-[#0e1320] border border-neutral-800 rounded-3xl max-w-lg w-full p-6 space-y-5 font-mono max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-neutral-800 pb-3">
               <h3 className="text-sm font-bold uppercase text-white">+ Registrar Nuevo Evento</h3>
-              <button onClick={() => setShowEventModal(false)} className="text-neutral-500 hover:text-white">✕</button>
+              <button onClick={() => setShowEventModal(false)} className="text-neutral-500 hover:text-white">
+                ✕
+              </button>
             </div>
-
             <form onSubmit={handleCreateEvent} className="space-y-4 text-xs">
               <div>
                 <label className="text-[10px] uppercase text-neutral-400 block mb-1">Nombre del Evento</label>
@@ -885,7 +946,6 @@ export default function AdminPage() {
                   className="w-full bg-black/50 border border-neutral-800 rounded-xl px-3 py-2 text-white outline-none focus:border-blue-500 uppercase"
                 />
               </div>
-
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[10px] uppercase text-neutral-400 block mb-1">Fecha</label>
@@ -908,10 +968,8 @@ export default function AdminPage() {
                   />
                 </div>
               </div>
-
               <div className="space-y-2">
                 <label className="text-[10px] uppercase text-neutral-400 block">Portada / Flyer del Evento</label>
-                
                 <div className="border border-dashed border-neutral-700 hover:border-blue-500 rounded-2xl p-4 text-center cursor-pointer relative bg-black/30">
                   <input
                     type="file"
@@ -920,12 +978,11 @@ export default function AdminPage() {
                     className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                   />
                   <div className="space-y-1 pointer-events-none">
-                    <span className="text-xl block">📁</span>
+                    <span className="text-xl block">📷</span>
                     <p className="font-bold text-white text-[11px]">Hacé clic o arrastrá tu imagen acá</p>
                     <p className="text-[9px] text-neutral-500">JPG, PNG o WebP desde tu computadora</p>
                   </div>
                 </div>
-
                 {evImg && (
                   <div className="aspect-video w-full rounded-xl overflow-hidden bg-black/50 border border-neutral-800 relative">
                     <img src={evImg} alt="Preview Flyer" className="w-full h-full object-cover" />
@@ -939,7 +996,6 @@ export default function AdminPage() {
                   </div>
                 )}
               </div>
-
               <div className="pt-2 flex justify-end gap-2">
                 <button
                   type="button"
@@ -966,10 +1022,11 @@ export default function AdminPage() {
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-[#0e1320] border border-neutral-800 rounded-3xl max-w-lg w-full p-6 space-y-5 font-mono max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-neutral-800 pb-3">
-              <h3 className="text-sm font-bold uppercase text-white">✏️ Editar Evento</h3>
-              <button onClick={() => setShowEditEventModal(false)} className="text-neutral-500 hover:text-white">✕</button>
+              <h3 className="text-sm font-bold uppercase text-white">Editar Evento</h3>
+              <button onClick={() => setShowEditEventModal(false)} className="text-neutral-500 hover:text-white">
+                ✕
+              </button>
             </div>
-
             <form onSubmit={handleSaveEditEvent} className="space-y-4 text-xs">
               <div>
                 <label className="text-[10px] uppercase text-neutral-400 block mb-1">Nombre del Evento</label>
@@ -981,7 +1038,6 @@ export default function AdminPage() {
                   className="w-full bg-black/50 border border-neutral-800 rounded-xl px-3 py-2 text-white outline-none focus:border-blue-500 uppercase font-bold"
                 />
               </div>
-
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[10px] uppercase text-neutral-400 block mb-1">Fecha</label>
@@ -1003,10 +1059,8 @@ export default function AdminPage() {
                   />
                 </div>
               </div>
-
               <div className="space-y-2">
                 <label className="text-[10px] uppercase text-neutral-400 block">Actualizar Portada / Flyer</label>
-                
                 <div className="border border-dashed border-neutral-700 hover:border-blue-500 rounded-2xl p-4 text-center cursor-pointer relative bg-black/30">
                   <input
                     type="file"
@@ -1015,12 +1069,11 @@ export default function AdminPage() {
                     className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                   />
                   <div className="space-y-1 pointer-events-none">
-                    <span className="text-xl block">📁</span>
+                    <span className="text-xl block">📷</span>
                     <p className="font-bold text-white text-[11px]">Elegir nueva foto de tu PC</p>
                     <p className="text-[9px] text-neutral-500">Reemplaza la portada actual</p>
                   </div>
                 </div>
-
                 {editImg && (
                   <div className="aspect-video w-full rounded-xl overflow-hidden bg-black/50 border border-neutral-800 relative">
                     <img src={editImg} alt="Preview Flyer" className="w-full h-full object-cover" />
@@ -1034,7 +1087,6 @@ export default function AdminPage() {
                   </div>
                 )}
               </div>
-
               <div className="pt-2 flex justify-end gap-2">
                 <button
                   type="button"
@@ -1064,9 +1116,10 @@ export default function AdminPage() {
               <h3 className="text-sm font-bold uppercase text-white">
                 {editingTierIndex !== null ? 'Editar Producto / Tanda' : 'Nueva Tanda'}
               </h3>
-              <button onClick={() => setShowTierModal(false)} className="text-neutral-500 hover:text-white">✕</button>
+              <button onClick={() => setShowTierModal(false)} className="text-neutral-500 hover:text-white">
+                ✕
+              </button>
             </div>
-
             <div className="space-y-4 text-xs">
               <div>
                 <label className="text-[10px] uppercase text-neutral-400 block mb-1">Nombre</label>
@@ -1078,7 +1131,6 @@ export default function AdminPage() {
                   className="w-full bg-black/50 border border-neutral-800 rounded-xl px-3 py-2 text-white outline-none focus:border-blue-500"
                 />
               </div>
-
               <div>
                 <label className="text-[10px] uppercase text-neutral-400 block mb-1">Descripción (Opcional)</label>
                 <input
@@ -1089,7 +1141,6 @@ export default function AdminPage() {
                   className="w-full bg-black/50 border border-neutral-800 rounded-xl px-3 py-2 text-white outline-none focus:border-blue-500"
                 />
               </div>
-
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[10px] uppercase text-neutral-400 block mb-1">Stock Inicial</label>
@@ -1110,7 +1161,6 @@ export default function AdminPage() {
                   />
                 </div>
               </div>
-
               <div>
                 <label className="text-[10px] uppercase text-neutral-400 block mb-1">Precio ($)</label>
                 <div className="flex items-center gap-2">
@@ -1123,10 +1173,8 @@ export default function AdminPage() {
                   />
                 </div>
               </div>
-
               <div className="pt-3 border-t border-neutral-800 space-y-3">
                 <span className="text-[10px] uppercase font-bold text-neutral-400 block">Visibilidad</span>
-
                 <div className="flex items-center justify-between p-3 rounded-xl bg-black/40 border border-neutral-800">
                   <div>
                     <p className="font-bold text-white">Visible para compradores</p>
@@ -1139,7 +1187,6 @@ export default function AdminPage() {
                     className="w-5 h-5 accent-blue-600 rounded cursor-pointer"
                   />
                 </div>
-
                 <div className="flex items-center justify-between p-3 rounded-xl bg-black/40 border border-neutral-800">
                   <div>
                     <p className="font-bold text-white">Sold out</p>
@@ -1153,7 +1200,6 @@ export default function AdminPage() {
                   />
                 </div>
               </div>
-
               <div className="pt-2 flex justify-end gap-2">
                 <button
                   type="button"
@@ -1181,9 +1227,10 @@ export default function AdminPage() {
           <div className="bg-[#0e1320] border border-neutral-800 rounded-3xl max-w-sm w-full p-6 text-center space-y-4 font-mono">
             <div className="flex justify-between items-center border-b border-neutral-800 pb-2">
               <span className="text-xs font-bold text-blue-400 uppercase">Credencial Digital</span>
-              <button onClick={() => setSelectedTicketModal(null)} className="text-neutral-500 hover:text-white">✕</button>
+              <button onClick={() => setSelectedTicketModal(null)} className="text-neutral-500 hover:text-white">
+                ✕
+              </button>
             </div>
-
             <div className="bg-white rounded-2xl p-4 w-44 h-44 mx-auto flex items-center justify-center shadow-lg">
               <img
                 src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
@@ -1193,7 +1240,6 @@ export default function AdminPage() {
                 className="w-full h-full object-contain"
               />
             </div>
-
             <div className="text-xs space-y-1">
               <p className="font-bold text-white uppercase">
                 {selectedTicketModal.customer_name || selectedTicketModal.holder_name}
@@ -1208,7 +1254,6 @@ export default function AdminPage() {
           </div>
         </div>
       )}
-
     </div>
   );
 }
