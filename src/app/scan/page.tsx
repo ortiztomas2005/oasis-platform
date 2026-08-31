@@ -3,361 +3,196 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 
-export default function DoorScannerPage() {
-  const [events, setEvents] = useState<any[]>([]);
-  const [selectedEventId, setSelectedEventId] = useState<string>('ALL');
-  const [manualCode, setManualCode] = useState('');
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [scanResult, setScanResult] = useState<any | null>(null);
-  const [scannedHistory, setScannedHistory] = useState<any[]>([]);
-  
-  // Estado de la cámara
-  const [isCameraActive, setIsCameraActive] = useState(false);
-  const [cameraError, setCameraError] = useState<string | null>(null);
-  const html5QrCodeRef = useRef<any>(null);
-  const lastScannedCodeRef = useRef<string>('');
-  const scanLockRef = useRef<boolean>(false);
+export default function ScanPage() {
+  const [authCode, setAuthCode] = useState('');
+  const [scanning, setScanning] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  const [cameraActive, setCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState('');
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  // Iniciar Cámara Web / Celular
+  const startCamera = async () => {
+    setCameraError('');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+      });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+        setCameraActive(true);
+      }
+    } catch (err: any) {
+      setCameraError('No se pudo acceder a la cámara. Verificá los permisos del navegador.');
+      setCameraActive(false);
+    }
+  };
+
+  // Detener Cámara al salir
+  const stopCamera = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach((track) => track.stop());
+      videoRef.current.srcObject = null;
+      setCameraActive(false);
+    }
+  };
 
   useEffect(() => {
-    fetchEvents();
     return () => {
       stopCamera();
     };
   }, []);
 
-  const fetchEvents = async () => {
-    try {
-      const res = await fetch('/api/admin/events-data');
-      if (res.ok) {
-        const data = await res.json();
-        setEvents(data.events || []);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const playFeedbackSound = (type: 'SUCCESS' | 'ERROR') => {
-    try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-
-      if (type === 'SUCCESS') {
-        osc.frequency.setValueAtTime(800, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.15);
-        gain.gain.setValueAtTime(0.3, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.2);
-      } else {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(220, ctx.currentTime);
-        osc.frequency.setValueAtTime(140, ctx.currentTime + 0.15);
-        gain.gain.setValueAtTime(0.4, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.35);
-      }
-    } catch {
-      // Ignorar restricciones de audio del navegador
-    }
-  };
-
-  const handleValidateCode = async (codeToVerify: string) => {
-    if (!codeToVerify.trim() || scanLockRef.current) return;
-    scanLockRef.current = true;
-    setIsVerifying(true);
+  const handleValidate = async (codeToValidate?: string) => {
+    const code = codeToValidate || authCode.trim();
+    if (!code) return;
 
     try {
+      setScanning(true);
+      setResult(null);
       const res = await fetch('/api/scan/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          code: codeToVerify.trim(),
-          eventId: selectedEventId,
-        }),
+        body: JSON.stringify({ authCode: code }),
       });
 
       const data = await res.json();
-      setScanResult(data);
-
+      setResult(data);
       if (data.valid) {
-        playFeedbackSound('SUCCESS');
-        setScannedHistory((prev) => [
-          {
-            id: data.ticket?.id || Date.now(),
-            name: data.ticket?.customer_name || data.ticket?.holder_name || 'Asistente',
-            dni: data.ticket?.customer_dni || data.ticket?.holder_dni || '-',
-            tier: data.ticket?.tier_name || 'GENERAL',
-            time: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-            status: 'APPROVED',
-          },
-          ...prev,
-        ]);
-      } else {
-        playFeedbackSound('ERROR');
+        setAuthCode('');
       }
-
-      setManualCode('');
     } catch (err: any) {
-      playFeedbackSound('ERROR');
-      setScanResult({
-        valid: false,
-        status: 'ERROR',
-        message: err.message || 'Error de conexión con el servidor',
-      });
+      setResult({ valid: false, message: err.message || 'Error de conexión' });
     } finally {
-      setIsVerifying(false);
-      // Pausa de 2 segundos antes de volver a leer el mismo QR por cámara
-      setTimeout(() => {
-        scanLockRef.current = false;
-      }, 2000);
-    }
-  };
-
-  // Iniciar Cámara con html5-qrcode
-  const startCamera = async () => {
-    try {
-      setCameraError(null);
-      const { Html5Qrcode } = await import('html5-qrcode');
-      
-      if (!html5QrCodeRef.current) {
-        html5QrCodeRef.current = new Html5Qrcode('qr-reader-container');
-      }
-
-      await html5QrCodeRef.current.start(
-        { facingMode: 'environment' },
-        {
-          fps: 15,
-          qrbox: { width: 250, height: 250 },
-          aspectRatio: 1.0,
-        },
-        (decodedText: string) => {
-          if (decodedText && decodedText !== lastScannedCodeRef.current && !scanLockRef.current) {
-            lastScannedCodeRef.current = decodedText;
-            handleValidateCode(decodedText);
-          }
-        },
-        (error: any) => {
-          // Ignorar frames sin QR
-        }
-      );
-
-      setIsCameraActive(true);
-    } catch (err: any) {
-      console.error(err);
-      setCameraError('No se pudo acceder a la cámara. Verificá los permisos del navegador.');
-      setIsCameraActive(false);
-    }
-  };
-
-  // Detener Cámara
-  const stopCamera = async () => {
-    try {
-      if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
-        await html5QrCodeRef.current.stop();
-        html5QrCodeRef.current.clear();
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsCameraActive(false);
+      setScanning(false);
     }
   };
 
   return (
-    <main className="min-h-screen bg-black text-white font-sans p-4 sm:p-6 select-none selection:bg-yellow-400 selection:text-black">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <main className="min-h-screen bg-[#06080e] text-white font-mono antialiased">
+      {/* NAVBAR */}
+      <header className="border-b border-neutral-800/80 bg-[#090d16]/90 backdrop-blur-xl sticky top-0 z-50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-8 h-20 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-3">
+            <img src="/logo-oasis.png" alt="OASIS" className="h-8 w-auto invert brightness-200" />
+            <span className="text-xs text-blue-400 font-bold uppercase tracking-widest border-l border-neutral-800 pl-3">
+              Control de Acceso Puerta
+            </span>
+          </Link>
+          <Link
+            href="/admin"
+            className="px-3.5 py-1.5 rounded-xl border border-neutral-800 bg-neutral-900 text-neutral-300 text-xs hover:text-white"
+          >
+            ← Volver a Backstage
+          </Link>
+        </div>
+      </header>
+
+      <div className="max-w-md mx-auto px-4 py-8 space-y-6">
         
-        {/* HEADER */}
-        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-neutral-900 pb-4">
-          <div className="flex items-center gap-3">
-            <span className="w-3 h-3 bg-emerald-400 rounded-full animate-ping"></span>
-            <div>
-              <span className="text-[10px] font-mono uppercase tracking-widest text-yellow-400 font-black block">
-                Control de Acceso • Puerta Principal
-              </span>
-              <h1 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-white">
-                OASIS ACCESS CONTROL
-              </h1>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Link
-              href="/admin"
-              className="px-3.5 py-2 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 font-mono text-xs text-neutral-300 rounded-xl uppercase font-bold transition-all"
+        {/* VISOR DE CÁMARA */}
+        <div className="bg-[#0b101c] border border-neutral-800 rounded-3xl p-5 space-y-4 text-center">
+          <div className="flex justify-between items-center border-b border-neutral-800 pb-3">
+            <span className="text-xs font-bold text-neutral-300 uppercase">Lector Óptico QR</span>
+            <button
+              onClick={cameraActive ? stopCamera : startCamera}
+              className={`px-3 py-1 rounded-xl text-xs font-bold uppercase transition-all ${
+                cameraActive
+                  ? 'bg-rose-950/60 border border-rose-800 text-rose-400'
+                  : 'bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-600/30'
+              }`}
             >
-              ← Volver al Admin
-            </Link>
+              {cameraActive ? 'Apagar Cámara' : '📷 Activar Cámara'}
+            </button>
           </div>
-        </div>
 
-        {/* SELECTOR DE EVENTO */}
-        <div className="bg-neutral-900/60 border border-neutral-800 p-4 rounded-2xl flex flex-col sm:flex-row justify-between sm:items-center gap-3 font-mono text-xs">
-          <span className="text-neutral-400 uppercase font-bold text-[10px]">Fiesta a Escanear:</span>
-          <select
-            value={selectedEventId}
-            onChange={(e) => setSelectedEventId(e.target.value)}
-            className="bg-black border border-neutral-800 rounded-xl px-3 py-2 text-white font-bold outline-none focus:border-yellow-400 uppercase"
-          >
-            <option value="ALL">🌐 TODOS LOS EVENTOS</option>
-            {events.map((evt) => (
-              <option key={evt.id} value={evt.id}>
-                {evt.name || evt.title || evt.slug}
-              </option>
-            ))}
-          </select>
-        </div>
+          <div className="relative aspect-square w-full bg-black rounded-2xl overflow-hidden border border-neutral-800 flex items-center justify-center">
+            <video
+              ref={videoRef}
+              className={`w-full h-full object-cover ${cameraActive ? 'block' : 'hidden'}`}
+              playsInline
+              muted
+            />
 
-        {/* RESULTADO VISUAL DEL ESCANEO */}
-        {scanResult && (
-          <div
-            className={`p-6 sm:p-8 rounded-3xl border-2 transition-all font-mono space-y-3 shadow-2xl ${
-              scanResult.valid
-                ? 'bg-emerald-950/40 border-emerald-500 text-emerald-300'
-                : scanResult.status === 'RESOLD_BURNED'
-                ? 'bg-yellow-950/40 border-yellow-500 text-yellow-300'
-                : 'bg-rose-950/40 border-rose-500 text-rose-300'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full bg-black/40 border border-current">
-                {scanResult.valid ? '✓ ACCESO AUTORIZADO' : '✕ ACCESO DENEGADO'}
-              </span>
-              <button onClick={() => setScanResult(null)} className="text-xs font-bold hover:underline">
-                Limpiar ✕
-              </button>
-            </div>
-
-            <p className="text-lg sm:text-xl font-black uppercase text-white">
-              {scanResult.message}
-            </p>
-
-            {scanResult.ticket && (
-              <div className="bg-black/60 border border-neutral-800 p-4 rounded-2xl text-xs space-y-1.5 text-neutral-200">
-                <div className="flex justify-between">
-                  <span className="text-neutral-500">Titular:</span>
-                  <span className="font-bold text-white uppercase text-sm">{scanResult.ticket.customer_name || scanResult.ticket.holder_name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-neutral-500">DNI:</span>
-                  <span className="font-bold text-yellow-400 text-sm">{scanResult.ticket.customer_dni || scanResult.ticket.holder_dni || '-'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-neutral-500">Tanda:</span>
-                  <span className="font-black text-white uppercase">{scanResult.ticket.tier_name || 'GENERAL'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-neutral-500">Código Hash:</span>
-                  <span className="text-neutral-400 font-bold">{scanResult.ticket.auth_code || scanResult.ticket.qr_hash}</span>
-                </div>
+            {!cameraActive && (
+              <div className="text-center space-y-2 p-6">
+                <span className="text-3xl block">📷</span>
+                <p className="text-xs text-neutral-500">Cámara desactivada.</p>
+                <p className="text-[10px] text-neutral-600">Presioná "Activar Cámara" para escanear con la lente de tu dispositivo.</p>
               </div>
             )}
-          </div>
-        )}
 
-        {/* VISOR DE CÁMARA Y CONTROL EN VIVO */}
-        <div className="bg-neutral-900/80 border border-neutral-800 rounded-3xl p-6 font-mono space-y-4 shadow-2xl">
-          <div className="flex justify-between items-center">
-            <span className="text-[10px] uppercase font-bold text-yellow-400">Escáner de Cámara en Vivo</span>
-            {!isCameraActive ? (
-              <button
-                onClick={startCamera}
-                className="px-4 py-2 bg-yellow-400 hover:bg-yellow-300 text-black font-black uppercase text-xs rounded-xl transition-all shadow-lg flex items-center gap-1.5"
-              >
-                <span>📷</span>
-                <span>Activar Cámara</span>
-              </button>
-            ) : (
-              <button
-                onClick={stopCamera}
-                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-black uppercase text-xs rounded-xl transition-all"
-              >
-                ⏹ Apagar Cámara
-              </button>
+            {cameraActive && (
+              <div className="absolute inset-0 pointer-events-none border-2 border-dashed border-blue-500/50 m-8 rounded-2xl flex items-center justify-center">
+                <span className="text-[10px] text-blue-400 font-bold uppercase bg-black/60 px-2 py-1 rounded-md">
+                  Apuntá al código QR
+                </span>
+              </div>
             )}
           </div>
 
           {cameraError && (
-            <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs rounded-xl">
-              {cameraError}
-            </div>
+            <p className="text-xs text-rose-400 font-bold">{cameraError}</p>
           )}
-
-          {/* CONTENEDOR DEL VIDEO */}
-          <div className="relative rounded-2xl overflow-hidden bg-black border border-neutral-800 min-h-[260px] flex items-center justify-center">
-            <div id="qr-reader-container" className="w-full max-w-md"></div>
-            {!isCameraActive && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-neutral-500 text-xs p-6 text-center">
-                <span className="text-3xl">📷</span>
-                <p>Cámara inactiva. Hacé clic en <strong>"Activar Cámara"</strong> para escanear en tiempo real.</p>
-              </div>
-            )}
-          </div>
         </div>
 
-        {/* INPUT MANUAL / PISTOLA LECTORA USB & BLUETOOTH */}
-        <div className="bg-neutral-900/80 border border-neutral-800 rounded-3xl p-6 space-y-4 font-mono shadow-2xl">
-          <div className="flex justify-between items-center">
-            <span className="text-[10px] uppercase font-bold text-neutral-400">Escaneo Manual o Lector Láser USB</span>
-            <span className="text-[10px] text-neutral-500">DNI / Hash</span>
-          </div>
-
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleValidateCode(manualCode);
-            }}
-            className="flex gap-2"
-          >
+        {/* INGRESO MANUAL / PISTOLA LECTORA */}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleValidate();
+          }}
+          className="bg-[#0b101c] border border-neutral-800 rounded-3xl p-5 space-y-3"
+        >
+          <label className="text-[10px] uppercase font-bold text-neutral-400 block">
+            Ingreso Manual de Código Hash
+          </label>
+          <div className="flex gap-2">
             <input
               type="text"
-              placeholder="Escribí DNI, Hash o usá la pistola láser..."
-              value={manualCode}
-              onChange={(e) => setManualCode(e.target.value)}
-              className="w-full bg-black border border-neutral-800 rounded-2xl px-4 py-3.5 text-sm text-white font-bold outline-none focus:border-yellow-400 uppercase"
+              autoFocus
+              placeholder="Pegar o escribir Hash..."
+              value={authCode}
+              onChange={(e) => setAuthCode(e.target.value)}
+              className="w-full bg-black/60 border border-neutral-800 rounded-xl px-4 py-2.5 text-xs text-white outline-none focus:border-blue-500 uppercase font-bold"
             />
             <button
               type="submit"
-              disabled={isVerifying || !manualCode.trim()}
-              className="px-6 bg-yellow-400 hover:bg-yellow-300 text-black font-black uppercase rounded-2xl transition-all disabled:opacity-50 text-xs tracking-wider"
+              disabled={scanning || !authCode.trim()}
+              className="px-5 bg-blue-600 hover:bg-blue-500 text-white font-bold uppercase text-xs rounded-xl transition-all disabled:opacity-50"
             >
-              {isVerifying ? '...' : 'Validar'}
+              {scanning ? '...' : 'Validar'}
             </button>
-          </form>
-        </div>
-
-        {/* HISTORIAL DE INGRESOS */}
-        <div className="bg-neutral-900/60 border border-neutral-800 rounded-3xl p-6 space-y-4 font-mono text-xs">
-          <div className="flex justify-between items-center border-b border-neutral-800 pb-3">
-            <h3 className="font-bold uppercase text-yellow-400">Ingresos Validados en esta Puerta ({scannedHistory.length})</h3>
-            <span className="text-[10px] text-neutral-500">Sincronización en tiempo real</span>
           </div>
+        </form>
 
-          {scannedHistory.length === 0 ? (
-            <div className="p-8 text-center text-neutral-500">Aún no se registraron ingresos en esta sesión.</div>
-          ) : (
-            <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-              {scannedHistory.map((item, idx) => (
-                <div
-                  key={idx}
-                  className="bg-black/50 border border-neutral-800 p-3 rounded-xl flex justify-between items-center"
-                >
-                  <div>
-                    <span className="font-bold text-white uppercase">{item.name}</span>
-                    <span className="text-neutral-500 text-[10px] ml-2">DNI: {item.dni}</span>
-                    <span className="text-yellow-400 text-[10px] font-bold ml-2">[{item.tier}]</span>
-                  </div>
-                  <span className="text-emerald-400 font-bold text-[11px]">{item.time}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        {/* FEEDBACK DE VALIDACIÓN */}
+        {result && (
+          <div
+            className={`p-6 rounded-3xl border text-center space-y-2 ${
+              result.valid
+                ? 'bg-emerald-950/20 border-emerald-500/40 text-emerald-400'
+                : 'bg-rose-950/20 border-rose-500/40 text-rose-400'
+            }`}
+          >
+            <span className="text-4xl block">{result.valid ? '✓' : '✕'}</span>
+            <h3 className="text-lg font-black uppercase">
+              {result.valid ? 'ACCESO AUTORIZADO' : 'ACCESO DENEGADO'}
+            </h3>
+            <p className="text-xs text-neutral-300">
+              {result.message || (result.valid ? 'Entrada consumida correctamente.' : 'Ticket inválido o ya utilizado.')}
+            </p>
+            {result.ticket && (
+              <div className="pt-3 border-t border-white/10 text-xs text-left space-y-1">
+                <p>Titular: <span className="font-bold text-white uppercase">{result.ticket.customer_name}</span></p>
+                <p>DNI: <span className="font-bold text-blue-400">{result.ticket.customer_dni || '-'}</span></p>
+                <p>Tanda: <span className="font-bold text-white uppercase">{result.ticket.tier_name || 'General'}</span></p>
+              </div>
+            )}
+          </div>
+        )}
 
       </div>
     </main>

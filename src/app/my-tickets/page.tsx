@@ -1,155 +1,173 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { QRCodeSVG } from 'qrcode.react';
-import { createClient } from '@/core/supabase/client';
 
 export default function MyTicketsPage() {
+  const [identifier, setIdentifier] = useState('');
   const [tickets, setTickets] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+  const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
+  const [publishingId, setPublishingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function loadTickets() {
-      try {
-        setLoading(true);
-        const { data: { user } } = await supabase.auth.getUser();
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!identifier.trim()) return;
 
-        let query = supabase.from('tickets').select('*, events(*)').order('created_at', { ascending: false });
-
-        if (user?.email) {
-          query = query.or(`customer_email.eq.${user.email},holder_email.eq.${user.email},user_id.eq.${user.id}`);
-        }
-
-        const { data, error } = await query;
-        if (!error && data) {
-          setTickets(data);
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
+    try {
+      setLoading(true);
+      setSearched(true);
+      const res = await fetch(`/api/tickets/my?q=${encodeURIComponent(identifier.trim())}`);
+      if (!res.ok) {
+        setTickets([]);
+        return;
       }
+      const data = await res.json().catch(() => ({ tickets: [] }));
+      setTickets(data.tickets || []);
+    } catch (err) {
+      console.error(err);
+      setTickets([]);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    loadTickets();
-  }, []);
+  const handlePublishResale = async (ticket: any) => {
+    try {
+      setPublishingId(ticket.id);
+      const res = await fetch('/api/resale/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ticketId: ticket.id,
+          eventId: ticket.event_id,
+          tierName: ticket.tier_name,
+          price: ticket.price_paid || 15000,
+          sellerEmail: ticket.customer_email || ticket.holder_email,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
+        alert('¡Entrada publicada con éxito en el Sitio de Reventa!');
+        handleSearch({ preventDefault: () => {} } as any);
+      } else {
+        alert(data.error || 'Error al publicar en reventa');
+      }
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setPublishingId(null);
+    }
+  };
 
   return (
-    <main className="min-h-screen bg-black text-white p-4 sm:p-8 md:p-12">
-      <div className="max-w-4xl mx-auto space-y-8">
-        <div className="flex justify-between items-center border-b border-neutral-800 pb-6">
-          <div>
-            <span className="text-[10px] font-mono tracking-widest text-yellow-400 uppercase font-bold">
-              Bóveda Criptográfica Oficial
-            </span>
-            <h1 className="text-3xl font-black uppercase text-white mt-1">
-              Mis Entradas
-            </h1>
-          </div>
-          <Link
-            href="/events"
-            className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded-xl font-mono text-xs text-neutral-300 transition-all"
-          >
-            ← Cartelera
+    <main className="min-h-screen bg-[#050811] text-white font-sans antialiased">
+      {/* NAVBAR */}
+      <header className="border-b border-blue-950/60 bg-[#050811]/90 backdrop-blur-xl sticky top-0 z-50">
+        <div className="max-w-5xl mx-auto px-4 sm:px-8 h-20 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-3">
+            <img src="/logo-oasis.png" alt="OASIS" className="h-10 w-auto invert brightness-200 object-contain" />
           </Link>
+          <div className="flex items-center gap-3 font-mono text-xs">
+            <Link href="/resale" className="px-3.5 py-2 rounded-xl border border-blue-900/40 bg-blue-950/20 text-neutral-300 hover:text-white transition-all">
+              Sitio de Reventa
+            </Link>
+            <Link href="/" className="text-neutral-400 hover:text-white">← Inicio</Link>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-4xl mx-auto px-4 sm:px-8 py-10 space-y-8 font-mono">
+        <div className="text-center space-y-2">
+          <span className="text-[10px] uppercase font-bold text-blue-400 tracking-widest">Billetera Nominal</span>
+          <h1 className="text-3xl font-black uppercase text-white">Mis Entradas</h1>
+          <p className="text-xs text-neutral-400">Ingresá tu DNI o el Email con el que compraste para ver tu credencial.</p>
+
+          <form onSubmit={handleSearch} className="flex gap-2 max-w-md mx-auto pt-4">
+            <input
+              type="text"
+              required
+              placeholder="DNI o Email..."
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              className="w-full bg-[#0A0F1D] border border-blue-950 rounded-xl px-4 py-2.5 text-xs text-white outline-none focus:border-blue-500 uppercase"
+            />
+            <button
+              type="submit"
+              disabled={loading || !identifier.trim()}
+              className="px-6 bg-blue-600 hover:bg-blue-500 text-white font-bold uppercase text-xs rounded-xl transition-all disabled:opacity-50"
+            >
+              {loading ? '...' : 'Buscar'}
+            </button>
+          </form>
         </div>
 
-        {loading ? (
-          <div className="text-center py-24 font-mono text-xs text-neutral-500">
-            Verificando credenciales en blockchain y base de datos...
-          </div>
-        ) : tickets.length === 0 ? (
-          <div className="border border-dashed border-neutral-800 rounded-3xl p-12 text-center space-y-4">
-            <p className="font-mono text-sm text-neutral-400">No tenés entradas emitidas en tu cuenta.</p>
-            <Link
-              href="/events"
-              className="inline-block px-5 py-2.5 bg-yellow-400 text-black font-mono font-bold text-xs uppercase rounded-xl hover:bg-yellow-300 transition-all"
-            >
-              Explorar Próximos Eventos
-            </Link>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {tickets.map((ticket) => {
-              const hash = ticket.auth_code || ticket.qr_hash || ticket.id;
-              const eventTitle = ticket.events?.name || 'Evento OASIS';
-              const venue = ticket.events?.venue || 'Ubicación Central';
+        {searched && (
+          <div className="space-y-6">
+            {tickets.length === 0 ? (
+              <div className="border border-dashed border-blue-950 rounded-3xl p-12 text-center text-xs text-neutral-500">
+                No encontramos entradas activas asociadas a "{identifier}".
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {tickets.map((t) => {
+                  const isAvailable = t.status === 'AVAILABLE' || t.status === 'VALID';
+                  const isUsed = t.status === 'USED';
+                  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(t.auth_code || t.qr_hash || t.id)}`;
 
-              return (
-                <div
-                  key={ticket.id}
-                  className="bg-neutral-900/90 border border-neutral-800 rounded-3xl p-6 flex flex-col justify-between shadow-2xl relative overflow-hidden"
-                >
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <span className="bg-yellow-400/10 text-yellow-400 border border-yellow-400/30 text-[9px] font-mono font-bold uppercase px-2.5 py-1 rounded-full">
-                          {ticket.tier_name || 'GENERAL'}
-                        </span>
-                        <h2 className="text-xl font-black uppercase text-white mt-2">
-                          {eventTitle}
-                        </h2>
-                        <p className="text-xs font-mono text-neutral-400">{venue}</p>
+                  return (
+                    <div key={t.id} className="bg-[#0A0F1D] border border-blue-950 rounded-3xl overflow-hidden flex flex-col justify-between shadow-2xl">
+                      <div className="p-6 bg-blue-950/20 border-b border-blue-950 space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="bg-blue-600 text-white font-bold text-[10px] uppercase px-2.5 py-0.5 rounded-full">
+                            {t.tier_name || 'GENERAL'}
+                          </span>
+                          <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
+                            isAvailable ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : isUsed ? 'bg-neutral-800 text-neutral-400' : 'bg-rose-500/10 text-rose-400'
+                          }`}>
+                            {isAvailable ? '● HABILITADO' : isUsed ? '✓ INGRESADO' : '✕ ANULADO'}
+                          </span>
+                        </div>
+                        <h3 className="text-xl font-black uppercase text-white">{t.events?.name || 'Evento OASIS'}</h3>
+                        <p className="text-xs text-neutral-400">📍 {t.events?.venue || 'Buenos Aires'}</p>
                       </div>
 
-                      <span className={`text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-full ${
-                        ticket.status === 'AVAILABLE'
-                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                          : 'bg-neutral-800 text-neutral-500'
-                      }`}>
-                        {ticket.status === 'AVAILABLE' ? '● Válido' : ticket.status}
-                      </span>
-                    </div>
+                      <div className="p-6 space-y-4">
+                        <div className="bg-white rounded-2xl p-4 w-44 h-44 mx-auto flex items-center justify-center">
+                          <img src={qrUrl} alt="QR Pase" className="w-full h-full object-contain" />
+                        </div>
 
-                    {/* QR Code Container */}
-                    <div className="bg-white p-4 rounded-2xl flex items-center justify-center max-w-[200px] mx-auto shadow-inner">
-                      <QRCodeSVG
-                        value={hash}
-                        size={170}
-                        level="H"
-                        includeMargin={false}
-                      />
-                    </div>
+                        <div className="bg-black/60 border border-blue-950 p-3 rounded-xl text-xs space-y-1">
+                          <div className="flex justify-between">
+                            <span className="text-neutral-500">Titular:</span>
+                            <span className="font-bold uppercase text-white">{t.customer_name || t.holder_name}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-neutral-500">DNI:</span>
+                            <span className="font-bold text-blue-400">{t.customer_dni || t.holder_dni || '-'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-neutral-500">Hash:</span>
+                            <span className="text-neutral-400 text-[10px]">{t.auth_code || t.qr_hash}</span>
+                          </div>
+                        </div>
 
-                    {/* Ticket Details */}
-                    <div className="bg-black/60 border border-neutral-800/80 rounded-2xl p-3.5 font-mono text-xs space-y-1.5">
-                      <div className="flex justify-between text-[11px]">
-                        <span className="text-neutral-500 uppercase">Titular:</span>
-                        <span className="text-white font-bold uppercase">
-                          {ticket.customer_name || ticket.holder_name || 'Invitado'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-[11px]">
-                        <span className="text-neutral-500 uppercase">DNI:</span>
-                        <span className="text-neutral-300">
-                          {ticket.customer_dni || ticket.holder_dni || '-'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-[10px] pt-1 border-t border-neutral-800">
-                        <span className="text-neutral-600">HASH:</span>
-                        <span className="text-neutral-500 truncate max-w-[160px]">{hash}</span>
+                        {isAvailable && (
+                          <button
+                            onClick={() => handlePublishResale(t)}
+                            disabled={publishingId === t.id}
+                            className="w-full py-2.5 bg-blue-950 hover:bg-blue-900 border border-blue-800 text-white font-bold text-xs uppercase rounded-xl transition-all"
+                          >
+                            {publishingId === t.id ? 'Publicando...' : 'Publicar en Reventa Oficial ↗'}
+                          </button>
+                        )}
                       </div>
                     </div>
-                  </div>
-
-                  {/* Botón Apple Wallet */}
-                  <div className="mt-4 pt-4 border-t border-neutral-800">
-                    <a
-                      href={`/api/tickets/${ticket.id}/wallet`}
-                      download
-                      className="w-full flex items-center justify-center gap-2 bg-black hover:bg-neutral-950 border border-neutral-700 py-3 px-4 rounded-xl text-white font-mono text-xs font-bold transition-all shadow-md active:scale-98"
-                    >
-                      <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                        <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.61-.75 1.04-1.8 0.92-2.87-.93.04-2.03.63-2.68 1.38-.56.64-1.05 1.7-0.92 2.74 1.04.08 2.07-.5 2.68-1.25z"/>
-                      </svg>
-                      <span>Añadir a Apple Wallet</span>
-                    </a>
-                  </div>
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>
