@@ -2,7 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase-client';
+import { createClient } from '@supabase/supabase-js';
+
+// Cliente directo de Supabase para el navegador
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://qjjpmetithnzkmisnbk.supabase.co';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqanBtZXRpdGhuemttaXNuYmsiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTc3MjQ1NjA5OSwiZXhwIjoyMDg4MDMyMDk5fQ.N59V83N31eGZZ_X2yH0_R5650Ww7y1lIcx-3lTkh32A';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 interface TierItem {
   id?: string;
@@ -96,7 +101,7 @@ export default function AdminPage() {
         localStorage.setItem('oasis_costs_data', JSON.stringify(defaultCosts));
       }
 
-      // 2. Obtener datos directamente desde el cliente Supabase (evita fallos de red en Node Windows)
+      // 2. Cargar datos directamente desde Supabase en el navegador
       let rawEvents: any[] = [];
       let rawTiers: any[] = [];
       let rawTickets: any[] = [];
@@ -121,10 +126,10 @@ export default function AdminPage() {
           rawTickets = dbTickets || [];
         }
       } catch (clientErr) {
-        console.warn('Fallo Supabase directo, probando API Route...', clientErr);
+        console.warn('Fallo consulta directa, intentando API local...', clientErr);
       }
 
-      // Fallback a la API route local si el cliente directo no trajo eventos
+      // Fallback a API local si hiciera falta
       if (rawEvents.length === 0) {
         try {
           const res = await fetch('/api/admin/events-data', { cache: 'no-store' });
@@ -185,7 +190,7 @@ export default function AdminPage() {
         setCurrentTiers([]);
       }
     } catch (err) {
-      console.error('Error general cargando panel:', err);
+      console.error('Error cargando panel:', err);
     } finally {
       setLoading(false);
     }
