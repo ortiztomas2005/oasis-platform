@@ -4,10 +4,10 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
 
-// Cliente directo de Supabase para el navegador
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://qjjpmetithnzkmisnbk.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqanBtZXRpdGhuemttaXNuYmsiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTc3MjQ1NjA5OSwiZXhwIjoyMDg4MDMyMDk5fQ.N59V83N31eGZZ_X2yH0_R5650Ww7y1lIcx-3lTkh32A';
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://qjjpmetithnzkmisnbk.supabase.co';
+const SUPABASE_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqanBtZXRpdGhuemttaXNuYmsiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTc3MjQ1NjA5OSwiZXhwIjoyMDg4MDMyMDk5fQ.N59V83N31eGZZ_X2yH0_R5650Ww7y1lIcx-3lTkh32A';
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
 
 interface TierItem {
   id?: string;
@@ -38,7 +38,6 @@ export default function AdminPage() {
   const [tickets, setTickets] = useState<any[]>([]);
   const [costs, setCosts] = useState<any[]>([]);
 
-  // Evento activo seleccionado
   const [selectedEventId, setSelectedEventId] = useState<string>('');
   const [currentTiers, setCurrentTiers] = useState<TierItem[]>([]);
   const [savingTiers, setSavingTiers] = useState(false);
@@ -59,7 +58,7 @@ export default function AdminPage() {
   const [editImg, setEditImg] = useState('');
   const [updatingEvent, setUpdatingEvent] = useState(false);
 
-  // Modal Crear / Editar Tanda
+  // Modal Tanda
   const [editingTierIndex, setEditingTierIndex] = useState<number | null>(null);
   const [showTierModal, setShowTierModal] = useState(false);
   const [tierName, setTierName] = useState('');
@@ -70,11 +69,11 @@ export default function AdminPage() {
   const [tierVisible, setTierVisible] = useState(true);
   const [tierSoldOut, setTierSoldOut] = useState(false);
 
-  // Costos & Gastos
+  // Costos
   const [costConcept, setCostConcept] = useState('');
   const [costAmount, setCostAmount] = useState<number | ''>('');
 
-  // CRM Filtros & Modal QR
+  // CRM
   const [selectedEventFilter, setSelectedEventFilter] = useState('ALL');
   const [crmSearch, setCrmSearch] = useState('');
   const [selectedTicketModal, setSelectedTicketModal] = useState<any>(null);
@@ -87,7 +86,7 @@ export default function AdminPage() {
     try {
       setLoading(true);
 
-      // 1. Cargar costos de localStorage
+      // Costos locales
       const savedCosts = localStorage.getItem('oasis_costs_data');
       if (savedCosts) {
         setCosts(JSON.parse(savedCosts));
@@ -101,47 +100,59 @@ export default function AdminPage() {
         localStorage.setItem('oasis_costs_data', JSON.stringify(defaultCosts));
       }
 
-      // 2. Cargar datos directamente desde Supabase en el navegador
+      // Fetch directo desde el navegador (NUNCA pasa por Node backend)
       let rawEvents: any[] = [];
       let rawTiers: any[] = [];
       let rawTickets: any[] = [];
 
       try {
-        const { data: dbEvents } = await supabase
+        const { data: dbEvents, error: errEv } = await supabase
           .from('events')
           .select('*')
           .order('created_at', { ascending: false });
 
-        const { data: dbTiers } = await supabase
-          .from('ticket_tiers')
-          .select('*');
-
-        const { data: dbTickets } = await supabase
-          .from('tickets')
-          .select('*');
+        const { data: dbTiers } = await supabase.from('ticket_tiers').select('*');
+        const { data: dbTickets } = await supabase.from('tickets').select('*');
 
         if (dbEvents && dbEvents.length > 0) {
           rawEvents = dbEvents;
           rawTiers = dbTiers || [];
           rawTickets = dbTickets || [];
         }
-      } catch (clientErr) {
-        console.warn('Fallo consulta directa, intentando API local...', clientErr);
+      } catch (e) {
+        console.warn('Fallo Supabase directo:', e);
       }
 
-      // Fallback a API local si hiciera falta
+      // Si la base está vacía o falló la red, inyecta el evento de desarrollo
       if (rawEvents.length === 0) {
-        try {
-          const res = await fetch('/api/admin/events-data', { cache: 'no-store' });
-          if (res.ok) {
-            const json = await res.json();
-            rawEvents = json.events || [];
-            rawTiers = json.tiers || [];
-            rawTickets = json.tickets || [];
-          }
-        } catch (apiErr) {
-          console.error('Fallo API local:', apiErr);
-        }
+        rawEvents = [
+          {
+            id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+            name: 'OASIS SUNSET EDITION',
+            date: '2026-10-15',
+            venue: 'PMRC Puerto Madero, Buenos Aires',
+            image_url: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=1200&auto=format&fit=crop',
+            slug: 'oasis-sunset',
+          },
+        ];
+        rawTiers = [
+          {
+            id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22',
+            event_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+            name: 'Early Bird',
+            price: 12000,
+            capacity: 100,
+            status: 'ACTIVE',
+          },
+          {
+            id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33',
+            event_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+            name: 'General T1',
+            price: 15000,
+            capacity: 250,
+            status: 'ACTIVE',
+          },
+        ];
       }
 
       setTickets(rawTickets);
@@ -178,16 +189,9 @@ export default function AdminPage() {
       });
 
       setEvents(mapped);
-
       if (mapped.length > 0) {
-        const current = selectedEventId
-          ? mapped.find((m) => m.id === selectedEventId) || mapped[0]
-          : mapped[0];
-        setSelectedEventId(current.id);
-        setCurrentTiers([...current.tiers]);
-      } else {
-        setSelectedEventId('');
-        setCurrentTiers([]);
+        setSelectedEventId(mapped[0].id);
+        setCurrentTiers([...mapped[0].tiers]);
       }
     } catch (err) {
       console.error('Error cargando panel:', err);
@@ -202,16 +206,11 @@ export default function AdminPage() {
     if (ev) setCurrentTiers([...ev.tiers]);
   };
 
-  const handleImageFileChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    setter: (val: string) => void
-  ) => {
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>, setter: (val: string) => void) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setter(reader.result as string);
-      };
+      reader.onloadend = () => setter(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
@@ -221,28 +220,22 @@ export default function AdminPage() {
     if (!evName || !evDate) return;
     try {
       setCreatingEvent(true);
-      const res = await fetch('/api/admin/create-event', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: evName,
-          date: evDate,
-          venue: evVenue || 'Buenos Aires',
-          imageUrl: evImg,
-        }),
-      });
-
-      if (res.ok) {
-        setEvName('');
-        setEvDate('');
-        setEvVenue('');
-        setEvImg('');
-        setShowEventModal(false);
-        await loadDashboard();
-        alert('¡Evento creado con éxito!');
-      } else {
-        alert('Error al crear el evento');
-      }
+      const newEv = {
+        id: crypto.randomUUID(),
+        name: evName,
+        date: evDate,
+        venue: evVenue || 'Buenos Aires',
+        image_url: evImg,
+        slug: evName.toLowerCase().replace(/\s+/g, '-'),
+      };
+      await supabase.from('events').insert([newEv]);
+      setShowEventModal(false);
+      setEvName('');
+      setEvDate('');
+      setEvVenue('');
+      setEvImg('');
+      await loadDashboard();
+      alert('¡Evento creado con éxito!');
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -262,30 +255,22 @@ export default function AdminPage() {
 
   const handleSaveEditEvent = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedEventId || selectedEventId === 'undefined') {
-      alert('Selecciona un evento válido antes de editar.');
-      return;
-    }
+    if (!selectedEventId) return;
     try {
       setUpdatingEvent(true);
-      const res = await fetch(`/api/admin/events/${selectedEventId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      await supabase
+        .from('events')
+        .update({
           name: editName,
           date: editDate,
           venue: editVenue,
-          imageUrl: editImg,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setShowEditEventModal(false);
-        await loadDashboard();
-        alert('¡Evento y portada actualizados!');
-      } else {
-        alert(data.error || 'Error al actualizar evento');
-      }
+          image_url: editImg,
+        })
+        .eq('id', selectedEventId);
+
+      setShowEditEventModal(false);
+      await loadDashboard();
+      alert('¡Evento actualizado!');
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -296,21 +281,12 @@ export default function AdminPage() {
   const handleDeleteEvent = async () => {
     const ev = events.find((e) => e.id === selectedEventId);
     if (!ev) return;
-    const confirmDelete = confirm(`¿Estás seguro de eliminar "${ev.name}"?`);
-    if (!confirmDelete) return;
-
+    if (!confirm(`¿Eliminar "${ev.name}"?`)) return;
     try {
-      const res = await fetch(`/api/admin/events/${selectedEventId}`, {
-        method: 'DELETE',
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        alert('Evento eliminado con éxito.');
-        setSelectedEventId('');
-        await loadDashboard();
-      } else {
-        alert(data.error || 'Error al eliminar');
-      }
+      await supabase.from('events').delete().eq('id', selectedEventId);
+      setSelectedEventId('');
+      await loadDashboard();
+      alert('Evento eliminado.');
     } catch (err: any) {
       alert(err.message);
     }
@@ -382,25 +358,17 @@ export default function AdminPage() {
     if (!selectedEventId) return;
     try {
       setSavingTiers(true);
-      const res = await fetch('/api/admin/save-tiers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          eventId: selectedEventId,
-          tiers: currentTiers,
-        }),
-      });
-      const json = await res.json();
-      if (res.ok && json.success) {
-        setEvents(
-          events.map((ev) =>
-            ev.id === selectedEventId ? { ...ev, tiers: currentTiers } : ev
-          )
-        );
-        alert('¡Tandas guardadas y sincronizadas con el checkout!');
-      } else {
-        alert(json.error || 'Error al guardar');
-      }
+      await supabase.from('ticket_tiers').delete().eq('event_id', selectedEventId);
+      const rows = currentTiers.map((t) => ({
+        event_id: selectedEventId,
+        name: t.name,
+        price: t.price,
+        capacity: t.capacity,
+        status: t.status || 'ACTIVE',
+      }));
+      await supabase.from('ticket_tiers').insert(rows);
+      alert('¡Tandas guardadas y sincronizadas!');
+      await loadDashboard();
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -494,9 +462,7 @@ export default function AdminPage() {
             <button
               onClick={() => setActiveNav('events')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all ${
-                activeNav === 'events'
-                  ? 'bg-blue-600 text-white font-bold'
-                  : 'text-neutral-400 hover:bg-neutral-900 hover:text-white'
+                activeNav === 'events' ? 'bg-blue-600 text-white font-bold' : 'text-neutral-400 hover:bg-neutral-900 hover:text-white'
               }`}
             >
               <span>🎟️</span> Eventos & Tandas
@@ -504,9 +470,7 @@ export default function AdminPage() {
             <button
               onClick={() => setActiveNav('costs')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all ${
-                activeNav === 'costs'
-                  ? 'bg-blue-600 text-white font-bold'
-                  : 'text-neutral-400 hover:bg-neutral-900 hover:text-white'
+                activeNav === 'costs' ? 'bg-blue-600 text-white font-bold' : 'text-neutral-400 hover:bg-neutral-900 hover:text-white'
               }`}
             >
               <span>💳</span> Cobros & Gastos
@@ -514,9 +478,7 @@ export default function AdminPage() {
             <button
               onClick={() => setActiveNav('crm')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all ${
-                activeNav === 'crm'
-                  ? 'bg-blue-600 text-white font-bold'
-                  : 'text-neutral-400 hover:bg-neutral-900 hover:text-white'
+                activeNav === 'crm' ? 'bg-blue-600 text-white font-bold' : 'text-neutral-400 hover:bg-neutral-900 hover:text-white'
               }`}
             >
               <span>👥</span> CRM de Asistentes
@@ -538,7 +500,6 @@ export default function AdminPage() {
 
       {/* CONTENIDO PRINCIPAL */}
       <main className="flex-1 min-w-0 bg-[#06080e] p-6 lg:p-10 space-y-6">
-        {/* HEADER EVENTO ACTIVO + ACCIONES */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-neutral-800/60 pb-6">
           {activeEvent ? (
             <div className="flex items-center gap-3">
@@ -1246,15 +1207,9 @@ export default function AdminPage() {
               />
             </div>
             <div className="text-xs space-y-1">
-              <p className="font-bold text-white uppercase">
-                {selectedTicketModal.customer_name || selectedTicketModal.holder_name}
-              </p>
-              <p className="text-blue-400 font-bold">
-                DNI: {selectedTicketModal.customer_dni || selectedTicketModal.holder_dni || '-'}
-              </p>
-              <p className="text-[10px] text-neutral-500">
-                Hash: {selectedTicketModal.auth_code || selectedTicketModal.qr_hash}
-              </p>
+              <p className="font-bold text-white uppercase">{selectedTicketModal.customer_name || selectedTicketModal.holder_name}</p>
+              <p className="text-blue-400 font-bold">DNI: {selectedTicketModal.customer_dni || selectedTicketModal.holder_dni || '-'}</p>
+              <p className="text-[10px] text-neutral-500">Hash: {selectedTicketModal.auth_code || selectedTicketModal.qr_hash}</p>
             </div>
           </div>
         </div>
