@@ -12,12 +12,17 @@ function AuthContent() {
 
   const { login, register } = useAuth();
 
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  // Modos: 'login' | 'register_client' | 'register_producer'
+  const [mode, setMode] = useState<'login' | 'register_client' | 'register_producer'>('login');
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [dni, setDni] = useState('');
   const [phone, setPhone] = useState('');
+  
+  // Campos específicos para Productora
+  const [producerName, setProducerName] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -31,7 +36,7 @@ function AuthContent() {
       } else {
         setErrorMsg(result.error || 'Error al iniciar sesión.');
       }
-    } else {
+    } else if (mode === 'register_client') {
       if (!name || !dni || !email || !password) {
         setErrorMsg('Por favor completá todos los campos obligatorios.');
         return;
@@ -41,6 +46,47 @@ function AuthContent() {
         router.push(redirectUrl);
       } else {
         setErrorMsg(result.error || 'Error al crear la cuenta.');
+      }
+    } else if (mode === 'register_producer') {
+      if (!producerName || !name || !dni || !email || !password) {
+        setErrorMsg('Por favor completá todos los datos de la productora y el responsable.');
+        return;
+      }
+
+      // 1. Registramos al usuario como owner
+      const result = register({ name, dni, email, phone, password });
+      if (!result.success) {
+        setErrorMsg(result.error || 'Error al registrar el responsable de la productora.');
+        return;
+      }
+
+      // 2. Creamos la productora y le asignamos sus 500 tickets prepagos iniciales
+      try {
+        const prodNameClean = producerName.trim().toUpperCase();
+        
+        // Guardar equipo/dueño en localStorage
+        const teamMembers = JSON.parse(localStorage.getItem('le_team_members') || '[]');
+        const newOwner = {
+          id: `tm-${Date.now()}`,
+          name,
+          email: email.toLowerCase().trim(),
+          dni,
+          phone,
+          role: 'OWNER',
+          producerName: prodNameClean
+        };
+        localStorage.setItem('le_team_members', JSON.stringify([newOwner, ...teamMembers]));
+
+        // Inicializar saldo prepago de la productora en 500
+        const balances = JSON.parse(localStorage.getItem('le_prepaid_balances') || '{"OASIS": 500}');
+        balances[prodNameClean] = 500;
+        localStorage.setItem('le_prepaid_balances', JSON.stringify(balances));
+
+        alert(`¡Productora "${prodNameClean}" creada con éxito con 500 tickets prepagos de regalo!`);
+        router.push('/admin');
+      } catch (err) {
+        console.error(err);
+        setErrorMsg('Error al inicializar la productora en el sistema.');
       }
     }
   };
@@ -54,13 +100,42 @@ function AuthContent() {
           </div>
         </Link>
         <h1 className="text-xl font-black uppercase text-white tracking-wide">
-          {mode === 'login' ? 'Iniciar Sesión en OASIS' : 'Crear Cuenta Oficial'}
+          {mode === 'login' && 'Iniciar Sesión en OASIS'}
+          {mode === 'register_client' && 'Crear Cuenta de Asistente'}
+          {mode === 'register_producer' && 'Registrar Nueva Productora'}
         </h1>
         <p className="text-xs text-neutral-400">
-          {mode === 'login'
-            ? 'Ingresá con tus credenciales registradas.'
-            : 'Tus entradas estarán vinculadas de forma inmutable a tu DNI.'}
+          {mode === 'login' && 'Ingresá con tus credenciales registradas.'}
+          {mode === 'register_client' && 'Tus entradas estarán vinculadas de forma inmutable a tu DNI.'}
+          {mode === 'register_producer' && 'Publicá eventos y gestioná tu propio ecosistema de festivales.'}
         </p>
+      </div>
+
+      {/* PESTAÑAS DE NAVEGACIÓN DE REGISTRO / LOGIN */}
+      <div className="grid grid-cols-2 gap-2 p-1 bg-black/40 rounded-2xl border border-neutral-800 text-[11px]">
+        <button
+          type="button"
+          onClick={() => { setMode('login'); setErrorMsg(null); }}
+          className={`py-2 rounded-xl font-bold transition cursor-pointer ${mode === 'login' ? 'bg-blue-600 text-white shadow-md' : 'text-neutral-400 hover:text-white'}`}
+        >
+          Iniciar Sesión
+        </button>
+        <div className="grid grid-cols-2 gap-1">
+          <button
+            type="button"
+            onClick={() => { setMode('register_client'); setErrorMsg(null); }}
+            className={`py-2 rounded-xl font-bold transition cursor-pointer text-[10px] ${mode === 'register_client' ? 'bg-purple-600 text-white shadow-md' : 'text-neutral-400 hover:text-white'}`}
+          >
+            Cliente
+          </button>
+          <button
+            type="button"
+            onClick={() => { setMode('register_producer'); setErrorMsg(null); }}
+            className={`py-2 rounded-xl font-bold transition cursor-pointer text-[10px] ${mode === 'register_producer' ? 'bg-emerald-600 text-white shadow-md' : 'text-neutral-400 hover:text-white'}`}
+          >
+            Productora
+          </button>
+        </div>
       </div>
 
       {errorMsg && (
@@ -70,11 +145,27 @@ function AuthContent() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-        {mode === 'register' && (
+        {mode === 'register_producer' && (
+          <div className="space-y-1">
+            <label className="text-[10px] text-emerald-400 uppercase font-bold">
+              Nombre Comercial de la Productora
+            </label>
+            <input
+              type="text"
+              placeholder="Ej: BNP PRODUCTIONS"
+              value={producerName}
+              onChange={(e) => setProducerName(e.target.value)}
+              className="w-full bg-black/60 border border-emerald-900/60 rounded-xl px-4 py-3 text-white outline-none focus:border-emerald-500 uppercase font-bold"
+              required
+            />
+          </div>
+        )}
+
+        {(mode === 'register_client' || mode === 'register_producer') && (
           <>
             <div className="space-y-1">
               <label className="text-[10px] text-neutral-400 uppercase font-bold">
-                Nombre y Apellido Completo
+                Nombre y Apellido del Responsable
               </label>
               <input
                 type="text"
@@ -88,7 +179,7 @@ function AuthContent() {
 
             <div className="space-y-1">
               <label className="text-[10px] text-neutral-400 uppercase font-bold">
-                DNI / Documento Nacional de Identidad
+                DNI / Documento
               </label>
               <input
                 type="text"
@@ -145,41 +236,19 @@ function AuthContent() {
 
         <button
           type="submit"
-          className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-black uppercase text-xs rounded-xl shadow-lg shadow-blue-600/30 transition-all hover:scale-[1.02]"
+          className={`w-full py-3.5 text-white font-black uppercase text-xs rounded-xl shadow-lg transition-all hover:scale-[1.02] cursor-pointer ${
+            mode === 'register_producer' 
+              ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/30' 
+              : mode === 'register_client' 
+              ? 'bg-purple-600 hover:bg-purple-500 shadow-purple-600/30' 
+              : 'bg-blue-600 hover:bg-blue-500 shadow-blue-600/30'
+          }`}
         >
-          {mode === 'login' ? 'Ingresar a mi Cuenta →' : 'Crear mi Cuenta Oficial →'}
+          {mode === 'login' && 'Ingresar a mi Cuenta →'}
+          {mode === 'register_client' && 'Crear Cuenta de Asistente →'}
+          {mode === 'register_producer' && 'Crear Productora (500 Pases Free) 🚀'}
         </button>
       </form>
-
-      <div className="border-t border-neutral-800/80 pt-4 text-center">
-        {mode === 'login' ? (
-          <p className="text-[11px] text-neutral-400">
-            ¿No tenés cuenta aún?{' '}
-            <button
-              onClick={() => {
-                setMode('register');
-                setErrorMsg(null);
-              }}
-              className="text-blue-400 hover:underline font-bold"
-            >
-              Registrate acá
-            </button>
-          </p>
-        ) : (
-          <p className="text-[11px] text-neutral-400">
-            ¿Ya tenés una cuenta?{' '}
-            <button
-              onClick={() => {
-                setMode('login');
-                setErrorMsg(null);
-              }}
-              className="text-blue-400 hover:underline font-bold"
-            >
-              Iniciá sesión
-            </button>
-          </p>
-        )}
-      </div>
     </div>
   );
 }

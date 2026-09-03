@@ -18,10 +18,10 @@ export async function POST(req: Request) {
       );
     }
 
-    // 1. Buscamos los datos de la orden y su evento
+    // 1. Buscamos los datos de la orden, su evento y la productora asociada
     const { data: order, error: orderError } = await supabaseAdmin
       .from('orders')
-      .select('*, events(title)')
+      .select('*, events(title, producer_name)')
       .eq('id', orderId)
       .single();
 
@@ -33,6 +33,28 @@ export async function POST(req: Request) {
     }
 
     const eventTitle = (order as any).events?.title || 'OASIS Evento';
+    const producerName = (order as any).events?.producer_name || 'OASIS';
+
+    // --- DESCUENTO AUTOMÁTICO DE TICKET PREPAGO POR VENTA ---
+    // Aquí descontamos una unidad del stock prepago de la productora al iniciar/confirmar la venta
+    try {
+      const { data: producerData } = await supabaseAdmin
+        .from('producers')
+        .select('prepaid_balance')
+        .eq('name', producerName)
+        .single();
+
+      if (producerData) {
+        const currentBalance = producerData.prepaid_balance ?? 500;
+        await supabaseAdmin
+          .from('producers')
+          .update({ prepaid_balance: Math.max(0, currentBalance - 1) })
+          .eq('name', producerName);
+      }
+    } catch (err) {
+      console.error('Error al descontar el ticket prepago de la productora:', err);
+    }
+    // --------------------------------------------------------
 
     // 2. Generamos la preferencia de pago en Mercado Pago
     const { initPoint, preferenceId } = await createPaymentPreference({

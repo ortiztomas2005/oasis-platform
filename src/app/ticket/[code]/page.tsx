@@ -71,12 +71,17 @@ export default async function TicketPage({ params }: { params: Promise<{ code: s
     <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md">
         <HoloTicket
-          code={qrValue}
-          eventName={eventName}
-          category={tierName}
-          holderName={holderName}
-          date={eventDate}
-          status={ticket.status || 'VALID'}
+          ticket={{
+            id: ticket.id,
+            qrCode: qrValue,
+            eventName,
+            tierName,
+            ownerName: holderName,
+            ownerDni: ticket.holder_dni || ticket.customer_dni || '',
+            ownerEmail: ticket.holder_email || ticket.customer_email || undefined,
+            status: ticket.status === 'USED' ? 'used' : ticket.status === 'RESOLD' ? 'resold' : 'active',
+            purchasedAt: ticket.created_at || ticket.purchase_date,
+          }}
         />
 
         {ticket.status === 'VALID' && (

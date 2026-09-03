@@ -1,72 +1,63 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { createClient } from '@/core/supabase/client';
 
-export function Navbar() {
-  const pathname = usePathname();
-  const [user, setUser] = useState<any>(null);
-  const supabase = createClient();
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data?.user || null);
-    });
-
-    const { data: listener } = supabase.auth.onAuthStateChange((_, session) => {
-      setUser(session?.user || null);
-    });
-
-    return () => {
-      listener.subscription.unsubscribe();
-    };
-  }, []);
-
+export default function NavigationHeader() {
   return (
-    <header className="border-b border-white/10 bg-black/80 backdrop-blur-md sticky top-0 z-40">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 font-black text-lg tracking-widest text-yellow-400">
-          <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse" />
-          OASIS.
+    <header className="h-20 bg-[#07070a] border-b border-white/10 px-8 flex items-center justify-between z-50 font-mono text-slate-100">
+      
+      {/* LOGO / MARCA */}
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-amber-400 flex items-center justify-center font-black text-black text-sm shadow-lg shadow-amber-500/20 font-luxury">
+          LE
+        </div>
+        <span className="font-luxury text-base font-black tracking-widest text-white uppercase">
+          LIVE EXPERIENCE
+        </span>
+      </div>
+
+      {/* MENÚ DE NAVEGACIÓN SUPERIOR */}
+      <div className="flex items-center gap-6 text-xs font-bold">
+        
+        {/* NUEVO BOTÓN DEPORTE */}
+        <Link 
+          href="/events/partidos" 
+          className="text-amber-400 hover:text-amber-300 transition flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20"
+        >
+          <span>⚽</span> Deporte
         </Link>
 
-        {/* Solapas de Navegación */}
-        <nav className="flex items-center gap-2 sm:gap-4">
-          <Link
-            href="/resale"
-            className={`px-3 py-1.5 rounded-xl text-xs font-mono font-semibold transition-all flex items-center gap-1.5 ${
-              pathname?.startsWith('/resale')
-                ? 'bg-yellow-400/20 text-yellow-400 border border-yellow-400/40'
-                : 'text-neutral-300 hover:text-white hover:bg-neutral-900 border border-transparent'
-            }`}
-          >
-            <span>🔄</span> Reventa Oficial
-          </Link>
+        <Link 
+          href="/resale" 
+          className="text-slate-300 hover:text-white transition px-2 py-1"
+        >
+          Resale
+        </Link>
 
-          <Link
-            href="/my-tickets"
-            className={`px-3 py-1.5 rounded-xl text-xs font-mono font-semibold transition-all flex items-center gap-1.5 ${
-              pathname === '/my-tickets'
-                ? 'bg-yellow-400 text-black font-bold shadow-md shadow-yellow-400/20'
-                : 'bg-yellow-400/10 text-yellow-400 hover:bg-yellow-400/20 border border-yellow-400/30'
-            }`}
-          >
-            <span>🎟</span> {user ? 'Mis Entradas' : 'Ingresar'}
-          </Link>
+        <Link 
+          href="/barra" 
+          className="text-slate-300 hover:text-white transition px-2 py-1"
+        >
+          Barra
+        </Link>
 
-          <Link
-            href="/admin"
-            className="px-3 py-1.5 rounded-xl text-xs font-mono text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors"
-          >
-            Backstage
-          </Link>
-        </nav>
+        <Link 
+          href="/billetera" 
+          className="px-4 py-2 rounded-xl border border-amber-500/40 text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 transition shadow-md"
+        >
+          Billetera
+        </Link>
+
+        {/* PERFIL DE USUARIO / CIRO */}
+        <div className="flex items-center gap-2 pl-2 border-l border-white/10">
+          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xs shadow">
+            C
+          </div>
+          <span className="text-slate-200">ciro</span>
+        </div>
+
       </div>
     </header>
   );
 }
-
-export default Navbar;
