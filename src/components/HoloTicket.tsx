@@ -21,11 +21,6 @@ export default function HoloTicket({ ticket }: { ticket: TicketData }) {
   const [rotateY, setRotateY] = useState(0);
   const [glarePos, setGlarePos] = useState({ x: 50, y: 50, opacity: 0 });
 
-  // Detectamos si es un ticket de barra por su categoría o descripción
-  const isBarTicket = (ticket.tierName || '').toLowerCase().includes('barra') || 
-                      (ticket.tierName || '').toLowerCase().includes('presentá') ||
-                      (ticket.tierName || '').toLowerCase().includes('fast-lane');
-
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!cardRef.current) return;
     const rect = cardRef.current.getBoundingClientRect();
@@ -114,17 +109,13 @@ export default function HoloTicket({ ticket }: { ticket: TicketData }) {
             ? 'bg-[#10131a]/90 border-slate-800 opacity-65'
             : ticket.status === 'resold'
             ? 'bg-rose-950/20 border-rose-900/40 opacity-50'
-            : isBarTicket
-            ? 'bg-gradient-to-b from-[#32260c] via-[#211907] to-[#120e03] border-yellow-500/60 hover:border-yellow-400 shadow-yellow-950/50'
             : 'bg-gradient-to-b from-[#181d2c] via-[#121622] to-[#0c0f17] border-blue-500/30 hover:border-blue-400/60 shadow-blue-950/40'
         }`}
       >
         {isUsable && (
           <div
             style={{
-              background: isBarTicket
-                ? `radial-gradient(circle at ${glarePos.x}% ${glarePos.y}%, rgba(255, 255, 255, ${glarePos.opacity}) 0%, rgba(234, 179, 8, 0.3) 30%, rgba(245, 158, 11, 0.2) 60%, transparent 80%)`
-                : `radial-gradient(circle at ${glarePos.x}% ${glarePos.y}%, rgba(255, 255, 255, ${glarePos.opacity}) 0%, rgba(59, 130, 246, 0.25) 30%, rgba(236, 72, 153, 0.2) 60%, transparent 80%)`,
+              background: `radial-gradient(circle at ${glarePos.x}% ${glarePos.y}%, rgba(255, 255, 255, ${glarePos.opacity}) 0%, rgba(59, 130, 246, 0.25) 30%, rgba(236, 72, 153, 0.2) 60%, transparent 80%)`,
               mixBlendMode: 'color-dodge',
             }}
             className="absolute inset-0 pointer-events-none transition-opacity duration-300 z-10"
@@ -133,15 +124,13 @@ export default function HoloTicket({ ticket }: { ticket: TicketData }) {
 
         <div className="space-y-4 font-mono z-20">
           <div className="flex items-center justify-between">
-            <span className={`text-[10px] tracking-[0.2em] font-black uppercase ${isBarTicket ? 'text-yellow-400' : 'text-blue-400'}`}>
+            <span className="text-[10px] tracking-[0.2em] font-black uppercase text-blue-400">
               OASIS ACCESS
             </span>
             <span
               className={`text-[9px] font-bold px-2.5 py-0.5 rounded-full uppercase border ${
                 ticket.status === 'active'
-                  ? isBarTicket
-                    ? 'bg-yellow-500/15 text-yellow-300 border-yellow-500/40'
-                    : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                  ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
                   : ticket.status === 'used'
                   ? 'bg-slate-700/20 text-slate-400 border-slate-700'
                   : 'bg-rose-500/10 text-rose-300 border-rose-500/30'
@@ -159,7 +148,7 @@ export default function HoloTicket({ ticket }: { ticket: TicketData }) {
             <h3 className="text-xl font-black uppercase text-white tracking-tight leading-snug">
               {ticket.eventName}
             </h3>
-            <span className={`text-xs font-bold tracking-wide ${isBarTicket ? 'text-yellow-300' : 'text-blue-300'}`}>
+            <span className="text-xs text-blue-300 font-bold tracking-wide">
               {ticket.tierName}
             </span>
           </div>
