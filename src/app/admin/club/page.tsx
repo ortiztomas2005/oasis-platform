@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import UserMenu from '@/components/UserMenu';
 
 export interface StadiumSector {
@@ -23,17 +22,35 @@ export interface ClubMember {
   status: 'ACTIVE' | 'INACTIVE';
 }
 
+export interface StaffMember {
+  id: string;
+  name: string;
+  email: string;
+  role: 'ADMIN' | 'CAJA' | 'SEGURIDAD';
+  status: 'ACTIVE' | 'INACTIVE';
+}
+
 export default function ClubAdminPage() {
-  const router = useRouter();
   const [matches, setMatches] = useState<any[]>([]);
   const [membersDb, setMembersDb] = useState<ClubMember[]>([]);
   const [accessLogs, setAccessLogs] = useState<any[]>([]);
   const [cashTickets, setCashTickets] = useState<any[]>([]);
+  const [staffList, setStaffList] = useState<StaffMember[]>([]);
   
-  const [currentSection, setCurrentSection] = useState<'matches_active' | 'matches_finished' | 'matches_suspended' | 'members_db' | 'cash_emission' | 'quick_box' | 'audit_logs' | 'metrics' | 'create' | 'edit'>('matches_active');
+  const [currentSection, setCurrentSection] = useState<'matches_active' | 'matches_finished' | 'matches_suspended' | 'config' | 'members_db' | 'staff_roles' | 'cash_emission' | 'quick_box' | 'audit_logs' | 'metrics' | 'create' | 'edit'>('matches_active');
   const [isMatchesMenuOpen, setIsMatchesMenuOpen] = useState<boolean>(true);
 
   const [editingMatchId, setEditingMatchId] = useState<string | null>(null);
+
+  // Estado Configuración Institucional & Colores
+  const [clubName, setClubName] = useState('CLUB ATLÉTICO');
+  const [clubLogo, setClubLogo] = useState('');
+  const [primaryColor, setPrimaryColor] = useState('#f59e0b');
+  const [accentColor, setAccentColor] = useState('#fbbf24');
+  const [savedConfig, setSavedConfig] = useState(false);
+
+  // Nuevo Estado para Crear Personal / Roles
+  const [newStaff, setNewStaff] = useState({ name: '', email: '', role: 'CAJA' as 'ADMIN' | 'CAJA' | 'SEGURIDAD' });
 
   const [cashForm, setCashForm] = useState({
     matchId: '',
@@ -48,11 +65,6 @@ export default function ClubAdminPage() {
     selectedSectorName: '',
     quantity: 1
   });
-
-  const [activeScanner, setActiveScanner] = useState<boolean>(false);
-  const [scannerResult, setScannerResult] = useState<any>(null);
-  const [manualCode, setManualCode] = useState('');
-  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const [selectedMetricMatchId, setSelectedMetricMatchId] = useState<string>('all');
   const [newMember, setNewMember] = useState({ fullName: '', dni: '', memberNumber: '' });
@@ -80,6 +92,28 @@ export default function ClubAdminPage() {
 
   const loadData = () => {
     try {
+      const config = localStorage.getItem('oasis_club_config') || localStorage.getItem('le_club_config');
+      if (config) {
+        const parsed = JSON.parse(config);
+        setClubName(parsed.clubName || parsed.name || 'CLUB ATLÉTICO');
+        setClubLogo(parsed.clubLogo || parsed.logo || '');
+        setPrimaryColor(parsed.primaryColor || '#f59e0b');
+        setAccentColor(parsed.accentColor || '#fbbf24');
+      }
+
+      const storedStaff = JSON.parse(localStorage.getItem('le_club_team_staff') || '[]');
+      if (storedStaff.length === 0) {
+        const defaultStaff: StaffMember[] = [
+          { id: 'st-1', name: 'Marcos Dirigente', email: 'admin@club.com', role: 'ADMIN', status: 'ACTIVE' },
+          { id: 'st-2', name: 'Valeria Boletería', email: 'caja@club.com', role: 'CAJA', status: 'ACTIVE' },
+          { id: 'st-3', name: 'Jorge Seguridad', email: 'puerta@club.com', role: 'SEGURIDAD', status: 'ACTIVE' }
+        ];
+        setStaffList(defaultStaff);
+        localStorage.setItem('le_club_team_staff', JSON.stringify(defaultStaff));
+      } else {
+        setStaffList(storedStaff);
+      }
+
       const storedMatches = JSON.parse(localStorage.getItem('le_club_matches') || '[]');
       const initialMatches = storedMatches.length > 0 ? storedMatches : [{
         id: 'm-1',
@@ -169,11 +203,64 @@ export default function ClubAdminPage() {
     return () => window.removeEventListener('storage', loadData);
   }, []);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSaveConfig = (e: React.FormEvent) => {
+    e.preventDefault();
+    const configData = { clubName, clubLogo, primaryColor, accentColor };
+    localStorage.setItem('oasis_club_config', JSON.stringify(configData));
+    localStorage.setItem('le_club_config', JSON.stringify(configData));
+    setSavedConfig(true);
+    setTimeout(() => setSavedConfig(false), 3000);
+  };
+
+  // CARGA SEGURA DE LOGO INSTITUCIONAL POR BASE64
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setMatchForm({ ...matchForm, imageUrl: URL.createObjectURL(file) });
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setClubLogo(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
+  };
+
+  // CARGA SEGURA DE IMAGEN DE PARTIDO POR BASE64
+  const handleMatchFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setMatchForm({ ...matchForm, imageUrl: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAddStaff = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newStaff.name || !newStaff.email) {
+      alert('Completá el nombre y email del personal.');
+      return;
+    }
+    const staffObj: StaffMember = {
+      id: `st-${Date.now()}`,
+      name: newStaff.name.trim(),
+      email: newStaff.email.trim(),
+      role: newStaff.role,
+      status: 'ACTIVE'
+    };
+    const updated = [staffObj, ...staffList];
+    setStaffList(updated);
+    localStorage.setItem('le_club_team_staff', JSON.stringify(updated));
+    setNewStaff({ name: '', email: '', role: 'CAJA' });
+    alert(`¡Personal ${staffObj.name} agregado con éxito!`);
+  };
+
+  const handleDeleteStaff = (id: string) => {
+    if (!confirm('¿Eliminar personal del equipo?')) return;
+    const updated = staffList.filter(s => s.id !== id);
+    setStaffList(updated);
+    localStorage.setItem('le_club_team_staff', JSON.stringify(updated));
   };
 
   const handleAddMember = (e: React.FormEvent) => {
@@ -440,10 +527,13 @@ export default function ClubAdminPage() {
 
     let updatedMatches = [];
     if (editingMatchId) {
-      updatedMatches = matches.map(m => m.id === editingMatchId ? { ...m, ...matchForm, sectors } : m);
+      updatedMatches = matches.map(m => m.id === editingMatchId ? { ...m, ...matchForm, clubName, clubLogo, primaryColor, sectors } : m);
     } else {
       const newMatch = {
         id: `match-${Date.now()}`,
+        clubName,
+        clubLogo,
+        primaryColor,
         ...matchForm,
         sectors
       };
@@ -460,77 +550,6 @@ export default function ClubAdminPage() {
     const updated = matches.map(m => m.id === id ? { ...m, status: nextStatus } : m);
     setMatches(updated);
     localStorage.setItem('le_club_matches', JSON.stringify(updated));
-  };
-
-  const logAccessAttempt = (name: string, identifier: string, method: 'DNI' | 'CARNET' | 'QR' | 'EFECTIVO', status: 'SUCCESS' | 'DENIED', detail: string) => {
-    const newLog = {
-      id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
-      name,
-      identifier,
-      method,
-      status,
-      detail,
-      timestamp: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-    };
-
-    const updatedLogs = [newLog, ...accessLogs];
-    setAccessLogs(updatedLogs);
-    localStorage.setItem('le_club_access_logs', JSON.stringify(updatedLogs));
-  };
-
-  const handleValidateMolinete = (codeToVerify: string) => {
-    const cleanCode = codeToVerify.trim();
-    if (!cleanCode) return;
-
-    const foundMemberByDni = membersDb.find(m => m.dni.toLowerCase() === cleanCode.toLowerCase());
-    if (foundMemberByDni) {
-      if (foundMemberByDni.status === 'INACTIVE') {
-        logAccessAttempt(foundMemberByDni.fullName, foundMemberByDni.dni, 'DNI', 'DENIED', 'Socio moroso');
-        setScannerResult({ success: false, message: `⚠️ ACCESO DENEGADO: Socio moroso (${foundMemberByDni.fullName})` });
-      } else {
-        logAccessAttempt(foundMemberByDni.fullName, foundMemberByDni.dni, 'DNI', 'SUCCESS', `Socio N° ${foundMemberByDni.memberNumber}`);
-        setScannerResult({ success: true, message: `✅ ACCESO CONCEDIDO (DNI): ¡Hola ${foundMemberByDni.fullName}!` });
-      }
-      setManualCode('');
-      return;
-    }
-
-    const foundMemberByCard = membersDb.find(m => m.memberNumber?.toLowerCase() === cleanCode.toLowerCase());
-    if (foundMemberByCard) {
-      if (foundMemberByCard.status === 'INACTIVE') {
-        logAccessAttempt(foundMemberByCard.fullName, foundMemberByCard.memberNumber, 'CARNET', 'DENIED', 'Carnet moroso');
-        setScannerResult({ success: false, message: `⚠️ ACCESO DENEGADO: Carnet moroso (${foundMemberByCard.fullName})` });
-      } else {
-        logAccessAttempt(foundMemberByCard.fullName, foundMemberByCard.memberNumber, 'CARNET', 'SUCCESS', `DNI: ${foundMemberByCard.dni}`);
-        setScannerResult({ success: true, message: `✅ ACCESO CONCEDIDO (CARNET): ¡Bienvenido ${foundMemberByCard.fullName}!` });
-      }
-      setManualCode('');
-      return;
-    }
-
-    const issuedTickets = JSON.parse(localStorage.getItem('oasis_issued_tickets') || '[]');
-    const foundTicket = issuedTickets.find((t: any) => 
-      (t.qrToken || '').toLowerCase() === cleanCode.toLowerCase() || 
-      (t.id || '').toLowerCase() === cleanCode.toLowerCase() ||
-      (t.holderDni || '') === cleanCode
-    );
-
-    if (foundTicket) {
-      if (foundTicket.status === 'USED') {
-        logAccessAttempt(foundTicket.holderName || 'Titular', cleanCode, 'QR', 'DENIED', 'Entrada ya utilizada');
-        setScannerResult({ success: false, message: `⚠️ ENTRADA YA UTILIZADA.` });
-      } else {
-        foundTicket.status = 'USED';
-        localStorage.setItem('oasis_issued_tickets', JSON.stringify(issuedTickets));
-        const isCash = (foundTicket.tierName || '').includes('Efectivo') || (foundTicket.tierName || '').includes('Boletería');
-        logAccessAttempt(foundTicket.holderName || 'Titular', foundTicket.holderDni || cleanCode, isCash ? 'EFECTIVO' : 'QR', 'SUCCESS', foundTicket.tierName);
-        setScannerResult({ success: true, message: `✅ ACCESO VÁLIDO (${isCash ? 'PAGO EFECTIVO' : 'QR'}): ${foundTicket.holderName} (${foundTicket.tierName})` });
-      }
-    } else {
-      logAccessAttempt('Desconocido', cleanCode, 'QR', 'DENIED', 'No registrado');
-      setScannerResult({ success: false, message: `❌ CREDENCIAL INVÁLIDA.` });
-    }
-    setManualCode('');
   };
 
   const filteredMatches = matches.filter(m => {
@@ -569,12 +588,12 @@ export default function ClubAdminPage() {
       {/* HEADER SUPERIOR */}
       <header className="h-16 border-b border-white/5 bg-[#07070a] px-6 flex items-center justify-between shrink-0 z-30">
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-600 flex items-center justify-center font-black text-black text-sm shadow-lg shadow-amber-500/20">
+          <div className="w-10 h-10 rounded-2xl flex items-center justify-center font-black text-black text-sm shadow-lg font-luxury" style={{ backgroundColor: primaryColor }}>
             ⚽
           </div>
           <div className="flex flex-col">
             <span className="bg-transparent text-white font-luxury text-sm font-black tracking-widest uppercase">
-              CLUB ATLÉTICO
+              {clubName}
             </span>
             <span className="text-[10px] text-amber-400 uppercase tracking-wider font-bold">Módulo Institucional & Partidos</span>
           </div>
@@ -588,7 +607,7 @@ export default function ClubAdminPage() {
         </div>
       </header>
 
-      {/* CUERPO PRINCIPAL CON SIDEBAR Y ACORDEÓN */}
+      {/* CUERPO PRINCIPAL CON SIDEBAR */}
       <div className="flex flex-1 overflow-hidden">
         
         <aside className="w-64 border-r border-white/5 bg-[#050507] p-4 space-y-1.5 shrink-0 select-none overflow-y-auto">
@@ -616,7 +635,7 @@ export default function ClubAdminPage() {
                   onClick={() => setCurrentSection('matches_active')}
                   className={`w-full text-left px-3 py-2 rounded-lg transition cursor-pointer ${currentSection === 'matches_active' ? 'text-amber-300 font-bold bg-amber-500/10' : 'text-slate-400 hover:text-white'}`}
                 >
-                  Partidos Activos
+                  ● Activos
                 </button>
                 <button
                   onClick={() => setCurrentSection('matches_finished')}
@@ -635,11 +654,27 @@ export default function ClubAdminPage() {
           </div>
 
           <button
+            onClick={() => setCurrentSection('config')}
+            className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl transition cursor-pointer text-xs ${currentSection === 'config' ? 'text-amber-400 font-bold bg-amber-500/10 border border-amber-500/20' : 'text-slate-300 hover:bg-white/5'}`}
+          >
+            <span>🛡️</span>
+            <span>Identidad & Colores</span>
+          </button>
+
+          <button
             onClick={() => setCurrentSection('members_db')}
             className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl transition cursor-pointer text-xs ${currentSection === 'members_db' ? 'text-amber-400 font-bold bg-amber-500/10 border border-amber-500/20' : 'text-slate-300 hover:bg-white/5'}`}
           >
             <span>👥</span>
             <span>Padrón de Socios (DB)</span>
+          </button>
+
+          <button
+            onClick={() => setCurrentSection('staff_roles')}
+            className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl transition cursor-pointer text-xs ${currentSection === 'staff_roles' ? 'text-amber-400 font-bold bg-amber-500/10 border border-amber-500/20' : 'text-slate-300 hover:bg-white/5'}`}
+          >
+            <span>🔐</span>
+            <span>Roles & Personal</span>
           </button>
 
           <button
@@ -674,27 +709,145 @@ export default function ClubAdminPage() {
             <span>Métricas & Ocupación</span>
           </button>
 
-          {/* BOTÓN CONECTADO AL ESCÁNER DE PUERTA */}
           <Link
             href="/admin/club/scanner"
-            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs text-amber-400 hover:bg-amber-500/15 border border-amber-500/30 transition cursor-pointer font-bold"
+            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs text-amber-400 hover:bg-amber-500/15 border border-amber-500/30 transition cursor-pointer font-bold block"
           >
             <span>📷</span>
             <span>Escáner de Puerta</span>
           </Link>
-
-          <button
-            onClick={() => setActiveScanner(true)}
-            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs text-slate-300 hover:bg-white/5 transition cursor-pointer"
-          >
-            <span>⚙️</span>
-            <span>Escáner de Molinete (Modal)</span>
-          </button>
         </aside>
 
         {/* CONTENIDO PRINCIPAL */}
         <main className="flex-1 overflow-y-auto p-8 space-y-8 bg-[#07070a]">
           
+          {/* SECCIÓN: ROLES Y PERSONAL */}
+          {currentSection === 'staff_roles' && (
+            <div className="space-y-8 max-w-5xl mx-auto font-mono">
+              <div className="border-b border-white/5 pb-4">
+                <h1 className="font-luxury text-2xl font-black text-white uppercase">🔐 Gestión de Roles & Personal del Club</h1>
+                <p className="text-xs text-slate-400 mt-1">Autorizá colaboradores para boletería, control de puerta o administración general.</p>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <form onSubmit={handleAddStaff} className="lg:col-span-5 p-6 rounded-3xl bg-[#0c0f17] border border-white/5 space-y-4 shadow-xl text-xs">
+                  <h3 className="font-luxury text-base font-black text-white uppercase">✨ Asignar Nuevo Personal</h3>
+
+                  <div className="space-y-1">
+                    <label className="text-slate-400 uppercase font-bold text-[10px]">Nombre y Apellido</label>
+                    <input type="text" required placeholder="Ej: Carlos Pérez" value={newStaff.name} onChange={e => setNewStaff({...newStaff, name: e.target.value})} className="w-full p-3 bg-[#07070a] border border-white/10 rounded-xl text-white" />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-slate-400 uppercase font-bold text-[10px]">Email de Acceso</label>
+                    <input type="email" required placeholder="personal@club.com" value={newStaff.email} onChange={e => setNewStaff({...newStaff, email: e.target.value})} className="w-full p-3 bg-[#07070a] border border-white/10 rounded-xl text-white" />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-slate-400 uppercase font-bold text-[10px]">Rol / Permisos en el Sistema</label>
+                    <select
+                      value={newStaff.role}
+                      onChange={e => setNewStaff({...newStaff, role: e.target.value as any})}
+                      className="w-full p-3 bg-[#07070a] border border-white/10 rounded-xl text-amber-300 font-bold cursor-pointer"
+                    >
+                      <option value="ADMIN">👑 Administrador (Acceso Total)</option>
+                      <option value="CAJA">💵 Boletería / Caja Rápida</option>
+                      <option value="SEGURIDAD">📷 Seguridad / Escáner de Puerta</option>
+                    </select>
+                  </div>
+
+                  <button type="submit" className="w-full py-3.5 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 text-black font-black uppercase text-xs rounded-xl shadow-lg cursor-pointer tracking-wider">
+                    Registrar Personal +
+                  </button>
+                </form>
+
+                <div className="lg:col-span-7 space-y-4">
+                  <div className="flex justify-between items-center border-b border-white/5 pb-2 text-xs font-bold text-slate-400 uppercase">
+                    <span>Personal Autorizado</span>
+                    <span className="text-emerald-400">{staffList.length} cuentas</span>
+                  </div>
+
+                  <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+                    {staffList.map((st) => (
+                      <div key={st.id} className="p-4 rounded-2xl bg-[#0c0f17] border border-white/5 flex justify-between items-center text-xs">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-white text-sm">{st.name}</span>
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
+                              st.role === 'ADMIN' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
+                              st.role === 'CAJA' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
+                              'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                            }`}>
+                              {st.role}
+                            </span>
+                          </div>
+                          <span className="text-slate-400 block">{st.email}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">Activo ✓</span>
+                          <button onClick={() => handleDeleteStaff(st.id)} className="text-slate-500 hover:text-rose-400 font-bold p-1 cursor-pointer">✕</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* SECCIÓN: IDENTIDAD Y COLORES CON CARGA BASE64 */}
+          {currentSection === 'config' && (
+            <form onSubmit={handleSaveConfig} className="space-y-8 max-w-2xl mx-auto font-mono">
+              <div className="border-b border-white/5 pb-4">
+                <h1 className="font-luxury text-2xl font-black text-white uppercase">🛡️ Identidad Institucional & Colores</h1>
+                <p className="text-xs text-slate-400 mt-1">Configurá el nombre, escudo y colores con los que tu club figurará en la tiquetera.</p>
+              </div>
+
+              <div className="p-8 rounded-3xl bg-[#0c0f17] border border-white/10 space-y-6 shadow-2xl text-xs">
+                <div className="space-y-1">
+                  <label className="text-slate-400 uppercase font-bold text-[10px]">Nombre Oficial del Club</label>
+                  <input type="text" required value={clubName} onChange={e => setClubName(e.target.value)} className="w-full p-3 bg-[#07070a] border border-white/10 rounded-xl text-white font-bold" />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-slate-400 uppercase font-bold text-[10px]">Subir Escudo / Logo (Persistente)</label>
+                  <div className="flex items-center gap-4 p-4 rounded-2xl bg-[#07070a] border border-white/10">
+                    {clubLogo ? (
+                      <img src={clubLogo} alt="Escudo" className="w-16 h-16 rounded-2xl object-cover border border-amber-500/40" />
+                    ) : (
+                      <div className="w-16 h-16 rounded-2xl bg-amber-500/20 flex items-center justify-center text-amber-400 font-bold">⚽</div>
+                    )}
+                    <input type="file" accept="image/*" onChange={handleLogoUpload} className="w-full text-xs text-slate-400 cursor-pointer" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-slate-400 uppercase font-bold text-[10px]">Color Principal</label>
+                    <div className="flex gap-2">
+                      <input type="color" value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} className="w-10 h-10 bg-transparent rounded-xl cursor-pointer border border-white/20" />
+                      <input type="text" value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} className="flex-1 p-3 bg-[#07070a] border border-white/10 rounded-xl text-white font-mono uppercase" />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-slate-400 uppercase font-bold text-[10px]">Color Acento</label>
+                    <div className="flex gap-2">
+                      <input type="color" value={accentColor} onChange={e => setAccentColor(e.target.value)} className="w-10 h-10 bg-transparent rounded-xl cursor-pointer border border-white/20" />
+                      <input type="text" value={accentColor} onChange={e => setAccentColor(e.target.value)} className="flex-1 p-3 bg-[#07070a] border border-white/10 rounded-xl text-white font-mono uppercase" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-4 flex items-center justify-between">
+                  {savedConfig && <span className="text-emerald-400 font-bold">✓ ¡Guardado con éxito!</span>}
+                  <button type="submit" className="px-8 py-3.5 bg-amber-500 hover:bg-amber-400 text-black font-black uppercase text-xs rounded-xl ml-auto cursor-pointer shadow-lg">
+                    Guardar Cambios Institucionales 💾
+                  </button>
+                </div>
+              </div>
+            </form>
+          )}
+
           {currentSection === 'quick_box' && (
             <div className="space-y-8 max-w-4xl mx-auto font-mono">
               <div className="border-b border-white/5 pb-4">
@@ -1104,7 +1257,7 @@ export default function ClubAdminPage() {
                 <div className="p-5 rounded-3xl bg-[#0c0f17] border border-white/5 space-y-2 shadow-xl">
                   <span className="text-[10px] text-slate-500 uppercase font-bold block">📈 Recaudación Partido</span>
                   <span className="text-2xl font-black text-emerald-400 block">${totalMatchRevenue.toLocaleString('es-AR')}</span>
-                  <span className="text-[11px] text-slate-500 block">Ingresos totales</span>
+                  <span className="text-[11px] text-slate-400 block">Ingresos totales</span>
                 </div>
               </div>
 
@@ -1195,10 +1348,10 @@ export default function ClubAdminPage() {
                   </div>
 
                   <div className="space-y-1.5 sm:col-span-2">
-                    <label className="text-slate-400 uppercase font-bold text-[10px]">Foto del Partido / Estadio</label>
+                    <label className="text-slate-400 uppercase font-bold text-[10px]">Foto del Partido / Estadio (Base64 Persistente)</label>
                     <div className="flex items-center gap-4 p-4 rounded-2xl bg-[#07070a] border border-white/10">
                       <img src={matchForm.imageUrl || DEFAULT_STADIUM_IMAGE} alt="" className="w-20 h-20 rounded-xl object-cover border border-slate-700" />
-                      <input type="file" accept="image/*" onChange={handleFileUpload} className="w-full text-xs text-slate-400 cursor-pointer" />
+                      <input type="file" accept="image/*" onChange={handleMatchFileUpload} className="w-full text-xs text-slate-400 cursor-pointer" />
                     </div>
                   </div>
                 </div>
@@ -1260,49 +1413,6 @@ export default function ClubAdminPage() {
 
         </main>
       </div>
-
-      {activeScanner && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 text-xs">
-          <div className="max-w-md w-full rounded-3xl bg-[#0c0f17] border border-emerald-500/40 p-6 space-y-4 shadow-2xl font-mono">
-            <div className="flex justify-between items-center border-b border-white/5 pb-3">
-              <h3 className="font-bold text-white text-sm">📷 Escáner de Molinete (Validación 4 Vías)</h3>
-              <button onClick={() => setActiveScanner(false)} className="text-slate-400">✕</button>
-            </div>
-            
-            <p className="text-[11px] text-slate-400">
-              Ingresá <strong className="text-blue-400">DNI</strong>, <strong className="text-emerald-400">Carnet</strong>, <strong className="text-white">QR</strong> o <strong className="text-yellow-400">Token Efectivo</strong>.
-            </p>
-
-            <div className="aspect-video rounded-2xl bg-black border border-white/15 overflow-hidden flex items-center justify-center">
-              <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
-            </div>
-
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="DNI, Carnet, QR o Efectivo..."
-                value={manualCode}
-                onChange={e => setManualCode(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') handleValidateMolinete(manualCode); }}
-                className="flex-1 px-3.5 py-3 bg-[#07070a] border border-white/10 rounded-xl text-emerald-400 font-bold"
-              />
-              <button onClick={() => handleValidateMolinete(manualCode)} className="px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl cursor-pointer transition">
-                Validar 🟢
-              </button>
-            </div>
-
-            {scannerResult && (
-              <div className={`p-3.5 rounded-xl border ${scannerResult.success ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border-rose-500/30 text-rose-300'}`}>
-                {scannerResult.message}
-              </div>
-            )}
-
-            <button onClick={() => setActiveScanner(false)} className="w-full py-3 bg-white/5 text-white rounded-xl font-bold border border-white/10 cursor-pointer">
-              Cerrar Escáner
-            </button>
-          </div>
-        </div>
-      )}
 
     </div>
   );

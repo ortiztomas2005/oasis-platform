@@ -239,9 +239,9 @@ export default function CatalogPage() {
           </Link>
 
           <div className="hidden sm:flex items-center gap-4 font-mono text-xs">
-            {/* BOTÓN DEPORTE CON REDIRECCIÓN FORZADA A /admin/club/partidos */}
+            {/* BOTÓN DEPORTE CORREGIDO A LA RUTA PUBLICA /club/partidos */}
             <button
-              onClick={() => { window.location.href = '/admin/club/partidos'; }}
+              onClick={() => { window.location.href = '/club/partidos'; }}
               className="text-amber-400 hover:text-amber-300 transition font-bold flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 cursor-pointer"
             >
               <span>⚽</span> Deporte
@@ -430,11 +430,10 @@ export default function CatalogPage() {
         </main>
       )}
 
-      {/* VISTA 3: CHECKOUT / PAGO ESTILO REFERENCIA */}
+      {/* VISTA 3: CHECKOUT */}
       {viewMode === 'checkout' && selectedEvent && (
         <main className="max-w-6xl mx-auto w-full px-6 py-10 flex-1 animate-fade-in font-mono space-y-8">
           
-          {/* STEPPER HEADER */}
           <div className="flex items-center justify-between border-b border-white/10 pb-6 mb-8 max-w-2xl mx-auto w-full">
             <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold">
               <span className="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500 flex items-center justify-center text-[10px]">✓</span>
@@ -454,7 +453,6 @@ export default function CatalogPage() {
             </div>
           </div>
 
-          {/* SI NO ESTÁ LOGUEADO, MOSTRAR PASO 2 PRIMERO */}
           {checkoutStep === 2 && !isLoggedIn && (
             <div className="max-w-xl mx-auto space-y-6 bg-[#0c0f16] border border-white/10 p-8 rounded-3xl">
               <div className="space-y-1">
@@ -491,13 +489,11 @@ export default function CatalogPage() {
             </div>
           )}
 
-          {/* PASO 3: PAGO ESTILO REFERENCIA (2 Columnas) */}
           {checkoutStep === 3 && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start max-w-5xl mx-auto">
               
               <div className="lg:col-span-7 space-y-6">
                 
-                {/* Cupones */}
                 <div className="bg-[#0c0f16] border border-white/10 rounded-3xl p-6 space-y-4">
                   <div className="flex items-center gap-2 text-amber-400 text-xs font-bold uppercase tracking-wider">
                     <span>🏷️</span>
@@ -516,7 +512,6 @@ export default function CatalogPage() {
                   {appliedPromoName && <p className="text-xs text-emerald-400 font-bold">✓ Cupón {appliedPromoName} aplicado ({discountPct}% OFF)</p>}
                 </div>
 
-                {/* Métodos de Pago */}
                 <div className="bg-[#0c0f16] border border-white/10 rounded-3xl p-6 space-y-6">
                   <div className="space-y-1">
                     <h3 className="text-white font-bold text-base">¿Cómo quieres pagar?</h3>

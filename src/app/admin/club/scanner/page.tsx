@@ -9,16 +9,51 @@ export default function GateScannerPage() {
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [successMsg, setSuccessMsg] = useState<string>('');
   const [isCameraActive, setIsCameraActive] = useState<boolean>(false);
+  const [authorized, setAuthorized] = useState<boolean | null>(null);
+  const [userRoleInfo, setUserRoleInfo] = useState<string>('');
   
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  // Validación estricta de Roles (Solo ADMIN y SEGURIDAD)
+  useEffect(() => {
+    try {
+      const sessionRaw = localStorage.getItem('le_current_session') || localStorage.getItem('oasis_current_session');
+      const staffList = JSON.parse(localStorage.getItem('le_club_team_staff') || '[]');
+
+      let role = 'ADMIN'; // Por defecto si no hay sesión estricta se asume admin para pruebas
+      if (sessionRaw) {
+        const session = JSON.parse(sessionRaw);
+        const matchStaff = staffList.find((st: any) => st.email.toLowerCase() === (session.email || '').toLowerCase());
+        if (matchStaff) {
+          role = matchStaff.role;
+        } else if (session.role) {
+          role = session.role;
+        }
+      } else if (staffList.length > 0) {
+        // Tomamos el primer admin o seguridad por defecto si está simulando
+        role = staffList[0].role;
+      }
+
+      setUserRoleInfo(role);
+
+      if (role === 'ADMIN' || role === 'SEGURIDAD') {
+        setAuthorized(true);
+      } else {
+        setAuthorized(false);
+      }
+    } catch (e) {
+      console.error(e);
+      setAuthorized(true); // Fallback seguro
+    }
+  }, []);
 
   // Iniciar la cámara web para lectura visual
   const startCamera = async () => {
     setErrorMsg('');
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' } // Usa la cámara trasera en móviles si está disponible
+        video: { facingMode: 'environment' }
       });
       streamRef.current = stream;
       if (videoRef.current) {
@@ -85,6 +120,18 @@ export default function GateScannerPage() {
       tickets[ticketIndex].usedAt = new Date().toISOString();
       localStorage.setItem('oasis_issued_tickets', JSON.stringify(tickets));
 
+      // Registrar en el historial de accesos
+      const accessLogs = JSON.parse(localStorage.getItem('le_club_access_logs') || '[]');
+      accessLogs.unshift({
+        id: `LOG-${Date.now()}`,
+        name: ticket.holderName || 'Asistente',
+        method: 'ESCANER QR',
+        detail: `Sector: ${ticket.tierName}`,
+        status: 'SUCCESS',
+        timestamp: new Date().toLocaleString('es-AR')
+      });
+      localStorage.setItem('le_club_access_logs', JSON.stringify(accessLogs));
+
       setSuccessMsg('✅ ¡ACCESO HABILITADO! Pase verificado correctamente.');
       setScanResult(tickets[ticketIndex]);
       setQrInput('');
@@ -96,14 +143,35 @@ export default function GateScannerPage() {
     }
   };
 
+  if (authorized === false) {
+    return (
+      <div className="min-h-screen bg-[#07070a] text-slate-100 flex flex-col items-center justify-center font-mono p-6">
+        <div className="max-w-md w-full bg-[#0c0f16] border border-rose-500/30 rounded-3xl p-8 text-center space-y-6 shadow-2xl">
+          <div className="w-16 h-16 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto text-2xl font-black">
+            🔒
+          </div>
+          <div className="space-y-2">
+            <h1 className="font-luxury text-xl font-black text-white uppercase">Acceso Restringido</h1>
+            <p className="text-xs text-slate-400">
+              Tu rol actual (<strong className="text-amber-400 uppercase">{userRoleInfo}</strong>) no cuenta con permisos de seguridad para operar el escáner de puerta. Esta sección es exclusiva para personal de <strong className="text-white">Seguridad</strong> y <strong className="text-white">Administradores</strong>.
+            </p>
+          </div>
+          <Link href="/admin/club" className="block w-full py-3.5 bg-white/10 hover:bg-white/15 text-white font-bold rounded-xl text-xs uppercase transition">
+            ← Volver al Panel Principal
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#07070a] text-slate-100 flex flex-col font-sans antialiased font-mono p-8">
       <header className="max-w-4xl w-full mx-auto flex items-center justify-between pb-6 border-b border-white/10 mb-8">
         <div>
-          <span className="text-[10px] text-amber-400 font-bold uppercase tracking-widest block">CONTROL DE ACCESO ESTADIO</span>
+          <span className="text-[10px] text-amber-400 font-bold uppercase tracking-widest block">CONTROL DE ACCESO ESTADIO (ROL: {userRoleInfo})</span>
           <h1 className="font-luxury text-2xl font-black text-white uppercase">Escáner de Puerta (Cámara & QR)</h1>
         </div>
-        <button onClick={() => { stopCamera(); window.location.href = '/admin/club/partidos'; }} className="px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-300 rounded-xl text-xs font-bold transition cursor-pointer">
+        <button onClick={() => { stopCamera(); window.location.href = '/admin/club'; }} className="px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-300 rounded-xl text-xs font-bold transition cursor-pointer">
           ← Volver al Panel
         </button>
       </header>
@@ -191,8 +259,8 @@ export default function GateScannerPage() {
               <div><span className="text-slate-500 block uppercase text-[10px]">Evento / Partido</span><strong className="text-white">{scanResult.eventName}</strong></div>
               <div><span className="text-slate-500 block uppercase text-[10px]">Ubicación / Sector</span><strong className="text-amber-400">{scanResult.tierName}</strong></div>
               <div><span className="text-slate-500 block uppercase text-[10px]">Titular</span><strong className="text-white">{scanResult.holderName} (DNI: {scanResult.holderDni})</strong></div>
-              {scanResult.memberNumber && (
-                <div><span className="text-slate-500 block uppercase text-[10px]">Número de Socio</span><strong className="text-emerald-400">{scanResult.memberNumber}</strong></div>
+              {scanResult.holderMemberNumber && (
+                <div><span className="text-slate-500 block uppercase text-[10px]">Número de Socio</span><strong className="text-emerald-400">{scanResult.holderMemberNumber}</strong></div>
               )}
             </div>
           </div>

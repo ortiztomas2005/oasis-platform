@@ -301,10 +301,17 @@ export default function MyTicketsPage() {
               };
 
               const canResell = !isBar && (t.status === 'VALID' || t.status === 'active' || t.status === 'FOR_SALE');
+              const qrTokenValue = t.qrToken || t.qrCode || `LE-TK-${t.id.slice(-4)}`;
 
               return (
                 <div key={t.id} className="flex flex-col space-y-3">
                   <HoloTicket ticket={holoData} />
+
+                 {/* VISUALIZADOR DE QR */}
+                  <div className="p-4 rounded-2xl bg-[#0c0f17] border border-white/10 flex flex-col items-center justify-center space-y-2">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">Código de Acceso</span>
+                    <span className="text-xs font-mono font-bold text-amber-400">{qrTokenValue}</span>
+                  </div>
 
                   {canResell && (
                     <div className="max-w-sm w-full mx-auto space-y-2">
