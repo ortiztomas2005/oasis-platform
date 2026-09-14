@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/core/supabase/admin';
+import { requireAdminSession } from '@/core/auth/admin-session';
 
 export const dynamic = 'force-dynamic';
 
 // GET: Obtener tandas del evento
 export async function GET(req: Request, context: { params: Promise<{ id: string }> | { id: string } }) {
+  const unauthorized = await requireAdminSession();
+  if (unauthorized) return unauthorized;
+
   try {
     const params = await context.params;
     const eventId = params.id;
@@ -32,6 +36,9 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
 
 // POST: Crear nueva tanda para el evento
 export async function POST(req: Request, context: { params: Promise<{ id: string }> | { id: string } }) {
+  const unauthorized = await requireAdminSession();
+  if (unauthorized) return unauthorized;
+
   try {
     const params = await context.params;
     const eventId = params.id;
@@ -71,6 +78,9 @@ export async function POST(req: Request, context: { params: Promise<{ id: string
 
 // PATCH: Actualizar tanda o datos del evento
 export async function PATCH(req: Request, context: { params: Promise<{ id: string }> | { id: string } }) {
+  const unauthorized = await requireAdminSession();
+  if (unauthorized) return unauthorized;
+
   try {
     const params = await context.params;
     const eventId = params.id;

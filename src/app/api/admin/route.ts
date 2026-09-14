@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/core/supabase/admin';
+import { requireAdminSession } from '@/core/auth/admin-session';
+
+export const dynamic = 'force-dynamic';
 
 interface TicketTierInput {
   name: string;
@@ -22,6 +25,9 @@ interface CreateEventBody {
 }
 
 export async function POST(req: Request) {
+  const unauthorized = await requireAdminSession();
+  if (unauthorized) return unauthorized;
+
   try {
     const body: CreateEventBody = await req.json();
     const { title, slug, description, venueName, venueAddress, startTime, endTime, ticketTypes } = body;

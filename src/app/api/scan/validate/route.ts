@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/core/supabase/admin';
+import { requireAdminSession } from '@/core/auth/admin-session';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
+  const unauthorized = await requireAdminSession();
+  if (unauthorized) return unauthorized;
+
   try {
     const { code, eventId } = await req.json();
 
@@ -11,7 +15,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Código o DNI no proporcionado' }, { status: 400 });
     }
 
-    const cleanCode = code.trim();
+    const cleanCode = String(code).trim();
+
+    // El código/DNI se interpola crudo en un filtro .or() de PostgREST: sin
+    // esta validación, un valor con comas/paréntesis puede inyectar
+    // condiciones extra en el filtro. Solo se admiten los caracteres que un
+    // auth_code, qr_hash, UUID o DNI legítimo puede tener.
+    if (!/^[a-zA-Z0-9_-]+$/.test(cleanCode)) {
+      return NextResponse.json({
+        valid: false,
+        status: 'INVALID',
+        message: 'Código con formato inválido.',
+      });
+    }
 
     // 1. Buscar el ticket por auth_code, qr_hash, id o DNI
     let query = supabaseAdmin

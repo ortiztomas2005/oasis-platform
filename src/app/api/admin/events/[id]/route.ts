@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase-admin';
+import { supabaseAdmin } from '@/core/supabase/admin';
+import { requireAdminSession } from '@/core/auth/admin-session';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,6 +9,9 @@ export async function PUT(
   req: Request,
   context: { params: Promise<{ id: string }> | { id: string } }
 ) {
+  const unauthorized = await requireAdminSession();
+  if (unauthorized) return unauthorized;
+
   try {
     const resolvedParams = await Promise.resolve(context.params);
     const eventId = resolvedParams?.id;
@@ -51,6 +55,9 @@ export async function DELETE(
   req: Request,
   context: { params: Promise<{ id: string }> | { id: string } }
 ) {
+  const unauthorized = await requireAdminSession();
+  if (unauthorized) return unauthorized;
+
   try {
     const resolvedParams = await Promise.resolve(context.params);
     const eventId = resolvedParams?.id;
@@ -61,7 +68,7 @@ export async function DELETE(
 
     // 1. Limpieza de tablas hijas relacionadas
     try {
-      await supabaseAdmin.from('resale_listings').delete().eq('event_id', eventId);
+      await supabaseAdmin.from('ticket_resales').delete().eq('event_id', eventId);
     } catch (_) {}
 
     try {

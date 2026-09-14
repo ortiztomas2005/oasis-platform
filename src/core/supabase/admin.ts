@@ -4,12 +4,19 @@ let _supabaseAdmin: SupabaseClient | null = null;
 
 export function getSupabaseAdmin(): SupabaseClient {
   if (!_supabaseAdmin) {
-    const supabaseUrl =
-      process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://qjjpmpetithnzkmisnbk.supabase.co';
-    const supabaseServiceKey =
-      process.env.SUPABASE_SERVICE_ROLE_KEY ||
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.placeholder';
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      // Antes esto caía silenciosamente a la anon key o a un JWT placeholder
+      // hardcodeado, lo que dejaba pasar una mala configuración de producción
+      // sin que nadie se diera cuenta (las queries de "admin" corrían con
+      // permisos de anon, o directamente contra un backend inexistente).
+      // Mejor romper fuerte y explícito acá.
+      throw new Error(
+        'Faltan NEXT_PUBLIC_SUPABASE_URL y/o SUPABASE_SERVICE_ROLE_KEY. Configurálas en .env.local antes de usar el cliente de administración de Supabase.'
+      );
+    }
 
     _supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {

@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/core/supabase/admin';
+import { requireAdminSession } from '@/core/auth/admin-session';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
+  const unauthorized = await requireAdminSession();
+  if (unauthorized) return unauthorized;
+
   try {
     const { title, date, venue, capacity, cbuAlias, description, imageUrl } = await req.json();
 

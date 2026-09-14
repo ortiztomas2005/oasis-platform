@@ -1,10 +1,21 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/core/supabase/admin';
 import { randomBytes, createHash } from 'crypto';
+import { requireAdminSession } from '@/core/auth/admin-session';
 
 export const dynamic = 'force-dynamic';
 
+// Esta ruta emite un ticket "VALID" directo a la base de datos usando el
+// precio que manda el propio request, sin pasar por ninguna pasarela de
+// pago. Ningún flujo del sitio la llama hoy (la compra real usa
+// /api/checkout/transfer, /api/checkout/mercadopago o /api/checkout/astropay),
+// pero seguía expuesta y cualquiera podía generar entradas gratis con ella.
+// La dejamos como herramienta manual de staff detrás del login de admin en
+// vez de borrarla, por si se usa para altas manuales.
 export async function POST(req: Request) {
+  const unauthorized = await requireAdminSession();
+  if (unauthorized) return unauthorized;
+
   try {
     const body = await req.json();
 

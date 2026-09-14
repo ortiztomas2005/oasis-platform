@@ -34,11 +34,19 @@ export async function GET(req: Request) {
       return NextResponse.json({ authenticated: false, tickets: [] }, { status: 401 });
     }
 
-    // 2. Buscar tickets vinculados a este user_id o a su email
+    // 2. Buscar tickets vinculados a este user_id o a su email.
+    // user.id/email vienen de una sesión de Supabase ya autenticada, pero
+    // igual se valida antes de interpolarlos en el filtro .or() de
+    // PostgREST — una coma o paréntesis ahí inyectaría condiciones extra.
+    const email = (user.email || '').toLowerCase();
+    if (/[,()]/.test(user.id) || /[,()]/.test(email)) {
+      return NextResponse.json({ error: 'Sesión inválida' }, { status: 400 });
+    }
+
     const { data: tickets, error } = await supabaseAdmin
       .from('tickets')
       .select('*, events(*)')
-      .or(`user_id.eq.${user.id},customer_email.eq.${user.email?.toLowerCase()}`)
+      .or(`user_id.eq.${user.id},customer_email.eq.${email}`)
       .order('created_at', { ascending: false });
 
     if (error) throw error;

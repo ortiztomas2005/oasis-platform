@@ -9,12 +9,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Falta el correo electrónico.' }, { status: 400 });
     }
 
-    // Transportador SMTP configurado con tu cuenta y contraseña de aplicación real
+    // La contraseña de aplicación de Gmail estaba hardcodeada acá y quedó
+    // commiteada en el historial de git (commit 06c9e2c) — hay que revocarla
+    // en https://myaccount.google.com/apppasswords y generar una nueva.
+    const smtpUser = process.env.SMTP_USER;
+    const smtpPass = process.env.SMTP_PASS;
+
+    if (!smtpUser || !smtpPass) {
+      return NextResponse.json(
+        { success: false, error: 'El servidor no tiene configurado SMTP_USER/SMTP_PASS.' },
+        { status: 500 }
+      );
+    }
+
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: 'liveexperience123@gmail.com',
-        pass: 'glzh yzvn vbkh tpmm',
+        user: smtpUser,
+        pass: smtpPass,
       },
     });
 
