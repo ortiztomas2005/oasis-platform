@@ -7,6 +7,8 @@ export const dynamic = 'force-dynamic';
 // lista de eventos hardcodeados en el código (DEFAULT_EVENTS) en vez de
 // consultar la base real — cualquiera que entrara ahí veía datos de mentira
 // sin importar qué evento se haya creado de verdad desde /admin.
+const PUBLIC_EVENT_STATUSES = ['PUBLISHED', 'ACTIVE'];
+
 export async function GET(req: Request, context: { params: Promise<{ slug: string }> | { slug: string } }) {
   try {
     const params = await context.params;
@@ -24,7 +26,9 @@ export async function GET(req: Request, context: { params: Promise<{ slug: strin
       .eq(isUuid ? 'id' : 'slug', slug)
       .maybeSingle();
 
-    if (eventError || !event) {
+    // No dejamos comprar (ni ver) un evento que no esté publicado, aunque
+    // alguien adivine o filtre el slug/id directo.
+    if (eventError || !event || !PUBLIC_EVENT_STATUSES.includes(event.status)) {
       return NextResponse.json({ error: 'Evento no encontrado' }, { status: 404 });
     }
 

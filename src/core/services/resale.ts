@@ -35,12 +35,9 @@ export async function completeResaleTransfer({
   const originalTicket = (resale as any).tickets;
   const event = (resale as any).events;
 
-  // 1. Quemar el ticket original
+  // 1. Quemar el ticket original (la tabla "tickets" no tiene updated_at)
   if (originalTicket?.id) {
-    await supabaseAdmin
-      .from('tickets')
-      .update({ status: 'RESOLD_BURNED', updated_at: new Date().toISOString() })
-      .eq('id', originalTicket.id);
+    await supabaseAdmin.from('tickets').update({ status: 'RESOLD_BURNED' }).eq('id', originalTicket.id);
   }
 
   // 2. Emitir un ticket nuevo para el comprador
@@ -62,7 +59,7 @@ export async function completeResaleTransfer({
         auth_code: newHash,
         qr_hash: newHash,
         status: 'VALID',
-        price_paid: resale.resale_price,
+        purchase_price: resale.resale_price,
       },
     ])
     .select()
@@ -70,10 +67,15 @@ export async function completeResaleTransfer({
 
   if (newTicketErr) throw newTicketErr;
 
-  // 3. Marcar la publicación como vendida
+  // 3. Marcar la publicación como vendida (acá sí hay sold_at/buyer_*, no updated_at)
   await supabaseAdmin
     .from('ticket_resales')
-    .update({ status: 'SOLD', updated_at: new Date().toISOString() })
+    .update({
+      status: 'SOLD',
+      sold_at: new Date().toISOString(),
+      buyer_email: buyerEmail,
+      buyer_name: buyerName,
+    })
     .eq('id', resaleId);
 
   // 4. Avisarle al comprador por email (no bloqueante)

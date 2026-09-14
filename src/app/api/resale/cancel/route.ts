@@ -37,10 +37,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Esta publicación no te pertenece.' }, { status: 403 });
     }
 
-    await supabaseAdmin
-      .from('ticket_resales')
-      .update({ status: 'CANCELLED', updated_at: new Date().toISOString() })
-      .eq('id', resale_id);
+    // ticket_resales no tiene columna updated_at
+    await supabaseAdmin.from('ticket_resales').update({ status: 'CANCELLED' }).eq('id', resale_id);
 
     if (resale.ticket_id) {
       await supabaseAdmin.from('tickets').update({ status: 'VALID' }).eq('id', resale.ticket_id);

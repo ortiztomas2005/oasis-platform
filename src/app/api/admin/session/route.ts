@@ -5,15 +5,18 @@ import {
   ADMIN_SESSION_MAX_AGE_SECONDS,
   checkAdminPassword,
   createAdminSessionToken,
-  hasValidAdminSession,
+  getAdminContext,
 } from '@/core/auth/admin-session';
 
 export const dynamic = 'force-dynamic';
 
-// Consulta si ya hay una sesión de admin activa (para que el panel decida si mostrar el login)
+// Consulta si ya hay una sesión de admin activa (para que el panel decida si
+// mostrar el login). Si ya estás logueado con una cuenta real dada de alta
+// en admin_users, esto ya da authenticated:true sin pedir la contraseña
+// compartida.
 export async function GET() {
-  const authenticated = await hasValidAdminSession();
-  return NextResponse.json({ authenticated });
+  const ctx = await getAdminContext();
+  return NextResponse.json(ctx);
 }
 
 // Login: valida la contraseña de administrador y abre sesión

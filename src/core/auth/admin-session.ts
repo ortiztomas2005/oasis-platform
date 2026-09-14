@@ -1,28 +1,43 @@
 import { cookies } from 'next/headers';
 import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
 import { NextResponse } from 'next/server';
+import { createClient as createServerClient } from '@/core/supabase/server';
+import { supabaseAdmin } from '@/core/supabase/admin';
 
 /**
- * Gate de administrador basado en una contraseña compartida (ADMIN_PASSWORD).
+ * Control de acceso a /admin y a las rutas /api/admin, /api/scan y
+ * /api/tickets/courtesy. Dos caminos posibles, ambos válidos:
  *
- * Es una mitigación rápida: hoy ninguna ruta bajo /api/admin, /api/scan ni
- * /api/tickets/courtesy verifica quién llama, así que cualquiera con la URL
- * puede crear eventos, emitir tickets gratis o marcar entradas como usadas.
- * Este módulo cierra ese hueco con una sesión firmada (cookie httpOnly) sin
- * depender de un esquema de roles en la base de datos.
- *
- * TODO: reemplazar por sesiones de Supabase Auth + un rol real (org_members)
- * cuando el modelo de usuarios/roles esté definido.
+ * 1. Cuenta real: el usuario está logueado con Supabase Auth (el mismo
+ *    login de /auth que usa cualquier cliente) Y su cuenta figura en la
+ *    tabla admin_users (ver supabase/migrations/001_admin_users.sql). Esta
+ *    tabla es la separación real entre "cuenta de cliente/productora" y
+ *    "cuenta de staff de OASIS" — team_members (OWNER/ADMIN/DOOR/BAR) es
+ *    otra cosa, es el equipo de UNA productora puntual, no da acceso a
+ *    /admin por sí solo.
+ * 2. Contraseña compartida (ADMIN_PASSWORD): el mecanismo de arranque que
+ *    ya existía. Se mantiene como respaldo para no quedar bloqueado antes
+ *    de sembrar el primer admin_users, y para desarrollo local. Se trata
+ *    como equivalente a SUPERADMIN.
  */
 
 const COOKIE_NAME = 'oasis_admin_session';
 const SESSION_TTL_SECONDS = 12 * 60 * 60; // 12 horas
 
+export type AdminRole = 'SUPERADMIN' | 'ADMIN';
+
+export interface AdminContext {
+  authenticated: boolean;
+  /** 'PASSWORD' = entró con la contraseña compartida, no con una cuenta real. */
+  role: AdminRole | 'PASSWORD' | null;
+  email: string | null;
+}
+
 function getSecret(): string | null {
   const secret = process.env.ADMIN_PASSWORD;
   if (!secret) {
     console.error(
-      '⚠️ ADMIN_PASSWORD no está configurada: las rutas de administración quedarán bloqueadas hasta definirla en .env.local'
+      '⚠️ ADMIN_PASSWORD no está configurada: el login por contraseña compartida queda deshabilitado (podés usar una cuenta real dada de alta en admin_users en su lugar).'
     );
     return null;
   }
@@ -72,8 +87,8 @@ function verifyToken(token: string | undefined, secret: string | null): boolean 
   return Number.isFinite(expiresAt) && Date.now() <= expiresAt;
 }
 
-/** Chequea si la request actual trae una cookie de sesión de admin válida. */
-export async function hasValidAdminSession(): Promise<boolean> {
+/** Chequea si la request actual trae una cookie de sesión válida por contraseña compartida. */
+export async function hasValidPasswordSession(): Promise<boolean> {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get(COOKIE_NAME)?.value;
@@ -83,21 +98,80 @@ export async function hasValidAdminSession(): Promise<boolean> {
   }
 }
 
+/** Compatibilidad hacia atrás: alias del chequeo anterior. */
+export async function hasValidAdminSession(): Promise<boolean> {
+  return (await getAdminContext()).authenticated;
+}
+
+/**
+ * Chequea si hay una cuenta de Supabase logueada Y esa cuenta figura en
+ * admin_users. Si la tabla todavía no existe (no corriste la migración),
+ * falla cerrado sin romper — simplemente no da acceso por esta vía.
+ */
+async function getRealAccountAdminContext(): Promise<AdminContext> {
+  try {
+    const supabase = await createServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return { authenticated: false, role: null, email: null };
+
+    const { data } = await supabaseAdmin
+      .from('admin_users')
+      .select('role')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (!data) return { authenticated: false, role: null, email: user.email || null };
+
+    return { authenticated: true, role: data.role as AdminRole, email: user.email || null };
+  } catch {
+    return { authenticated: false, role: null, email: null };
+  }
+}
+
+/** Resuelve el contexto de admin completo, probando cuenta real primero y contraseña compartida después. */
+export async function getAdminContext(): Promise<AdminContext> {
+  const real = await getRealAccountAdminContext();
+  if (real.authenticated) return real;
+
+  if (await hasValidPasswordSession()) {
+    return { authenticated: true, role: 'PASSWORD', email: null };
+  }
+
+  return { authenticated: false, role: null, email: null };
+}
+
 /**
  * Guard para usar al principio de cada handler de ruta protegida:
  *
  *   const unauthorized = await requireAdminSession();
  *   if (unauthorized) return unauthorized;
  *
- * Devuelve `null` si la sesión es válida, o una respuesta 401 lista para
- * retornar si no lo es.
+ * Devuelve `null` si hay acceso de admin válido (cuenta real o contraseña
+ * compartida), o una respuesta 401 lista para retornar si no lo hay.
  */
 export async function requireAdminSession(): Promise<NextResponse | null> {
-  const ok = await hasValidAdminSession();
-  if (ok) return null;
+  const ctx = await getAdminContext();
+  if (ctx.authenticated) return null;
   return NextResponse.json(
     { error: 'No autorizado. Iniciá sesión como administrador para usar esta función.' },
     { status: 401 }
+  );
+}
+
+/**
+ * Igual que requireAdminSession pero exige rol SUPERADMIN (o la
+ * contraseña compartida, tratada como equivalente). Usar en operaciones
+ * sensibles como gestionar quién más es admin.
+ */
+export async function requireSuperAdmin(): Promise<NextResponse | null> {
+  const ctx = await getAdminContext();
+  if (ctx.authenticated && (ctx.role === 'SUPERADMIN' || ctx.role === 'PASSWORD')) return null;
+  return NextResponse.json(
+    { error: 'Esta acción requiere una cuenta con rol SUPERADMIN.' },
+    { status: 403 }
   );
 }
 

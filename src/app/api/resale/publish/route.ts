@@ -69,6 +69,7 @@ export async function POST(req: Request) {
         ticket_id,
         event_id: ticket.event_id,
         resale_price: Number(resale_price),
+        original_price: Number(ticket.purchase_price) || 0,
         seller_cbu_alias,
         seller_name: sellerName,
         seller_email: sellerEmail,

@@ -62,11 +62,12 @@ export async function POST(req: Request) {
     }
 
     if (ticket.status === 'USED') {
+      // La tabla "tickets" no tiene una columna para guardar cuándo se
+      // escaneó, así que no hay forma de reportar esa fecha acá.
       return NextResponse.json({
         valid: false,
         status: 'ALREADY_USED',
         ticket,
-        scannedAt: ticket.scanned_at || ticket.updated_at,
         message: '¡ALERTA! Esta entrada ya fue utilizada para ingresar.',
       });
     }
@@ -80,16 +81,12 @@ export async function POST(req: Request) {
       });
     }
 
-    // 3. Quemar ticket para marcar INGRESO VÁLIDO
+    // 3. Quemar ticket para marcar INGRESO VÁLIDO. "tickets" no tiene
+    // columnas scanned_at ni updated_at (ver supabase/migrations si en
+    // algún momento se quiere agregar un registro real de cuándo se
+    // escaneó cada entrada) — hoy solo se puede persistir el status.
     const now = new Date().toISOString();
-    await supabaseAdmin
-      .from('tickets')
-      .update({
-        status: 'USED',
-        scanned_at: now,
-        updated_at: now,
-      })
-      .eq('id', ticket.id);
+    await supabaseAdmin.from('tickets').update({ status: 'USED' }).eq('id', ticket.id);
 
     return NextResponse.json({
       valid: true,
