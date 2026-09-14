@@ -4,120 +4,96 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import UserMenu from '@/components/UserMenu';
 
-function getActiveSession() {
-  if (typeof window === 'undefined') return null;
-  const rawSession = localStorage.getItem('oasis_current_session') || localStorage.getItem('oasis_customer_user');
-  if (rawSession) {
-    try {
-      const parsed = JSON.parse(rawSession);
-      if (parsed && (parsed.email || parsed.name)) {
-        return {
-          name: parsed.name || 'Usuario',
-          email: (parsed.email || '').toLowerCase().trim(),
-          dni: parsed.dni || 'Sin DNI',
-        };
-      }
-    } catch {}
-  }
-  return null;
+interface Resale {
+  id: string;
+  ticket_id: string;
+  event_id: string;
+  resale_price: number;
+  seller_name: string;
+  seller_email: string;
+  seller_cbu_alias: string;
+  status: string;
+  events?: { name?: string; title?: string; date?: string; venue?: string };
+  tickets?: { tier_name?: string };
 }
 
 export default function ResaleMarketplacePage() {
-  const [forSaleTickets, setForSaleTickets] = useState<any[]>([]);
-  const [currentUser, setCurrentUser] = useState<{ name: string; email: string; dni: string } | null>(null);
-  const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
-  const [isProcessing, setIsProcessing] = useState<boolean>(false);
-  const [purchaseDone, setPurchaseDone] = useState<boolean>(false);
+  const [resales, setResales] = useState<Resale[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<Resale | null>(null);
 
-  const loadMarketplace = () => {
-    setCurrentUser(getActiveSession());
+  const [buyerName, setBuyerName] = useState('');
+  const [buyerEmail, setBuyerEmail] = useState('');
+  const [buyerDni, setBuyerDni] = useState('');
+  const [purchasing, setPurchasing] = useState(false);
+  const [pendingInfo, setPendingInfo] = useState<{ alias: string } | null>(null);
+
+  const loadMarketplace = async () => {
+    setLoading(true);
     try {
-      const raw = localStorage.getItem('oasis_issued_tickets');
-      const allIssued = raw ? JSON.parse(raw) : [];
-
-      // Filtra únicamente las entradas en estado FOR_SALE
-      const activeForSale = allIssued.filter((t: any) => t.status === 'FOR_SALE');
-      setForSaleTickets(activeForSale);
+      const res = await fetch('/api/resale');
+      const data = await res.json();
+      setResales(data.resales || []);
     } catch (e) {
       console.error(e);
-      setForSaleTickets([]);
+      setResales([]);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     loadMarketplace();
-    window.addEventListener('storage', loadMarketplace);
-    return () => window.removeEventListener('storage', loadMarketplace);
   }, []);
 
-  const handleBuyResaleTicket = () => {
-    if (!selectedTicket) return;
-    const buyer = getActiveSession();
+  const handleBuy = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selected) return;
 
-    if (!buyer || !buyer.email) {
-      alert('Iniciá sesión en el menú superior para comprar esta entrada.');
-      return;
-    }
-
-    if (buyer.email.toLowerCase() === (selectedTicket.holderEmail || '').toLowerCase()) {
+    if (buyerEmail.toLowerCase().trim() === (selected.seller_email || '').toLowerCase().trim()) {
       alert('No podés comprar tu propia entrada publicada.');
       return;
     }
 
-    setIsProcessing(true);
+    setPurchasing(true);
+    try {
+      const res = await fetch('/api/resale/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resale_id: selected.id,
+          buyer_name: buyerName.trim(),
+          buyer_email: buyerEmail.toLowerCase().trim(),
+          buyer_dni: buyerDni.trim(),
+        }),
+      });
 
-    setTimeout(() => {
-      try {
-        const raw = localStorage.getItem('oasis_issued_tickets');
-        const allIssued = raw ? JSON.parse(raw) : [];
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al iniciar la compra');
 
-        // 1. Quemar el ticket viejo del vendedor (pasa a RESOLD)
-        const updatedOldTickets = allIssued.map((t: any) => {
-          if (t.id === selectedTicket.id) {
-            return {
-              ...t,
-              status: 'RESOLD',
-              resoldTo: buyer.email,
-              resoldAt: new Date().toISOString(),
-            };
-          }
-          return t;
-        });
-
-        // 2. Emitir un ticket 100% virgen para el comprador con nuevo hash
-        const randHex = Math.random().toString(16).substring(2, 10).toUpperCase();
-        const tokenSuffix = Math.random().toString(36).substring(2, 10).toUpperCase();
-
-        const freshTicket = {
-          id: `tkt-${Date.now()}-${Math.floor(Math.random() * 9000)}`,
-          eventId: selectedTicket.eventId,
-          eventName: selectedTicket.eventName,
-          tierName: selectedTicket.tierName,
-          date: selectedTicket.date,
-          venue: selectedTicket.venue,
-          holderName: buyer.name,
-          holderDni: buyer.dni,
-          holderEmail: buyer.email,
-          qrToken: `OASIS-${randHex}-${tokenSuffix}`,
-          status: 'VALID',
-          entryCutoffTime: selectedTicket.entryCutoffTime || '',
-          purchaseDate: new Date().toISOString(),
-          price: selectedTicket.resalePrice || selectedTicket.price,
-          paymentMethod: 'Mercado Pago (P2P)',
-          previousOwner: selectedTicket.holderEmail,
-        };
-
-        const finalTickets = [freshTicket, ...updatedOldTickets];
-        localStorage.setItem('oasis_issued_tickets', JSON.stringify(finalTickets));
-
-        setIsProcessing(false);
-        setPurchaseDone(true);
-        loadMarketplace();
-      } catch (err) {
-        console.error(err);
-        setIsProcessing(false);
+      // El ticket recién se emite cuando Mercado Pago confirma el pago (ver
+      // /api/webhooks/mercadopago) — nunca al tocar este botón.
+      if (data.init_point) {
+        window.location.href = data.init_point;
+        return;
       }
-    }, 800);
+
+      // Sin MP_ACCESS_TOKEN configurado no hay pasarela real: se lo avisamos
+      // al comprador en vez de fingir que la compra ya se completó.
+      setPendingInfo({ alias: selected.seller_cbu_alias });
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setPurchasing(false);
+    }
+  };
+
+  const closeModal = () => {
+    setSelected(null);
+    setPendingInfo(null);
+    setBuyerName('');
+    setBuyerEmail('');
+    setBuyerDni('');
   };
 
   return (
@@ -138,7 +114,7 @@ export default function ResaleMarketplacePage() {
                 OASIS
               </span>
               <span className="text-[9px] text-indigo-400 font-mono tracking-wider mt-0.5">
-                SECURE RESALE P2P
+                SECURE RESALE
               </span>
             </div>
           </div>
@@ -166,10 +142,10 @@ export default function ResaleMarketplacePage() {
               ● Mercado Verificado sin Sobrecostos
             </span>
             <h1 className="text-3xl font-black uppercase text-white tracking-tight">
-              Reventa Oficial P2P
+              Reventa Oficial
             </h1>
             <p className="text-xs text-slate-400">
-              Pases transferidos de forma transparente. Al comprar, el QR anterior se destruye y se emite uno nuevo a tu nombre.
+              Al confirmarse el pago, el QR anterior se destruye y se emite uno nuevo a tu nombre.
             </p>
           </div>
 
@@ -180,12 +156,14 @@ export default function ResaleMarketplacePage() {
         </div>
 
         {/* LISTADO DE PASES EN VENTA */}
-        {forSaleTickets.length === 0 ? (
+        {loading ? (
+          <div className="py-20 text-center font-mono text-xs text-slate-500">Cargando publicaciones...</div>
+        ) : resales.length === 0 ? (
           <div className="py-20 text-center space-y-3 border border-dashed border-slate-800 rounded-3xl bg-[#131722]/30 max-w-md mx-auto">
             <span className="text-4xl block">🔄</span>
             <p className="text-sm text-white font-bold">No hay entradas publicadas en reventa en este momento</p>
             <p className="text-xs text-slate-400 max-w-xs mx-auto">
-              Si compraste una entrada y no podés ir, podés publicarla desde tu sección de Mis Entradas.
+              Si compraste una entrada y no podés ir, podés publicarla desde el detalle de tu ticket en Mis Entradas.
             </p>
             <Link
               href="/my-tickets"
@@ -196,108 +174,87 @@ export default function ResaleMarketplacePage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {forSaleTickets.map((t) => {
-              const isOwnTicket = currentUser?.email && t.holderEmail?.toLowerCase() === currentUser.email.toLowerCase();
-              const price = t.resalePrice || t.price || 15000;
-
-              return (
-                <div
-                  key={t.id}
-                  className="p-6 rounded-3xl bg-[#131722] border border-indigo-500/20 hover:border-indigo-500/50 flex flex-col justify-between space-y-4 shadow-xl transition"
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/30 text-[10px] font-bold uppercase">
-                        ● Reventa Verificada
-                      </span>
-                      <span className="text-[10px] text-slate-500 uppercase">
-                        Vendedor: {t.holderName}
-                      </span>
-                    </div>
-
-                    <div>
-                      <span className="text-xs text-blue-400 font-bold block">
-                        📅 {t.date} · {t.venue}
-                      </span>
-                      <h3 className="text-lg font-black uppercase text-white tracking-tight mt-0.5">
-                        {t.eventName}
-                      </h3>
-                      <span className="text-xs text-slate-300 font-bold block mt-1">
-                        Sector: {t.tierName}
-                      </span>
-                    </div>
+            {resales.map((r) => (
+              <div
+                key={r.id}
+                className="p-6 rounded-3xl bg-[#131722] border border-indigo-500/20 hover:border-indigo-500/50 flex flex-col justify-between space-y-4 shadow-xl transition"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/30 text-[10px] font-bold uppercase">
+                      ● Reventa Verificada
+                    </span>
+                    <span className="text-[10px] text-slate-500 uppercase">Vendedor: {r.seller_name}</span>
                   </div>
 
-                  <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] text-slate-500 uppercase block font-bold">Precio Oficial</span>
-                      <span className="text-base font-black text-emerald-400">
-                        ${price.toLocaleString('es-AR')}
-                      </span>
-                    </div>
-
-                    {isOwnTicket ? (
-                      <span className="px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-300 border border-amber-500/30 text-[11px] font-bold uppercase">
-                        Tu Publicación
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          setSelectedTicket(t);
-                          setPurchaseDone(false);
-                        }}
-                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black uppercase rounded-xl transition shadow-md shadow-indigo-600/30"
-                      >
-                        Comprar Pase →
-                      </button>
-                    )}
+                  <div>
+                    <span className="text-xs text-blue-400 font-bold block">
+                      📅 {r.events?.date || 'Fecha a confirmar'} · {r.events?.venue || ''}
+                    </span>
+                    <h3 className="text-lg font-black uppercase text-white tracking-tight mt-0.5">
+                      {r.events?.name || r.events?.title || 'Evento OASIS'}
+                    </h3>
+                    <span className="text-xs text-slate-300 font-bold block mt-1">
+                      Sector: {r.tickets?.tier_name || 'GENERAL'}
+                    </span>
                   </div>
                 </div>
-              );
-            })}
+
+                <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] text-slate-500 uppercase block font-bold">Precio de Reventa</span>
+                    <span className="text-base font-black text-emerald-400">
+                      ${Number(r.resale_price).toLocaleString('es-AR')}
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={() => setSelected(r)}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black uppercase rounded-xl transition shadow-md shadow-indigo-600/30"
+                  >
+                    Comprar Pase →
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </main>
 
-      {/* MODAL DE COMPRA DIRECTA EN REVENTA */}
-      {selectedTicket && (
+      {/* MODAL DE COMPRA */}
+      {selected && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 font-mono">
           <div className="max-w-md w-full rounded-3xl bg-[#131722] border border-indigo-500/40 p-6 sm:p-8 space-y-6 shadow-2xl">
-            {purchaseDone ? (
+            {pendingInfo ? (
               <div className="text-center space-y-5">
-                <div className="w-16 h-16 mx-auto rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-3xl">
-                  ✅
+                <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-3xl">
+                  ⏳
                 </div>
                 <div>
-                  <h2 className="text-xl font-black uppercase text-white">¡Traspaso Completado!</h2>
+                  <h2 className="text-xl font-black uppercase text-white">Pasarela no disponible aún</h2>
                   <p className="text-xs text-slate-400 mt-1">
-                    El QR anterior fue destruido y tenés tu ticket nuevo a tu nombre en tu Billetera.
+                    Este entorno todavía no tiene Mercado Pago conectado, así que no podemos cobrarte automáticamente.
+                    Coordiná la transferencia directo con el vendedor al alias <strong className="text-emerald-400">{pendingInfo.alias}</strong> y
+                    pedile que te confirme por fuera de la plataforma.
                   </p>
                 </div>
-                <div className="flex gap-3 pt-2">
-                  <Link
-                    href="/my-tickets"
-                    className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs uppercase rounded-xl text-center transition shadow-lg shadow-blue-600/30"
-                  >
-                    Ver en Mis Entradas →
-                  </Link>
-                </div>
+                <button
+                  onClick={closeModal}
+                  className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs uppercase rounded-xl transition"
+                >
+                  Entendido
+                </button>
               </div>
             ) : (
-              <div className="space-y-5">
+              <form onSubmit={handleBuy} className="space-y-5">
                 <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                   <div>
                     <span className="text-[10px] text-indigo-400 uppercase font-bold block">
-                      Transferencia Segura P2P
+                      Transferencia Segura
                     </span>
-                    <h3 className="text-lg font-black uppercase text-white">
-                      Confirmar Compra
-                    </h3>
+                    <h3 className="text-lg font-black uppercase text-white">Confirmar Compra</h3>
                   </div>
-                  <button
-                    onClick={() => setSelectedTicket(null)}
-                    className="text-slate-500 hover:text-white p-1"
-                  >
+                  <button type="button" onClick={closeModal} className="text-slate-500 hover:text-white p-1">
                     ✕
                   </button>
                 </div>
@@ -305,39 +262,57 @@ export default function ResaleMarketplacePage() {
                 <div className="p-4 rounded-2xl bg-black/40 border border-slate-800 space-y-2 text-xs">
                   <div className="flex justify-between text-slate-400">
                     <span>Evento:</span>
-                    <span className="font-bold text-white">{selectedTicket.eventName}</span>
+                    <span className="font-bold text-white">{selected.events?.name || selected.events?.title}</span>
                   </div>
                   <div className="flex justify-between text-slate-400">
-                    <span>Tanda:</span>
-                    <span className="font-bold text-white">{selectedTicket.tierName}</span>
+                    <span>Sector:</span>
+                    <span className="font-bold text-white">{selected.tickets?.tier_name || 'GENERAL'}</span>
                   </div>
                   <div className="flex justify-between text-slate-400">
                     <span>Vendedor:</span>
-                    <span className="font-bold text-white">{selectedTicket.holderName}</span>
+                    <span className="font-bold text-white">{selected.seller_name}</span>
                   </div>
-                  <div className="flex justify-between text-slate-400 border-t border-slate-800/80 pt-2">
-                    <span>Comprador Final:</span>
-                    <span className="font-bold text-emerald-400">
-                      {currentUser?.name || 'Tu cuenta'}
-                    </span>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[10px] text-slate-400 uppercase font-bold">Nombre y Apellido</label>
+                    <input
+                      type="text" required value={buyerName} onChange={(e) => setBuyerName(e.target.value)}
+                      className="w-full mt-1 bg-black/60 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-400 uppercase font-bold">DNI</label>
+                    <input
+                      type="text" required value={buyerDni} onChange={(e) => setBuyerDni(e.target.value)}
+                      className="w-full mt-1 bg-black/60 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-400 uppercase font-bold">Email</label>
+                    <input
+                      type="email" required value={buyerEmail} onChange={(e) => setBuyerEmail(e.target.value)}
+                      className="w-full mt-1 bg-black/60 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none focus:border-indigo-500"
+                    />
                   </div>
                 </div>
 
                 <div className="flex justify-between items-center pt-2 border-t border-slate-800">
                   <span className="text-xs text-slate-400">Total a Pagar:</span>
                   <span className="text-xl font-black text-emerald-400">
-                    ${(selectedTicket.resalePrice || selectedTicket.price || 15000).toLocaleString('es-AR')}
+                    ${Number(selected.resale_price).toLocaleString('es-AR')}
                   </span>
                 </div>
 
                 <button
-                  onClick={handleBuyResaleTicket}
-                  disabled={isProcessing}
+                  type="submit"
+                  disabled={purchasing}
                   className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase text-xs rounded-xl transition shadow-lg shadow-indigo-600/30 disabled:opacity-50"
                 >
-                  {isProcessing ? 'Reemitiendo QR y Transfiriendo...' : 'Pagar y Reemitir Ticket a Mi Nombre →'}
+                  {purchasing ? 'Iniciando pago...' : 'Pagar y Reemitir Ticket a Mi Nombre →'}
                 </button>
-              </div>
+              </form>
             )}
           </div>
         </div>
@@ -347,7 +322,7 @@ export default function ResaleMarketplacePage() {
       <footer className="border-t border-slate-800/80 bg-[#0c0f16] py-6 text-xs font-mono text-slate-500">
         <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-3">
           <span>OASIS LIVE · Mercado Secundario Seguro</span>
-          <span className="text-[11px] text-slate-400">Reemisión Criptográfica Inmediata</span>
+          <span className="text-[11px] text-slate-400">Reemisión Criptográfica al Confirmarse el Pago</span>
         </div>
       </footer>
     </div>

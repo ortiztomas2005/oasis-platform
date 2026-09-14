@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/core/supabase/admin';
+import { createClient as createServerClient } from '@/core/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,6 +12,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Faltan datos obligatorios' }, { status: 400 });
     }
 
+    // 0. Antes cualquiera que supiera el UUID de un ticket ajeno podía
+    // congelarlo y publicarlo en reventa a su propio alias, sin verificar
+    // que fuera el dueño. Ahora hace falta sesión, y que el email de esa
+    // sesión coincida con el titular del ticket.
+    const supabase = await createServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user?.email) {
+      return NextResponse.json({ error: 'Iniciá sesión para publicar una entrada en reventa.' }, { status: 401 });
+    }
+
     // 1. Obtener ticket original
     const { data: ticket, error: ticketErr } = await supabaseAdmin
       .from('tickets')
@@ -20,6 +34,11 @@ export async function POST(req: Request) {
 
     if (ticketErr || !ticket) {
       return NextResponse.json({ error: 'Ticket no encontrado' }, { status: 404 });
+    }
+
+    const ticketOwnerEmail = (ticket.holder_email || ticket.customer_email || '').toLowerCase();
+    if (!ticketOwnerEmail || ticketOwnerEmail !== user.email.toLowerCase()) {
+      return NextResponse.json({ error: 'Esta entrada no pertenece a tu cuenta.' }, { status: 403 });
     }
 
     if (ticket.status !== 'VALID') {
