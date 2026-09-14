@@ -29,20 +29,22 @@ export async function POST(req: Request) {
     const fullName =
       (user.user_metadata?.full_name as string) || (user.user_metadata?.name as string) || user.email;
 
-    // 1. Crear la productora con su saldo prepago inicial
+    // 1. Crear la productora con su saldo prepago inicial. owner_email
+    // tiene foreign key a profiles(email) — existe porque hay un trigger
+    // que crea el profile al registrarse en Supabase Auth.
     const { error: producerErr } = await supabaseAdmin.from('producers').insert({
       name: cleanName,
       type: producerType || 'ENTERTAINMENT',
-      prepaid_balance: 500,
+      owner_email: user.email.toLowerCase(),
     });
 
     if (producerErr) {
       return NextResponse.json({ error: `No se pudo crear la productora: ${producerErr.message}` }, { status: 500 });
     }
 
-    // 2. Asignar al usuario actual como OWNER del equipo
+    // 2. Asignar al usuario actual como OWNER del equipo. team_members no
+    // tiene columna user_id, solo email.
     const { error: teamErr } = await supabaseAdmin.from('team_members').insert({
-      user_id: user.id,
       email: user.email.toLowerCase(),
       name: fullName,
       dni: dni || null,

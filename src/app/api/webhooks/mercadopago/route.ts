@@ -69,6 +69,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ received: true });
     }
 
+    // NOTA sin probar en vivo todavía: esto consulta el pago con el token
+    // de la aplicación de OASIS (platform-level), no con el de la
+    // productora que conectó su cuenta y cobró. Las apps de Mercado Pago
+    // dadas de alta como marketplace deberían poder leer pagos hechos con
+    // tokens obtenidos vía su propio flujo OAuth — pero esto recién se
+    // puede confirmar con una productora conectada de verdad haciendo una
+    // venta real. Si en la práctica devuelve 403/404, hay que resolver acá
+    // primero con qué productora está asociada la orden (por reference_code
+    // en el query, si MP lo llega a mandar) y usar getValidProducerAccessToken
+    // de esa productora en vez del token de plataforma.
     const paymentData = await mpPayment.get({ id: paymentId });
 
     if (paymentData.status !== 'approved') {
