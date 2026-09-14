@@ -77,9 +77,25 @@ export interface EventItem {
   status: 'ACTIVE' | 'FINISHED' | 'CANCELLED';
 }
 
+// Función auxiliar declarada correctamente para evitar ReferenceError
+const getProducersForEmail = (team: any[], targetEmail: string) => {
+  if (!targetEmail) return [];
+  return team
+    .filter((m: any) => {
+      const matchesEmail = (m.email || '').toLowerCase().trim() === targetEmail.toLowerCase().trim();
+      const isEntertainment = m.producerType === 'ENTERTAINMENT' || !m.producerType || m.producerType === 'CORPORATE' || m.producerType === 'THEATRE';
+      return matchesEmail && isEntertainment;
+    })
+    .map((m: any) => m.producerName);
+};
+
 export default function LiveExperienceAdmin() {
   const router = useRouter();
-  const [activeProducer, setActiveProducer] = useState<string>('LIVE EXPERIENCE');
+
+  const [isMounted, setIsMounted] = useState(false);
+  const [currentUserEmail, setCurrentUserEmail] = useState('');
+
+  const [activeProducer, setActiveProducer] = useState<string>('');
   const [activeProducerType, setActiveProducerType] = useState<'ENTERTAINMENT' | 'CORPORATE' | 'THEATRE' | 'CLUB'>('ENTERTAINMENT');
 
   const [events, setEvents] = useState<EventItem[]>([]);
@@ -91,7 +107,7 @@ export default function LiveExperienceAdmin() {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [activityLogs, setActivityLogs] = useState<any[]>([]);
   
-  const [prepaidBalances, setPrepaidBalances] = useState<{ [producer: string]: number }>({ 'LIVE EXPERIENCE': 500 });
+  const [prepaidBalances, setPrepaidBalances] = useState<{ [producer: string]: number }>({});
   
   const [customTicketQtyStr, setCustomTicketQtyStr] = useState<string>('100');
   const customTicketQty = Number(customTicketQtyStr) || 0;
@@ -102,9 +118,7 @@ export default function LiveExperienceAdmin() {
 
   const [simulatedDispatch, setSimulatedDispatch] = useState<any | null>(null);
   const [isSendingMail, setIsSendingMail] = useState(false);
-  const [originUrl, setOriginUrl] = useState('');
 
-  // Navegación y Acordeón Lateral Funcional
   const [currentSection, setCurrentSection] = useState<'events_active' | 'events_finished' | 'events_suspended' | 'dashboard' | 'costs' | 'marketing' | 'team' | 'prepaid_market' | 'activity' | 'delivery' | 'crm' | 'broadcast' | 'guestlist' | 'finances'>('events_active');
   const [isEventsMenuOpen, setIsEventsMenuOpen] = useState<boolean>(true);
 
@@ -123,7 +137,7 @@ export default function LiveExperienceAdmin() {
 
   const [newCoupon, setNewCoupon] = useState({ code: '', discountPct: 15 });
   const [newRrpp, setNewRrpp] = useState({ name: '', code: '', commissionPerTicket: 1500 });
-  const [newTeamMember, setNewTeamMember] = useState({ name: '', email: '', dni: '', phone: '', role: 'DOOR' as const, producerName: 'LIVE EXPERIENCE' });
+  const [newTeamMember, setNewTeamMember] = useState({ name: '', email: '', dni: '', phone: '', role: 'DOOR' as const, producerName: '' });
   
   const [newProducerModal, setNewProducerModal] = useState(false);
   const [producerForm, setProducerForm] = useState({
@@ -137,7 +151,7 @@ export default function LiveExperienceAdmin() {
   });
 
   const [formData, setFormData] = useState({
-    producerName: 'LIVE EXPERIENCE',
+    producerName: '',
     name: '',
     date: '',
     startTime: '22:00',
@@ -150,8 +164,8 @@ export default function LiveExperienceAdmin() {
   });
 
   const [tiers, setTiers] = useState<Tier[]>([
-    { name: 'Early Bird', price: 12000, capacity: 100, originalCapacity: 100, soldCount: 85, entryCutoffTime: '01:00', showStockToClients: true, scarcityThreshold: 20, status: 'ACTIVE' },
-    { name: 'General T1', price: 15000, capacity: 250, originalCapacity: 250, soldCount: 50, entryCutoffTime: '03:00', showStockToClients: false, scarcityThreshold: 15, status: 'ACTIVE' },
+    { name: 'Early Bird', price: 12000, capacity: 100, originalCapacity: 100, soldCount: 0, entryCutoffTime: '01:00', showStockToClients: true, scarcityThreshold: 20, status: 'ACTIVE' },
+    { name: 'General T1', price: 15000, capacity: 250, originalCapacity: 250, soldCount: 0, entryCutoffTime: '03:00', showStockToClients: false, scarcityThreshold: 15, status: 'ACTIVE' },
   ]);
 
   const [barMenu, setBarMenu] = useState<BarDrink[]>([
@@ -164,88 +178,73 @@ export default function LiveExperienceAdmin() {
 
   const loadData = () => {
     try {
-      if (typeof window !== 'undefined') setOriginUrl(window.location.origin);
+      let activeEmail = '';
+      const possibleKeys = ['le_current_session', 'oasis_current_session', 'oasis_customer_user', 'le_user_email'];
       
-      const storedTeam = JSON.parse(localStorage.getItem('le_team_members') || '[]');
-      const remainingProducers = Array.from(new Set(storedTeam.map((m: any) => m.producerName)));
-
-      if (storedTeam.length > 0 && remainingProducers.length === 0) {
-        alert('Ya no pertenecés a ninguna productora activa.');
-        router.push('/');
-        return;
-      }
-
-      setTeamMembers(storedTeam);
-
-      const currentMember = storedTeam.find((m: any) => m.producerName === activeProducer);
-      if (currentMember && currentMember.producerType) {
-        setActiveProducerType(currentMember.producerType);
-        if (currentMember.producerType === 'CLUB') {
-          router.push('/admin/club');
-          return;
+      for (const key of possibleKeys) {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw);
+            if (parsed.email) {
+              activeEmail = parsed.email.toLowerCase().trim();
+              break;
+            } else if (typeof parsed === 'string' && parsed.includes('@')) {
+              activeEmail = parsed.toLowerCase().trim();
+              break;
+            }
+          } catch {
+            if (raw.includes('@')) {
+              activeEmail = raw.toLowerCase().trim();
+              break;
+            }
+          }
         }
       }
 
+      setCurrentUserEmail(activeEmail);
+
+      const storedTeam = JSON.parse(localStorage.getItem('le_team_members') || '[]');
+      setTeamMembers(storedTeam);
+
       const storedEvents = JSON.parse(localStorage.getItem('le_local_events') || '[]');
-      if (storedEvents.length > 0) {
-        setEvents(storedEvents);
-        if (selectedDashboardEventId === 'all') setSelectedDashboardEventId(storedEvents[0].id);
-        if (selectedEventForRrpp === 'all' && storedEvents[0]) setSelectedEventForRrpp(storedEvents[0].id);
-      } else {
-        const defaultEv: EventItem[] = [{
-          id: 'ev-1',
-          producerName: 'LIVE EXPERIENCE',
-          producerType: 'ENTERTAINMENT',
-          name: 'LIVE EXPERIENCE SUNSET EDITION',
-          date: '2026-10-14',
-          startTime: '23:00',
-          endTime: '07:00',
-          venue: 'PMRC Puerto Madero',
-          city: 'Buenos Aires',
-          imageUrl: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=1200&auto=format&fit=crop',
-          genre: 'Melodic Techno',
-          description: 'Sunset edition oficial.',
-          tiers: [{ name: 'General', price: 15000, capacity: 300, originalCapacity: 300, soldCount: 285, entryCutoffTime: '02:00', scarcityThreshold: 20, status: 'ACTIVE' }],
-          barMenu: [{ id: 'b-1', name: 'Fernet con Cola', category: 'Tragos', price: 6000, stock: 200 }],
-          status: 'ACTIVE'
-        }];
-        setEvents(defaultEv);
-        localStorage.setItem('le_local_events', JSON.stringify(defaultEv));
-      }
+      setEvents(storedEvents);
 
       setTickets(JSON.parse(localStorage.getItem('oasis_issued_tickets') || '[]'));
-      setBarOrders(JSON.parse(localStorage.getItem('le_bar_orders') || localStorage.getItem('oasis_bar_orders') || '[]'));
+      setBarOrders(JSON.parse(localStorage.getItem('le_bar_orders') || '[]'));
       setCosts(JSON.parse(localStorage.getItem('le_costs_data') || '[]'));
-      setCoupons(JSON.parse(localStorage.getItem('le_coupons') || '[{"id":"cp-1","code":"VERANO15","discountPct":15,"active":true}]'));
-      setRrppList(JSON.parse(localStorage.getItem('le_rrpp_members') || '[{"id":"rp-1","name":"Franco","code":"franco","commissionPerTicket":1500,"active":true}]'));
-      setActivityLogs(JSON.parse(localStorage.getItem('le_activity_logs') || '[{"id":1, "type":"DOOR", "text":"Acceso concedido", "time":"Hace 5 min"}]'));
+      setCoupons(JSON.parse(localStorage.getItem('le_coupons') || '[]'));
+      setRrppList(JSON.parse(localStorage.getItem('le_rrpp_members') || '[]'));
+      setActivityLogs(JSON.parse(localStorage.getItem('le_activity_logs') || '[]'));
       
-      const balances = JSON.parse(localStorage.getItem('le_prepaid_balances') || '{"LIVE EXPERIENCE": 500}');
+      const balances = JSON.parse(localStorage.getItem('le_prepaid_balances') || '{}');
       setPrepaidBalances(balances);
 
-      if (remainingProducers.length > 0 && !remainingProducers.includes(activeProducer)) {
-        setActiveProducer(String(remainingProducers[0]));
+      if (!activeEmail) {
+        setActiveProducer('');
+        return;
       }
+
+      const myProducers = Array.from(new Set(getProducersForEmail(storedTeam, activeEmail))) as string[];
+
+      if (myProducers.length > 0) {
+        setActiveProducer(myProducers[0]);
+      } else {
+        setActiveProducer('');
+      }
+
+      setProducerForm(prev => ({ ...prev, email: activeEmail }));
     } catch (e) {
       console.error(e);
     }
   };
 
   useEffect(() => {
+    setIsMounted(true);
     loadData();
     window.addEventListener('storage', loadData);
     return () => window.removeEventListener('storage', loadData);
   }, []);
-
-  useEffect(() => {
-    const currentMember = teamMembers.find((m: any) => m.producerName === activeProducer);
-    if (currentMember && currentMember.producerType) {
-      setActiveProducerType(currentMember.producerType);
-      if (currentMember.producerType === 'CLUB') {
-        router.push('/admin/club');
-      }
-    }
-  }, [activeProducer, teamMembers, router]);
 
   useEffect(() => {
     if (activeScanner) startCamera();
@@ -287,7 +286,7 @@ export default function LiveExperienceAdmin() {
   };
 
   const handleProcessCheckout = () => {
-    if (!checkoutPackage) return;
+    if (!checkoutPackage || !activeProducer) return;
     setIsProcessingPayment(true);
 
     setTimeout(() => {
@@ -434,20 +433,37 @@ export default function LiveExperienceAdmin() {
 
   const handleRegisterProducer = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!producerForm.producerName || !producerForm.firstName || !producerForm.lastName || !producerForm.dni || !producerForm.email || !producerForm.phone) {
+    if (!producerForm.producerName || !producerForm.firstName || !producerForm.lastName || !producerForm.dni || !producerForm.phone) {
       alert('Por favor completá todos los campos obligatorios.');
+      return;
+    }
+
+    if (!currentUserEmail) {
+      alert('No hay una sesión activa con correo electrónico.');
       return;
     }
 
     const prodName = producerForm.producerName.trim().toUpperCase();
     const prodType = producerForm.producerType;
+    const regEmail = currentUserEmail;
+
+    const storedTeam = JSON.parse(localStorage.getItem('le_team_members') || '[]');
+    const existingForThisMail = storedTeam.find((m: any) => (m.email || '').toLowerCase().trim() === regEmail && m.role === 'OWNER');
+
+    if (existingForThisMail) {
+      alert(`Ya tenés registrada la productora "${existingForThisMail.producerName}" con este correo. Solo se permite una productora por cuenta.`);
+      setNewProducerModal(false);
+      setActiveProducer(existingForThisMail.producerName);
+      return;
+    }
+
     setActiveProducer(prodName);
     setActiveProducerType(prodType);
 
     const newOwner: TeamMember = {
       id: `tm-${Date.now()}`,
       name: `${producerForm.firstName} ${producerForm.lastName}`,
-      email: producerForm.email.toLowerCase().trim(),
+      email: regEmail,
       dni: producerForm.dni.trim(),
       phone: producerForm.phone.trim(),
       role: 'OWNER',
@@ -455,7 +471,7 @@ export default function LiveExperienceAdmin() {
       producerType: prodType
     };
 
-    const updatedTeam = [newOwner, ...teamMembers];
+    const updatedTeam = [newOwner, ...storedTeam];
     setTeamMembers(updatedTeam);
     localStorage.setItem('le_team_members', JSON.stringify(updatedTeam));
 
@@ -463,13 +479,12 @@ export default function LiveExperienceAdmin() {
     setPrepaidBalances(updatedBalances);
     localStorage.setItem('le_prepaid_balances', JSON.stringify(updatedBalances));
 
-    setProducerForm({ producerName: '', producerType: 'ENTERTAINMENT', firstName: '', lastName: '', dni: '', email: '', phone: '' });
     setNewProducerModal(false);
 
     if (prodType === 'CLUB') {
       router.push('/admin/club');
     } else {
-      alert(`¡Productora "${prodName}" registrada con éxito!`);
+      alert(`¡Productora "${prodName}" creada con éxito para ${regEmail}!`);
     }
   };
 
@@ -477,7 +492,7 @@ export default function LiveExperienceAdmin() {
     const isOwner = teamMembers.some(m => m.producerName === activeProducer && m.role === 'OWNER');
     const confirmMsg = isOwner 
       ? `¿Estás seguro de ELIMINAR por completo la productora "${activeProducer}"? Se borrarán sus eventos y equipo asociado.`
-      : `¿Estás seguro de ABANDONAR la productora "${activeProducer}"? Perderás el acceso a sus operaciones.`;
+      : `¿Estás seguro de ABANDONAR la productora "${activeProducer}"?`;
 
     if (!confirm(confirmMsg)) return;
 
@@ -490,14 +505,18 @@ export default function LiveExperienceAdmin() {
     localStorage.setItem('le_team_members', JSON.stringify(updatedTeam));
     localStorage.setItem('le_local_events', JSON.stringify(updatedEvents));
 
-    const remainingProducers = Array.from(new Set(updatedTeam.map(m => m.producerName)));
+    const remainingProducers = Array.from(new Set(
+      updatedTeam
+        .filter((m: any) => (m.email || '').toLowerCase().trim() === currentUserEmail.toLowerCase().trim())
+        .map((m: any) => m.producerName)
+    )) as string[];
     
     if (remainingProducers.length > 0) {
-      setActiveProducer(String(remainingProducers[0]));
-      alert(`Has ${isOwner ? 'eliminado' : 'abandonado'} la productora con éxito.`);
+      setActiveProducer(remainingProducers[0]);
+      alert(`Has eliminado la productora con éxito.`);
     } else {
-      alert('Ya no pertenecés a ninguna productora activa. Redirigiendo a la cartelera...');
-      router.push('/');
+      setActiveProducer('');
+      alert('Ya no tenés productoras activas asociadas a este correo.');
     }
   };
 
@@ -512,6 +531,11 @@ export default function LiveExperienceAdmin() {
   };
 
   const handleOpenCreate = () => {
+    if (!activeProducer) {
+      alert('Primero debés crear o seleccionar una productora.');
+      setNewProducerModal(true);
+      return;
+    }
     setEditingEventId(null);
     setFormData({
       producerName: activeProducer,
@@ -625,7 +649,7 @@ export default function LiveExperienceAdmin() {
     localStorage.setItem('le_costs_data', JSON.stringify(updated));
   };
 
-  const producerEvents = events.filter((ev) => (ev.producerName || 'LIVE EXPERIENCE') === activeProducer);
+  const producerEvents = events.filter((ev) => (ev.producerName || '') === activeProducer);
   const filteredEventsList = producerEvents.filter((ev) => {
     const matchesSearch = ev.name.toLowerCase().includes(searchQuery.toLowerCase());
     if (currentSection === 'events_active') return matchesSearch && ev.status === 'ACTIVE';
@@ -645,11 +669,36 @@ export default function LiveExperienceAdmin() {
   const eventCostsTotal = filteredCosts.reduce((acc, c) => acc + (c.amount || 0), 0);
   const netProfit = totalTicketRev + totalBarRev - eventCostsTotal;
 
-  const uniqueProducers = Array.from(new Set(teamMembers.map((m) => m.producerName)));
-  if (!uniqueProducers.includes(activeProducer)) uniqueProducers.push(activeProducer);
-
+  const uniqueProducers = isMounted ? Array.from(new Set(getProducersForEmail(teamMembers, currentUserEmail))) : [];
   const currentPrepaidCount = prepaidBalances[activeProducer] ?? 500;
   const isUserOwner = teamMembers.some(m => m.producerName === activeProducer && m.role === 'OWNER');
+
+  if (!isMounted) return null;
+
+  // BLOQUEO ABSOLUTO SI NO HAY SESIÓN ACTIVA
+  if (!currentUserEmail) {
+    return (
+      <div className="min-h-screen bg-[#07070a] text-slate-100 flex flex-col items-center justify-center p-6 font-mono selection:bg-amber-500 selection:text-black">
+        <style jsx global>{`
+          @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+          .font-luxury { font-family: 'Cinzel', serif; }
+          body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        `}</style>
+        <div className="max-w-md w-full rounded-3xl bg-[#0c0f17] border border-amber-500/30 p-8 space-y-6 text-center shadow-2xl">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center font-black mx-auto">
+            🔒
+          </div>
+          <div className="space-y-2">
+            <h1 className="font-luxury text-xl font-black text-white uppercase">Iniciá Sesión</h1>
+            <p className="text-xs text-slate-400">No hay ninguna cuenta logueada. Para administrar productoras debés iniciar sesión.</p>
+          </div>
+          <Link href="/" className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-black uppercase text-xs rounded-xl transition block shadow-lg cursor-pointer">
+            Ir a la Cartelera / Iniciar Sesión 🔑
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#07070a] text-slate-100 flex flex-col font-sans antialiased selection:bg-amber-500 selection:text-black">
@@ -660,11 +709,11 @@ export default function LiveExperienceAdmin() {
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
       `}</style>
 
-      {/* HEADER SUPERIOR CON REDIRECCIÓN INTELIGENTE AL SELECCIONAR CLUB */}
+      {/* HEADER SUPERIOR */}
       <header className="h-16 border-b border-white/5 bg-[#07070a] px-6 flex items-center justify-between shrink-0 z-30 font-mono">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-600 flex items-center justify-center font-black text-black text-sm shadow-lg shadow-amber-500/20">
-            {activeProducer.substring(0, 2).toUpperCase()}
+            {activeProducer ? activeProducer.substring(0, 2).toUpperCase() : 'LE'}
           </div>
           <div className="flex flex-col">
             <select
@@ -675,30 +724,35 @@ export default function LiveExperienceAdmin() {
                   setNewProducerModal(true);
                 } else {
                   setActiveProducer(val);
-                  const member = teamMembers.find((m: any) => m.producerName === val);
-                  if (member && member.producerType === 'CLUB') {
-                    router.push('/admin/club');
-                  }
                 }
               }}
               className="bg-transparent text-white font-luxury text-sm font-black tracking-widest uppercase focus:outline-none cursor-pointer"
             >
+              {uniqueProducers.length === 0 && (
+                <option value="" disabled className="bg-[#0c0f17] text-slate-400">Sin productoras para este mail</option>
+              )}
               {uniqueProducers.map((prod) => (
                 <option key={prod} value={prod} className="bg-[#0c0f17] text-white">🏢 {prod}</option>
               ))}
               <option disabled value="" className="bg-[#0c0f17] text-slate-600">────────────────────</option>
-              <option value="NEW" className="bg-[#0c0f17] text-amber-400 font-bold">+ Crear productora</option>
+              <option value="NEW" className="bg-[#0c0f17] text-amber-400 font-bold">+ Crear productora para {currentUserEmail}</option>
             </select>
-            <span className="text-[10px] text-amber-400 hover:underline cursor-pointer uppercase tracking-wider">Mis productoras ›</span>
+            <span className="text-[10px] text-amber-400 uppercase tracking-wider">MÓDULO FIESTAS & ENTRETENIMIENTO ({currentUserEmail})</span>
           </div>
 
-          <div className="ml-4 px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-2 shadow-inner">
-            <span>🎟️ Tickets Disponibles:</span>
-            <span className="text-white font-black text-sm">{currentPrepaidCount}</span>
-          </div>
+          {activeProducer && (
+            <div className="ml-4 px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-2 shadow-inner">
+              <span>🎟️ Tickets Disponibles:</span>
+              <span className="text-white font-black text-sm">{currentPrepaidCount}</span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-4 text-xs font-bold font-mono">
+          <Link href="/admin/club" className="px-4 py-2 rounded-2xl bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/25 transition flex items-center gap-2 shadow-md">
+            <span>⚽</span>
+            <span>Ir a Módulo Clubes / Deportes</span>
+          </Link>
           <Link href="/" className="text-slate-400 hover:text-white transition">Ver Cartelera</Link>
           <UserMenu />
         </div>
@@ -866,988 +920,1056 @@ export default function LiveExperienceAdmin() {
         {/* CONTENIDO PRINCIPAL */}
         <main className="flex-1 overflow-y-auto p-8 space-y-8 bg-[#07070a]">
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {tickets.length > 0 && (
-              <div className="p-4 rounded-3xl bg-gradient-to-r from-amber-500/10 via-yellow-500/5 to-[#0c0f17] border border-amber-500/30 flex items-center justify-between gap-4 font-mono shadow-xl">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 font-bold text-lg animate-bounce">
-                    🎟️
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-black uppercase text-white">¡Nuevas entradas emitidas!</h4>
-                    <p className="text-[11px] text-slate-400">{tickets.length} pases listos para validar.</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setActiveScanner('door')}
-                  className="px-4 py-2.5 bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 text-black font-black text-xs uppercase rounded-xl transition shadow-md cursor-pointer shrink-0"
-                >
-                  📷 Escáner Puerta
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* SECCIÓN REPORTES FINANCIEROS Y AUDITORÍA (CON GRÁFICOS AVANZADOS) */}
-          {currentSection === 'finances' && (
-            <div className="space-y-8 max-w-5xl mx-auto font-mono animate-fade-in">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
-                <div>
-                  <h1 className="font-luxury text-2xl font-black text-white uppercase">📈 Reportes Financieros & Auditoría</h1>
-                  <p className="text-xs text-slate-400 mt-1">Balance contable consolidado y análisis gráfico de rendimiento de {activeProducer}.</p>
-                </div>
-                <button
-                  onClick={() => {
-                    const csvContent = "data:text/csv;charset=utf-8," + 
-                      ["Concepto,Monto,Tipo"].join(",") + "\n" +
-                      `Recaudación Entradas,${totalTicketRev},Ingreso\n` +
-                      `Recaudación Barra,${totalBarRev},Ingreso\n` +
-                      `Costos Operativos,${eventCostsTotal},Egreso\n` +
-                      `Balance Neto,${netProfit},Resultado`;
-                    const encodedUri = encodeURI(csvContent);
-                    const link = document.createElement("a");
-                    link.setAttribute("href", encodedUri);
-                    link.setAttribute("download", `auditoria_financiera_${activeProducer}.csv`);
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                  }}
-                  className="px-5 py-3 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 text-black font-black text-xs uppercase rounded-xl transition cursor-pointer flex items-center gap-2 shadow-lg shadow-amber-500/20"
-                >
-                  <span>📥</span> Descargar Reporte Contable CSV
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <div className="p-6 rounded-3xl bg-[#0c0f17] border border-amber-500/30 space-y-2 shadow-2xl">
-                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-widest block">Curva de Crecimiento</span>
-                  <h3 className="text-2xl font-black text-white">📈 Ingresos en Alza</h3>
-                  <p className="text-xs text-slate-400 font-sans">El ritmo de adquisición de pases aumentó un 34% respecto al evento anterior.</p>
-                </div>
-
-                <div className="p-6 rounded-3xl bg-[#0c0f17] border border-white/10 space-y-2 shadow-2xl">
-                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-widest block">Horario Pico en Puerta</span>
-                  <h3 className="text-2xl font-black text-amber-400">🕒 01:30 AM</h3>
-                  <p className="text-xs text-slate-400 font-sans">Concentración estimada del 65% del flujo total de asistentes.</p>
-                </div>
-
-                <div className="p-6 rounded-3xl bg-[#0c0f17] border border-white/10 space-y-2 shadow-2xl">
-                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-widest block">Producto Líder de Barra</span>
-                  <h3 className="text-2xl font-black text-white">🍸 Gin Tonic Heredero</h3>
-                  <p className="text-xs text-slate-400 font-sans">Representa el 42% de las consumiciones totales procesadas.</p>
-                </div>
-              </div>
-
-              {/* GRÁFICO DE TENDENCIA DE VENTAS SVG */}
-              <div className="p-8 rounded-3xl bg-[#0c0f17] border border-white/10 space-y-6 shadow-2xl">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-4">
-                  <div>
-                    <h3 className="font-luxury text-lg font-bold text-white uppercase">Curva de Recaudación Acumulada</h3>
-                    <p className="text-xs text-slate-400">Evolución de ventas de tickets en tiempo real (ARS)</p>
-                  </div>
-                  <span className="px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 text-[10px] font-bold uppercase">
-                    Actualizado En Vivo
-                  </span>
-                </div>
-
-                <div className="h-64 flex items-end justify-between gap-4 pt-8 px-4 border-b border-white/10 relative">
-                  <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-20">
-                    <div className="border-b border-dashed border-white w-full" />
-                    <div className="border-b border-dashed border-white w-full" />
-                    <div className="border-b border-dashed border-white w-full" />
-                  </div>
-
-                  {[
-                    { date: '01/09', amount: Math.max(totalTicketRev * 0.2, 120000) },
-                    { date: '02/09', amount: Math.max(totalTicketRev * 0.4, 350000) },
-                    { date: '03/09', amount: Math.max(totalTicketRev * 0.7, 580000) },
-                    { date: '04/09', amount: Math.max(totalTicketRev * 0.9, 940000) },
-                    { date: '05/09', amount: Math.max(totalTicketRev, 1450000) }
-                  ].map((item, idx) => {
-                    const maxAmount = 2000000;
-                    const heightPct = Math.round((item.amount / maxAmount) * 100);
-                    return (
-                      <div key={idx} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group relative z-10">
-                        <div className="absolute -top-12 opacity-0 group-hover:opacity-100 transition duration-300 bg-black/90 border border-amber-500/50 px-3 py-1.5 rounded-xl text-[10px] text-amber-300 font-bold whitespace-nowrap shadow-xl">
-                          ${item.amount.toLocaleString('es-AR')}
-                        </div>
-                        <span className="text-[10px] text-amber-400 font-bold opacity-0 group-hover:opacity-100 transition">
-                          {heightPct}%
-                        </span>
-                        <div 
-                          style={{ height: `${Math.max(heightPct, 15)}%` }}
-                          className="w-full max-w-[48px] rounded-t-2xl bg-gradient-to-t from-amber-600 via-amber-500 to-yellow-400 shadow-lg shadow-amber-500/20 group-hover:brightness-125 transition-all duration-500"
-                        />
-                        <span className="text-[11px] text-slate-400 font-bold pt-2">{item.date}</span>
+          {!activeProducer ? (
+            <div className="p-16 text-center rounded-3xl bg-[#0c0f17] border border-amber-500/30 space-y-4 max-w-lg mx-auto my-12 shadow-2xl">
+              <span className="text-4xl">🏢</span>
+              <h2 className="font-luxury text-xl font-bold text-white uppercase">No tenés ninguna productora para este correo</h2>
+              <p className="text-xs text-slate-400">Estás conectado con <strong className="text-amber-400">{currentUserEmail}</strong>. Registrá tu productora exclusiva para este mail.</p>
+              <button
+                onClick={() => setNewProducerModal(true)}
+                className="w-full py-4 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 text-black font-black uppercase text-xs rounded-xl shadow-lg cursor-pointer"
+              >
+                + Crear Productora para este Mail 🚀
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {tickets.length > 0 && (
+                  <div className="p-4 rounded-3xl bg-gradient-to-r from-amber-500/10 via-yellow-500/5 to-[#0c0f17] border border-amber-500/30 flex items-center justify-between gap-4 font-mono shadow-xl">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 font-bold text-lg animate-bounce">
+                        🎟️
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* SECCIÓN BROADCAST & ALERTAS */}
-          {currentSection === 'broadcast' && (
-            <div className="space-y-6 max-w-4xl mx-auto font-mono">
-              <div className="border-b border-white/5 pb-4">
-                <h1 className="font-luxury text-2xl font-black text-white uppercase">📢 Broadcast & Alertas a Asistentes</h1>
-                <p className="text-xs text-slate-400 mt-1">Enviá notificaciones instantáneas a los dispositivos de todos los compradores de {activeProducer}.</p>
-              </div>
-
-              <div className="p-6 rounded-3xl bg-[#0c0f17] border border-white/5 space-y-4 shadow-xl">
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    const title = (document.getElementById('broadcastTitle') as HTMLInputElement).value;
-                    const message = (document.getElementById('broadcastMsg') as HTMLTextAreaElement).value;
-                    const targetEvent = (document.getElementById('broadcastEvent') as HTMLSelectElement).value;
-
-                    if (!title || !message) return alert('Completá el título y el mensaje.');
-
-                    const newAlert = {
-                      id: `alert-${Date.now()}`,
-                      title,
-                      message,
-                      targetEvent,
-                      producerName: activeProducer,
-                      time: 'Hace un momento',
-                      read: false
-                    };
-
-                    const existingAlerts = JSON.parse(localStorage.getItem('le_broadcast_alerts') || '[]');
-                    localStorage.setItem('le_broadcast_alerts', JSON.stringify([newAlert, ...existingAlerts]));
-
-                    addLog('BROADCAST', `Notificación enviada: "${title}"`);
-                    alert('¡Notificación masiva enviada con éxito a los asistentes!');
-                    (document.getElementById('broadcastTitle') as HTMLInputElement).value = '';
-                    (document.getElementById('broadcastMsg') as HTMLTextAreaElement).value = '';
-                  }}
-                  className="space-y-4 text-xs"
-                >
-                  <div className="space-y-1">
-                    <label className="text-slate-400 uppercase font-bold">Evento Destino</label>
-                    <select id="broadcastEvent" className="w-full px-4 py-3 bg-[#07070a] border border-white/10 rounded-xl text-white font-bold">
-                      <option value="all">🌐 Todos los Eventos de la Productora</option>
-                      {producerEvents.map((ev) => (
-                        <option key={ev.id} value={ev.name}>{ev.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-slate-400 uppercase font-bold">Título del Aviso</label>
-                    <input id="broadcastTitle" type="text" required placeholder="Ej: ¡Apertura de puertas adelantada a las 21:30!" className="w-full px-4 py-3 bg-[#07070a] border border-white/10 rounded-xl text-white font-bold" />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-slate-400 uppercase font-bold">Mensaje Detallado</label>
-                    <textarea id="broadcastMsg" rows={3} required placeholder="Escribí los detalles que verá el asistente en su billetera..." className="w-full px-4 py-3 bg-[#07070a] border border-white/10 rounded-xl text-white font-sans text-xs" />
-                  </div>
-
-                  <button type="submit" className="w-full py-4 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 text-black font-black uppercase text-xs rounded-xl transition shadow-xl shadow-amber-500/20 cursor-pointer tracking-wider">
-                    Enviar Notificación Masiva 🚀
-                  </button>
-                </form>
-              </div>
-            </div>
-          )}
-
-          {/* SECCIÓN GUESTLIST & CORTESÍAS VIP */}
-          {currentSection === 'guestlist' && (
-            <div className="space-y-6 max-w-5xl mx-auto font-mono">
-              <div className="border-b border-white/5 pb-4 flex justify-between items-center">
-                <div>
-                  <h1 className="font-luxury text-2xl font-black text-white uppercase">🎟️ Listas de Invitados y Cortesías VIP</h1>
-                  <p className="text-xs text-slate-400 mt-1">Otorgá pases libres nominados para staff, prensa y amigos de la productora.</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    const name = (document.getElementById('guestName') as HTMLInputElement).value;
-                    const dni = (document.getElementById('guestDni') as HTMLInputElement).value;
-                    const email = (document.getElementById('guestEmail') as HTMLInputElement).value;
-                    const eventName = (document.getElementById('guestEvent') as HTMLSelectElement).value;
-                    const tierName = (document.getElementById('guestTier') as HTMLInputElement).value || 'Acceso VIP Guestlist';
-
-                    if (!name || !email || !dni) return alert('Completá todos los datos del invitado.');
-
-                    const currentBalances = JSON.parse(localStorage.getItem('le_prepaid_balances') || '{"LIVE EXPERIENCE": 500}');
-                    const currentStock = currentBalances[activeProducer] ?? 500;
-                    currentBalances[activeProducer] = Math.max(0, currentStock - 1);
-                    localStorage.setItem('le_prepaid_balances', JSON.stringify(currentBalances));
-                    setPrepaidBalances(currentBalances);
-
-                    const freeTicket = {
-                      id: `t-guest-${Date.now()}`,
-                      eventName,
-                      tierName,
-                      price: 0,
-                      holderName: name,
-                      holderDni: dni,
-                      holderEmail: email.toLowerCase().trim(),
-                      qrToken: 'VIP-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
-                      status: 'VALID',
-                      purchasedAt: new Date().toISOString()
-                    };
-
-                    const existing = JSON.parse(localStorage.getItem('oasis_issued_tickets') || '[]');
-                    localStorage.setItem('oasis_issued_tickets', JSON.stringify([freeTicket, ...existing]));
-                    setTickets([freeTicket, ...existing]);
-
-                    addLog('DOOR', `Cortesía VIP emitida para ${name} (${eventName}) (-1 prepago)`);
-                    alert(`¡Cortesía emitida con éxito para ${name}! Se descontó 1 pase prepago del stock.`);
-                    (document.getElementById('guestName') as HTMLInputElement).value = '';
-                    (document.getElementById('guestDni') as HTMLInputElement).value = '';
-                    (document.getElementById('guestEmail') as HTMLInputElement).value = '';
-                  }}
-                  className="lg:col-span-5 p-6 rounded-3xl bg-[#0c0f17] border border-white/5 space-y-4 shadow-xl"
-                >
-                  <h3 className="font-luxury text-base font-black uppercase text-white">✨ Emitir Pase de Cortesía</h3>
-
-                  <div className="space-y-1 text-xs">
-                    <label className="text-slate-400 uppercase font-bold text-[10px]">Evento</label>
-                    <select id="guestEvent" className="w-full px-3.5 py-2.5 rounded-xl bg-[#07070a] border border-white/10 text-white font-bold">
-                      {producerEvents.map((ev) => (
-                        <option key={ev.id} value={ev.name}>{ev.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="space-y-1 text-xs">
-                    <label className="text-slate-400 uppercase font-bold text-[10px]">Nombre y Apellido</label>
-                    <input id="guestName" type="text" required placeholder="Ej: Sofía Martínez" className="w-full px-3.5 py-2.5 rounded-xl bg-[#07070a] border border-white/10 text-white" />
-                  </div>
-
-                  <div className="space-y-1 text-xs">
-                    <label className="text-slate-400 uppercase font-bold text-[10px]">DNI</label>
-                    <input id="guestDni" type="text" required placeholder="40123456" className="w-full px-3.5 py-2.5 rounded-xl bg-[#07070a] border border-white/10 text-white" />
-                  </div>
-
-                  <div className="space-y-1 text-xs">
-                    <label className="text-slate-400 uppercase font-bold text-[10px]">Correo Electrónico (Para su Billetera)</label>
-                    <input id="guestEmail" type="email" required placeholder="invitado@correo.com" className="w-full px-3.5 py-2.5 rounded-xl bg-[#07070a] border border-white/10 text-white" />
-                  </div>
-
-                  <div className="space-y-1 text-xs">
-                    <label className="text-slate-400 uppercase font-bold text-[10px]">Categoría / Tipo de Pase</label>
-                    <input id="guestTier" type="text" placeholder="Ej: Prensa / Staff / VIP" defaultValue="Acceso VIP Guestlist" className="w-full px-3.5 py-2.5 rounded-xl bg-[#07070a] border border-white/10 text-amber-400 font-bold" />
-                  </div>
-
-                  <button type="submit" className="w-full py-4 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 text-black font-black uppercase text-xs rounded-xl cursor-pointer shadow-xl shadow-amber-500/20 tracking-wider">
-                    Generar y Enviar Pase Free 🎟️
-                  </button>
-                </form>
-
-                <div className="lg:col-span-7 space-y-3">
-                  <span className="text-xs font-bold text-slate-400 uppercase block pb-1">Cortesías Registradas en el Sistema</span>
-                  <div className="space-y-2">
-                    {tickets.filter((t: any) => t.price === 0).map((t: any, i: number) => (
-                      <div key={i} className="p-4 rounded-2xl bg-[#0c0f17] border border-white/5 flex justify-between items-center text-xs">
-                        <div>
-                          <span className="text-[10px] text-amber-400 font-bold uppercase">{t.eventName} ({t.tierName})</span>
-                          <h4 className="text-sm font-black text-white">{t.holderName} <span className="text-slate-400 font-normal">({t.holderEmail})</span></h4>
-                        </div>
-                        <span className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 font-bold text-[10px]">
-                          FREE VIP ($0)
-                        </span>
+                      <div>
+                        <h4 className="text-xs font-black uppercase text-white">¡Nuevas entradas emitidas!</h4>
+                        <p className="text-[11px] text-slate-400">{tickets.length} pases listos para validar.</p>
                       </div>
-                    ))}
+                    </div>
+                    <button
+                      onClick={() => setActiveScanner('door')}
+                      className="px-4 py-2.5 bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 text-black font-black text-xs uppercase rounded-xl transition shadow-md cursor-pointer shrink-0"
+                    >
+                      📷 Escáner Puerta
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* SECCIÓN REPORTES FINANCIEROS Y AUDITORÍA */}
+              {currentSection === 'finances' && (
+                <div className="space-y-8 max-w-5xl mx-auto font-mono animate-fade-in">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
+                    <div>
+                      <h1 className="font-luxury text-2xl font-black text-white uppercase">📈 Reportes Financieros & Auditoría</h1>
+                      <p className="text-xs text-slate-400 mt-1">Balance contable consolidado y análisis gráfico de rendimiento de {activeProducer}.</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        const csvContent = "data:text/csv;charset=utf-8," + 
+                          ["Concepto,Monto,Tipo"].join(",") + "\n" +
+                          `Recaudación Entradas,${totalTicketRev},Ingreso\n` +
+                          `Recaudación Barra,${totalBarRev},Ingreso\n` +
+                          `Costos Operativos,${eventCostsTotal},Egreso\n` +
+                          `Balance Neto,${netProfit},Resultado`;
+                        const encodedUri = encodeURI(csvContent);
+                        const link = document.createElement("a");
+                        link.setAttribute("href", encodedUri);
+                        link.setAttribute("download", `auditoria_financiera_${activeProducer}.csv`);
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                      }}
+                      className="px-5 py-3 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 text-black font-black text-xs uppercase rounded-xl transition cursor-pointer flex items-center gap-2 shadow-lg shadow-amber-500/20"
+                    >
+                      <span>📥</span> Descargar Reporte Contable CSV
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                    <div className="p-6 rounded-3xl bg-[#0c0f17] border border-amber-500/30 space-y-2 shadow-2xl">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold tracking-widest block">Curva de Crecimiento</span>
+                      <h3 className="text-2xl font-black text-white">📈 Ingresos en Alza</h3>
+                      <p className="text-xs text-slate-400 font-sans">El ritmo de adquisición de pases aumentó un 34% respecto al evento anterior.</p>
+                    </div>
+
+                    <div className="p-6 rounded-3xl bg-[#0c0f17] border border-white/10 space-y-2 shadow-2xl">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold tracking-widest block">Horario Pico en Puerta</span>
+                      <h3 className="text-2xl font-black text-amber-400">🕒 01:30 AM</h3>
+                      <p className="text-xs text-slate-400 font-sans">Concentración estimada del 65% del flujo total de asistentes.</p>
+                    </div>
+
+                    <div className="p-6 rounded-3xl bg-[#0c0f17] border border-white/10 space-y-2 shadow-2xl">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold tracking-widest block">Producto Líder de Barra</span>
+                      <h3 className="text-2xl font-black text-white">🍸 Gin Tonic Heredero</h3>
+                      <p className="text-xs text-slate-400 font-sans">Representa el 42% de las consumiciones totales procesadas.</p>
+                    </div>
+                  </div>
+
+                  {/* GRÁFICO DE TENDENCIA DE VENTAS SVG */}
+                  <div className="p-8 rounded-3xl bg-[#0c0f17] border border-white/10 space-y-6 shadow-2xl">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-4">
+                      <div>
+                        <h3 className="font-luxury text-lg font-bold text-white uppercase">Curva de Recaudación Acumulada</h3>
+                        <p className="text-xs text-slate-400">Evolución de ventas de tickets en tiempo real (ARS)</p>
+                      </div>
+                      <span className="px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 text-[10px] font-bold uppercase">
+                        Actualizado En Vivo
+                      </span>
+                    </div>
+
+                    <div className="h-64 flex items-end justify-between gap-4 pt-8 px-4 border-b border-white/10 relative">
+                      <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-20">
+                        <div className="border-b border-dashed border-white w-full" />
+                        <div className="border-b border-dashed border-white w-full" />
+                        <div className="border-b border-dashed border-white w-full" />
+                      </div>
+
+                      {[
+                        { date: '01/09', amount: Math.max(totalTicketRev * 0.2, 120000) },
+                        { date: '02/09', amount: Math.max(totalTicketRev * 0.4, 350000) },
+                        { date: '03/09', amount: Math.max(totalTicketRev * 0.7, 580000) },
+                        { date: '04/09', amount: Math.max(totalTicketRev * 0.9, 940000) },
+                        { date: '05/09', amount: Math.max(totalTicketRev, 1450000) }
+                      ].map((item, idx) => {
+                        const maxAmount = 2000000;
+                        const heightPct = Math.round((item.amount / maxAmount) * 100);
+                        return (
+                          <div key={idx} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group relative z-10">
+                            <div className="absolute -top-12 opacity-0 group-hover:opacity-100 transition duration-300 bg-black/90 border border-amber-500/50 px-3 py-1.5 rounded-xl text-[10px] text-amber-300 font-bold whitespace-nowrap shadow-xl">
+                              ${item.amount.toLocaleString('es-AR')}
+                            </div>
+                            <span className="text-[10px] text-amber-400 font-bold opacity-0 group-hover:opacity-100 transition">
+                              {heightPct}%
+                            </span>
+                            <div 
+                              style={{ height: `${Math.max(heightPct, 15)}%` }}
+                              className="w-full max-w-[48px] rounded-t-2xl bg-gradient-to-t from-amber-600 via-amber-500 to-yellow-400 shadow-lg shadow-amber-500/20 group-hover:brightness-125 transition-all duration-500"
+                            />
+                            <span className="text-[11px] text-slate-400 font-bold pt-2">{item.date}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          )}
+              )}
 
-          {/* SECCIÓN CRM DE ASISTENTES */}
-          {currentSection === 'crm' && (
-            <div className="space-y-6 max-w-6xl mx-auto font-mono">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <h1 className="font-luxury text-2xl font-black text-white uppercase">CRM de Asistentes</h1>
-                  <p className="text-xs text-slate-400 mt-1">Base de datos de compradores, DNIs y control de acreditaciones de {activeProducer}.</p>
-                </div>
-                <button
-                  onClick={() => {
-                    const csvContent = "data:text/csv;charset=utf-8," + ["Titular,DNI,Email,Tanda,Estado"].join(",") + "\n" +
-                      tickets.map(t => [t.holderName, t.holderDni, t.email, t.tierName, t.status].join(",")).join("\n");
-                    const encodedUri = encodeURI(csvContent);
-                    const link = document.createElement("a");
-                    link.setAttribute("href", encodedUri);
-                    link.setAttribute("download", `crm_asistentes_${activeProducer}.csv`);
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                  }}
-                  className="px-5 py-3 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 text-black font-black text-xs uppercase rounded-xl transition cursor-pointer flex items-center gap-2 shadow-lg shadow-amber-500/20 tracking-wider"
-                >
-                  <span>📥</span> Descargar CSV
-                </button>
-              </div>
+              {/* SECCIÓN BROADCAST & ALERTAS */}
+              {currentSection === 'broadcast' && (
+                <div className="space-y-6 max-w-4xl mx-auto font-mono">
+                  <div className="border-b border-white/5 pb-4">
+                    <h1 className="font-luxury text-2xl font-black text-white uppercase">📢 Broadcast & Alertas a Asistentes</h1>
+                    <p className="text-xs text-slate-400 mt-1">Enviá notificaciones instantáneas a los dispositivos de todos los compradores de {activeProducer}.</p>
+                  </div>
 
-              <div className="p-6 rounded-3xl bg-[#0c0f17] border border-white/5 space-y-4 shadow-xl">
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <select
-                    value={selectedDashboardEventId}
-                    onChange={(e) => setSelectedDashboardEventId(e.target.value)}
-                    className="px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-xs font-bold text-white focus:outline-none w-full sm:w-auto"
-                  >
-                    <option value="all">Todos los Eventos</option>
-                    {producerEvents.map((ev) => (<option key={ev.id} value={ev.id}>{ev.name}</option>))}
-                  </select>
+                  <div className="p-6 rounded-3xl bg-[#0c0f17] border border-white/5 space-y-4 shadow-xl">
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        const title = (document.getElementById('broadcastTitle') as HTMLInputElement).value;
+                        const message = (document.getElementById('broadcastMsg') as HTMLTextAreaElement).value;
+                        const targetEvent = (document.getElementById('broadcastEvent') as HTMLSelectElement).value;
 
-                  <div className="relative w-full sm:w-80">
-                    <span className="absolute left-3.5 top-3 text-slate-500">🔍</span>
-                    <input
-                      type="text"
-                      placeholder="Buscar por nombre o DNI"
-                      value={crmSearch}
-                      onChange={(e) => setCrmSearch(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 bg-[#07070a] border border-white/10 rounded-xl text-xs text-white focus:outline-none"
-                    />
+                        if (!title || !message) return alert('Completá el título y el mensaje.');
+
+                        const newAlert = {
+                          id: `alert-${Date.now()}`,
+                          title,
+                          message,
+                          targetEvent,
+                          producerName: activeProducer,
+                          time: 'Hace un momento',
+                          read: false
+                        };
+
+                        const existingAlerts = JSON.parse(localStorage.getItem('le_broadcast_alerts') || '[]');
+                        localStorage.setItem('le_broadcast_alerts', JSON.stringify([newAlert, ...existingAlerts]));
+
+                        addLog('BROADCAST', `Notificación enviada: "${title}"`);
+                        alert('¡Notificación masiva enviada con éxito a los asistentes!');
+                        (document.getElementById('broadcastTitle') as HTMLInputElement).value = '';
+                        (document.getElementById('broadcastMsg') as HTMLTextAreaElement).value = '';
+                      }}
+                      className="space-y-4 text-xs"
+                    >
+                      <div className="space-y-1">
+                        <label className="text-slate-400 uppercase font-bold">Evento Destino</label>
+                        <select id="broadcastEvent" className="w-full px-4 py-3 bg-[#07070a] border border-white/10 rounded-xl text-white font-bold">
+                          <option value="all">🌐 Todos los Eventos de la Productora</option>
+                          {producerEvents.map((ev) => (
+                            <option key={ev.id} value={ev.name}>{ev.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-slate-400 uppercase font-bold">Título del Aviso</label>
+                        <input id="broadcastTitle" type="text" required placeholder="Ej: ¡Apertura de puertas adelantada a las 21:30!" className="w-full px-4 py-3 bg-[#07070a] border border-white/10 rounded-xl text-white font-bold" />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-slate-400 uppercase font-bold">Mensaje Detallado</label>
+                        <textarea id="broadcastMsg" rows={3} required placeholder="Escribí los detalles que verá el asistente en su billetera..." className="w-full px-4 py-3 bg-[#07070a] border border-white/10 rounded-xl text-white font-sans text-xs" />
+                      </div>
+
+                      <button type="submit" className="w-full py-4 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 text-black font-black uppercase text-xs rounded-xl transition shadow-xl shadow-amber-500/20 cursor-pointer tracking-wider">
+                        Enviar Notificación Masiva 🚀
+                      </button>
+                    </form>
                   </div>
                 </div>
+              )}
 
-                <div className="overflow-x-auto pt-2">
-                  <table className="w-full text-left text-xs font-mono">
-                    <thead className="border-b border-white/5 text-slate-500 uppercase text-[10px]">
-                      <tr>
-                        <th className="py-3 px-4">Titular</th>
-                        <th className="py-3 px-4">DNI</th>
-                        <th className="py-3 px-4">Email</th>
-                        <th className="py-3 px-4">Tanda</th>
-                        <th className="py-3 px-4">Estado</th>
-                        <th className="py-3 px-4 text-right">Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5 text-slate-300">
-                      {tickets.filter(t => {
-                        const matchesEvent = selectedDashboardEventId === 'all' || t.eventId === selectedDashboardEventId;
-                        const matchesSearch = (t.holderName || '').toLowerCase().includes(crmSearch.toLowerCase()) || (t.holderDni || '').includes(crmSearch);
-                        return matchesEvent && matchesSearch;
-                      }).length === 0 ? (
-                        <tr>
-                          <td colSpan={6} className="py-12 text-center text-slate-500">
-                            No se encontraron asistentes registrados para este filtro.
-                          </td>
-                        </tr>
-                      ) : (
-                        tickets.filter(t => {
-                          const matchesEvent = selectedDashboardEventId === 'all' || t.eventId === selectedDashboardEventId;
-                          const matchesSearch = (t.holderName || '').toLowerCase().includes(crmSearch.toLowerCase()) || (t.holderDni || '').includes(crmSearch);
-                          return matchesEvent && matchesSearch;
-                        }).map((t, idx) => (
-                          <tr key={idx} className="hover:bg-white/5">
-                            <td className="py-3.5 px-4 font-bold text-white">{t.holderName || 'Sin Nombre'}</td>
-                            <td className="py-3.5 px-4 text-slate-400">{t.holderDni || 'N/A'}</td>
-                            <td className="py-3.5 px-4 text-slate-400">{t.email}</td>
-                            <td className="py-3.5 px-4 text-amber-400 font-bold">{t.tierName}</td>
-                            <td className="py-3.5 px-4">
-                              <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${t.status === 'USED' ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300'}`}>
-                                {t.status === 'USED' ? '✓ Utilizado' : 'Válido'}
-                              </span>
-                            </td>
-                            <td className="py-3.5 px-4 text-right">
-                              <button
-                                onClick={() => {
-                                  if (confirm(`¿Reenviar pase a ${t.email}?`)) {
-                                    alert(`¡Pase reenviado con éxito a ${t.email}!`);
-                                  }
-                                }}
-                                className="px-3.5 py-2 bg-white/5 text-slate-200 border border-white/10 rounded-xl font-bold hover:bg-white/10 cursor-pointer text-[11px] transition"
-                              >
-                                Reenviar Mail ✉️
-                              </button>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* SECCIÓN LISTA DE ÓRDENES DE BARRA Y EVENTOS */}
-          {currentSection.startsWith('events') && eventSubView === 'list' && (
-            <div className="space-y-6 max-w-5xl mx-auto font-mono">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="font-luxury text-2xl font-black text-white uppercase">
-                    Eventos {currentSection === 'events_active' ? 'Activos' : currentSection === 'events_finished' ? 'Finalizados' : 'Suspendidos'} ({activeProducer})
-                  </h1>
-                  <p className="text-xs text-slate-400 mt-1">Gestión y control de cartelera.</p>
-                </div>
-                <button
-                  onClick={handleOpenCreate}
-                  className="px-6 py-3 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 text-black font-black text-xs uppercase rounded-xl transition shadow-lg shadow-amber-500/20 cursor-pointer tracking-wider"
-                >
-                  + Crear evento
-                </button>
-              </div>
-
-              <div className="space-y-3">
-                {filteredEventsList.length === 0 ? (
-                  <div className="p-12 text-center rounded-3xl bg-[#0c0f17] border border-white/5 text-slate-500 text-xs">
-                    No hay eventos registrados en esta sección.
+              {/* SECCIÓN GUESTLIST & CORTESÍAS VIP */}
+              {currentSection === 'guestlist' && (
+                <div className="space-y-6 max-w-5xl mx-auto font-mono">
+                  <div className="border-b border-white/5 pb-4 flex justify-between items-center">
+                    <div>
+                      <h1 className="font-luxury text-2xl font-black text-white uppercase">🎟️ Listas de Invitados y Cortesías VIP</h1>
+                      <p className="text-xs text-slate-400 mt-1">Otorgá pases libres nominados para staff, prensa y amigos de la productora.</p>
+                    </div>
                   </div>
-                ) : (
-                  filteredEventsList.map((ev) => {
-                    const isActive = ev.status === 'ACTIVE';
-                    const eventOrders = barOrders.filter(o => o.eventName === ev.name);
 
-                    return (
-                      <div
-                        key={ev.id}
-                        className="p-6 rounded-3xl bg-[#0c0f17] border border-white/5 hover:border-amber-500/30 transition flex flex-col gap-4 shadow-xl group relative overflow-hidden"
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        const name = (document.getElementById('guestName') as HTMLInputElement).value;
+                        const dni = (document.getElementById('guestDni') as HTMLInputElement).value;
+                        const email = (document.getElementById('guestEmail') as HTMLInputElement).value;
+                        const eventName = (document.getElementById('guestEvent') as HTMLSelectElement).value;
+                        const tierName = (document.getElementById('guestTier') as HTMLInputElement).value || 'Acceso VIP Guestlist';
+
+                        if (!name || !email || !dni) return alert('Completá todos los datos del invitado.');
+
+                        const currentBalances = JSON.parse(localStorage.getItem('le_prepaid_balances') || '{}');
+                        const currentStock = currentBalances[activeProducer] ?? 500;
+                        currentBalances[activeProducer] = Math.max(0, currentStock - 1);
+                        localStorage.setItem('le_prepaid_balances', JSON.stringify(currentBalances));
+                        setPrepaidBalances(currentBalances);
+
+                        const freeTicket = {
+                          id: `t-guest-${Date.now()}`,
+                          eventName,
+                          tierName,
+                          price: 0,
+                          holderName: name,
+                          holderDni: dni,
+                          holderEmail: email.toLowerCase().trim(),
+                          qrToken: 'VIP-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
+                          status: 'VALID',
+                          purchasedAt: new Date().toISOString()
+                        };
+
+                        const existing = JSON.parse(localStorage.getItem('oasis_issued_tickets') || '[]');
+                        localStorage.setItem('oasis_issued_tickets', JSON.stringify([freeTicket, ...existing]));
+                        setTickets([freeTicket, ...existing]);
+
+                        addLog('DOOR', `Cortesía VIP emitida para ${name} (${eventName}) (-1 prepago)`);
+                        alert(`¡Cortesía emitida con éxito para ${name}! Se descontó 1 pase prepago del stock.`);
+                        (document.getElementById('guestName') as HTMLInputElement).value = '';
+                        (document.getElementById('guestDni') as HTMLInputElement).value = '';
+                        (document.getElementById('guestEmail') as HTMLInputElement).value = '';
+                      }}
+                      className="lg:col-span-5 p-6 rounded-3xl bg-[#0c0f17] border border-white/5 space-y-4 shadow-xl"
+                    >
+                      <h3 className="font-luxury text-base font-black text-white uppercase">✨ Emitir Pase de Cortesía</h3>
+
+                      <div className="space-y-1 text-xs">
+                        <label className="text-slate-400 uppercase font-bold text-[10px]">Evento</label>
+                        <select id="guestEvent" className="w-full px-3.5 py-2.5 rounded-xl bg-[#07070a] border border-white/10 text-white font-bold">
+                          {producerEvents.map((ev) => (
+                            <option key={ev.id} value={ev.name}>{ev.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-1 text-xs">
+                        <label className="text-slate-400 uppercase font-bold text-[10px]">Nombre y Apellido</label>
+                        <input id="guestName" type="text" required placeholder="Ej: Sofía Martínez" className="w-full px-3.5 py-2.5 rounded-xl bg-[#07070a] border border-white/10 text-white" />
+                      </div>
+
+                      <div className="space-y-1 text-xs">
+                        <label className="text-slate-400 uppercase font-bold text-[10px]">DNI</label>
+                        <input id="guestDni" type="text" required placeholder="40123456" className="w-full px-3.5 py-2.5 rounded-xl bg-[#07070a] border border-white/10 text-white" />
+                      </div>
+
+                      <div className="space-y-1 text-xs">
+                        <label className="text-slate-400 uppercase font-bold text-[10px]">Correo Electrónico (Para su Billetera)</label>
+                        <input id="guestEmail" type="email" required placeholder="invitado@correo.com" className="w-full px-3.5 py-2.5 rounded-xl bg-[#07070a] border border-white/10 text-white" />
+                      </div>
+
+                      <div className="space-y-1 text-xs">
+                        <label className="text-slate-400 uppercase font-bold text-[10px]">Categoría / Tipo de Pase</label>
+                        <input id="guestTier" type="text" placeholder="Ej: Prensa / Staff / VIP" defaultValue="Acceso VIP Guestlist" className="w-full px-3.5 py-2.5 rounded-xl bg-[#07070a] border border-white/10 text-amber-400 font-bold" />
+                      </div>
+
+                      <button type="submit" className="w-full py-4 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 text-black font-black uppercase text-xs rounded-xl cursor-pointer shadow-xl shadow-amber-500/20 tracking-wider">
+                        Generar y Enviar Pase Free 🎟️
+                      </button>
+                    </form>
+
+                    <div className="lg:col-span-7 space-y-3">
+                      <span className="text-xs font-bold text-slate-400 uppercase block pb-1">Cortesías Registradas en el Sistema</span>
+                      <div className="space-y-2">
+                        {tickets.filter((t: any) => t.price === 0).map((t: any, i: number) => (
+                          <div key={i} className="p-4 rounded-2xl bg-[#0c0f17] border border-white/5 flex justify-between items-center text-xs">
+                            <div>
+                              <span className="text-[10px] text-amber-400 font-bold uppercase">{t.eventName} ({t.tierName})</span>
+                              <h4 className="text-sm font-black text-white">{t.holderName} <span className="text-slate-400 font-normal">({t.holderEmail})</span></h4>
+                            </div>
+                            <span className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 font-bold text-[10px]">
+                              FREE VIP ($0)
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* SECCIÓN CRM DE ASISTENTES */}
+              {currentSection === 'crm' && (
+                <div className="space-y-6 max-w-6xl mx-auto font-mono">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <h1 className="font-luxury text-2xl font-black text-white uppercase">CRM de Asistentes</h1>
+                      <p className="text-xs text-slate-400 mt-1">Base de datos de compradores, DNIs y control de acreditaciones de {activeProducer}.</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        const csvContent = "data:text/csv;charset=utf-8," + ["Titular,DNI,Email,Tanda,Estado"].join(",") + "\n" +
+                          tickets.map(t => [t.holderName, t.holderDni, t.email, t.tierName, t.status].join(",")).join("\n");
+                        const encodedUri = encodeURI(csvContent);
+                        const link = document.createElement("a");
+                        link.setAttribute("href", encodedUri);
+                        link.setAttribute("download", `crm_asistentes_${activeProducer}.csv`);
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                      }}
+                      className="px-5 py-3 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 text-black font-black text-xs uppercase rounded-xl transition cursor-pointer flex items-center gap-2 shadow-lg shadow-amber-500/20 tracking-wider"
+                    >
+                      <span>📥</span> Descargar CSV
+                    </button>
+                  </div>
+
+                  <div className="p-6 rounded-3xl bg-[#0c0f17] border border-white/5 space-y-4 shadow-xl">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <select
+                        value={selectedDashboardEventId}
+                        onChange={(e) => setSelectedDashboardEventId(e.target.value)}
+                        className="px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-xs font-bold text-white focus:outline-none w-full sm:w-auto"
                       >
-                        <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${isActive ? 'bg-emerald-500' : 'bg-slate-500'}`} />
-                        
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pl-2">
-                          <div className="flex items-center gap-4">
-                            <img src={ev.imageUrl} alt={ev.name} className="w-16 h-16 rounded-2xl object-cover border border-white/10" />
-                            <div className="space-y-1">
-                              <h3 className="font-luxury text-base font-black text-white group-hover:text-amber-400 transition">{ev.name}</h3>
-                              <p className="text-xs text-slate-400">📅 {ev.date} · {ev.venue}, {ev.city}</p>
-                              
-                              <div className="flex flex-wrap gap-2 pt-1">
-                                {(ev.tiers || []).map((t, i) => (
-                                  <span key={i} className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[10px] font-bold">
-                                    <span>{t.name}: ${t.price.toLocaleString('es-AR')}</span>
+                        <option value="all">Todos los Eventos</option>
+                        {producerEvents.map((ev) => (<option key={ev.id} value={ev.id}>{ev.name}</option>))}
+                      </select>
+
+                      <div className="relative w-full sm:w-80">
+                        <span className="absolute left-3.5 top-3 text-slate-500">🔍</span>
+                        <input
+                          type="text"
+                          placeholder="Buscar por nombre o DNI"
+                          value={crmSearch}
+                          onChange={(e) => setCrmSearch(e.target.value)}
+                          className="w-full pl-10 pr-4 py-3 bg-[#07070a] border border-white/10 rounded-xl text-xs text-white focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="overflow-x-auto pt-2">
+                      <table className="w-full text-left text-xs font-mono">
+                        <thead className="border-b border-white/5 text-slate-500 uppercase text-[10px]">
+                          <tr>
+                            <th className="py-3 px-4">Titular</th>
+                            <th className="py-3 px-4">DNI</th>
+                            <th className="py-3 px-4">Email</th>
+                            <th className="py-3 px-4">Tanda</th>
+                            <th className="py-3 px-4">Estado</th>
+                            <th className="py-3 px-4 text-right">Acciones</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5 text-slate-300">
+                          {tickets.filter(t => {
+                            const matchesEvent = selectedDashboardEventId === 'all' || t.eventId === selectedDashboardEventId;
+                            const matchesSearch = (t.holderName || '').toLowerCase().includes(crmSearch.toLowerCase()) || (t.holderDni || '').includes(crmSearch);
+                            return matchesEvent && matchesSearch;
+                          }).length === 0 ? (
+                            <tr>
+                              <td colSpan={6} className="py-12 text-center text-slate-500">
+                                No se encontraron asistentes registrados para este filtro.
+                              </td>
+                            </tr>
+                          ) : (
+                            tickets.filter(t => {
+                              const matchesEvent = selectedDashboardEventId === 'all' || t.eventId === selectedDashboardEventId;
+                              const matchesSearch = (t.holderName || '').toLowerCase().includes(crmSearch.toLowerCase()) || (t.holderDni || '').includes(crmSearch);
+                              return matchesEvent && matchesSearch;
+                            }).map((t, idx) => (
+                              <tr key={idx} className="hover:bg-white/5">
+                                <td className="py-3.5 px-4 font-bold text-white">{t.holderName || 'Sin Nombre'}</td>
+                                <td className="py-3.5 px-4 text-slate-400">{t.holderDni || 'N/A'}</td>
+                                <td className="py-3.5 px-4 text-slate-400">{t.email}</td>
+                                <td className="py-3.5 px-4 text-amber-400 font-bold">{t.tierName}</td>
+                                <td className="py-3.5 px-4">
+                                  <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${t.status === 'USED' ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300'}`}>
+                                    {t.status === 'USED' ? '✓ Utilizado' : 'Válido'}
                                   </span>
-                                ))}
+                                </td>
+                                <td className="py-3.5 px-4 text-right">
+                                  <button
+                                    onClick={() => {
+                                      if (confirm(`¿Reenviar pase a ${t.email}?`)) {
+                                        alert(`¡Pase reenviado con éxito a ${t.email}!`);
+                                      }
+                                    }}
+                                    className="px-3.5 py-2 bg-white/5 text-slate-200 border border-white/10 rounded-xl font-bold hover:bg-white/10 cursor-pointer text-[11px] transition"
+                                  >
+                                    Reenviar Mail ✉️
+                                  </button>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* SECCIÓN LISTA DE ÓRDENES DE BARRA Y EVENTOS */}
+              {currentSection.startsWith('events') && eventSubView === 'list' && (
+                <div className="space-y-6 max-w-5xl mx-auto font-mono">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h1 className="font-luxury text-2xl font-black text-white uppercase">
+                        Eventos {currentSection === 'events_active' ? 'Activos' : currentSection === 'events_finished' ? 'Finalizados' : 'Suspendidos'} ({activeProducer})
+                      </h1>
+                      <p className="text-xs text-slate-400 mt-1">Gestión y control de cartelera.</p>
+                    </div>
+                    <button
+                      onClick={handleOpenCreate}
+                      className="px-6 py-3 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 text-black font-black text-xs uppercase rounded-xl transition shadow-lg shadow-amber-500/20 cursor-pointer tracking-wider"
+                    >
+                      + Crear evento
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {filteredEventsList.length === 0 ? (
+                      <div className="p-12 text-center rounded-3xl bg-[#0c0f17] border border-white/5 text-slate-500 text-xs">
+                        No hay eventos registrados en esta sección para esta productora.
+                      </div>
+                    ) : (
+                      filteredEventsList.map((ev) => {
+                        const isActive = ev.status === 'ACTIVE';
+
+                        return (
+                          <div
+                            key={ev.id}
+                            className="p-6 rounded-3xl bg-[#0c0f17] border border-white/5 hover:border-amber-500/30 transition flex flex-col gap-4 shadow-xl group relative overflow-hidden"
+                          >
+                            <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${isActive ? 'bg-emerald-500' : 'bg-slate-500'}`} />
+                            
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pl-2">
+                              <div className="flex items-center gap-4">
+                                <img src={ev.imageUrl} alt={ev.name} className="w-16 h-16 rounded-2xl object-cover border border-white/10" />
+                                <div className="space-y-1">
+                                  <h3 className="font-luxury text-base font-black text-white group-hover:text-amber-400 transition">{ev.name}</h3>
+                                  <p className="text-xs text-slate-400">📅 {ev.date} · {ev.venue}, {ev.city}</p>
+                                  
+                                  <div className="flex flex-wrap gap-2 pt-1">
+                                    {(ev.tiers || []).map((t, i) => (
+                                      <span key={i} className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[10px] font-bold">
+                                        <span>{t.name}: ${t.price.toLocaleString('es-AR')}</span>
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-3 text-xs font-mono">
+                                <button onClick={() => handleOpenEdit(ev)} className="px-4 py-2.5 bg-white/5 text-slate-300 border border-white/10 rounded-xl font-bold hover:bg-white/10 cursor-pointer transition">
+                                  ✏️ Editar
+                                </button>
+                                <button onClick={() => handleToggleStatus(ev.id, ev.status)} className={`px-4 py-2.5 rounded-xl font-bold border cursor-pointer transition ${isActive ? 'bg-amber-500/10 text-amber-300 border-amber-500/30' : 'bg-emerald-600/20 text-emerald-300 border-emerald-500/30'}`}>
+                                  {isActive ? 'Finalizar' : 'Activar'}
+                                </button>
+                                <button onClick={() => handleDeleteEvent(ev.id)} className="p-2.5 bg-white/5 text-slate-400 hover:text-rose-400 rounded-xl border border-white/10 cursor-pointer transition">
+                                  🗑️
+                                </button>
                               </div>
                             </div>
                           </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
 
-                          <div className="flex items-center gap-3 text-xs font-mono">
-                            <button onClick={() => handleOpenEdit(ev)} className="px-4 py-2.5 bg-white/5 text-slate-300 border border-white/10 rounded-xl font-bold hover:bg-white/10 cursor-pointer transition">
-                              ✏️ Editar
-                            </button>
-                            <button onClick={() => handleToggleStatus(ev.id, ev.status)} className={`px-4 py-2.5 rounded-xl font-bold border cursor-pointer transition ${isActive ? 'bg-amber-500/10 text-amber-300 border-amber-500/30' : 'bg-emerald-600/20 text-emerald-300 border-emerald-500/30'}`}>
-                              {isActive ? 'Finalizar' : 'Activar'}
-                            </button>
-                            <button onClick={() => handleDeleteEvent(ev.id)} className="p-2.5 bg-white/5 text-slate-400 hover:text-rose-400 rounded-xl border border-white/10 cursor-pointer transition">
-                              🗑️
-                            </button>
-                          </div>
+              {/* SECCIÓN ACTIVIDAD EN VIVO */}
+              {currentSection === 'activity' && (
+                <div className="space-y-6 max-w-4xl mx-auto font-mono">
+                  <div className="border-b border-white/5 pb-4">
+                    <h1 className="font-luxury text-2xl font-black text-white uppercase">⚡ Actividad en Vivo</h1>
+                    <p className="text-xs text-slate-400 mt-1">Registro de escaneos en puerta, canjes en barra y compras en tiempo real.</p>
+                  </div>
+
+                  <div className="space-y-3">
+                    {activityLogs.map((log: any) => (
+                      <div key={log.id} className="p-4 rounded-2xl bg-[#0c0f17] border border-white/5 flex items-center justify-between text-xs shadow-md">
+                        <div className="flex items-center gap-3">
+                          <span className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold ${log.type === 'DOOR' ? 'bg-emerald-500/20 text-emerald-400' : log.type === 'BAR' ? 'bg-amber-500/20 text-amber-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                            {log.type === 'DOOR' ? '🚪' : log.type === 'BAR' ? '🍸' : '🎟️'}
+                          </span>
+                          <span className="font-bold text-white">{log.text}</span>
                         </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* SECCIÓN ACTIVIDAD EN VIVO */}
-          {currentSection === 'activity' && (
-            <div className="space-y-6 max-w-4xl mx-auto font-mono">
-              <div className="border-b border-white/5 pb-4">
-                <h1 className="font-luxury text-2xl font-black text-white uppercase">⚡ Actividad en Vivo</h1>
-                <p className="text-xs text-slate-400 mt-1">Registro de escaneos en puerta, canjes en barra y compras en tiempo real.</p>
-              </div>
-
-              <div className="space-y-3">
-                {activityLogs.map((log: any) => (
-                  <div key={log.id} className="p-4 rounded-2xl bg-[#0c0f17] border border-white/5 flex items-center justify-between text-xs shadow-md">
-                    <div className="flex items-center gap-3">
-                      <span className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold ${log.type === 'DOOR' ? 'bg-emerald-500/20 text-emerald-400' : log.type === 'BAR' ? 'bg-amber-500/20 text-amber-400' : 'bg-amber-500/20 text-amber-400'}`}>
-                        {log.type === 'DOOR' ? '🚪' : log.type === 'BAR' ? '🍸' : '🎟️'}
-                      </span>
-                      <span className="font-bold text-white">{log.text}</span>
-                    </div>
-                    <span className="text-[10px] text-slate-500">{log.time}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* SECCIÓN PASES PDF & APP */}
-          {currentSection === 'delivery' && (
-            <div className="space-y-6 max-w-4xl mx-auto font-mono">
-              <div className="border-b border-white/5 pb-4">
-                <h1 className="font-luxury text-2xl font-black text-white uppercase">📨 Envío Automático de Pases (PDF & APK)</h1>
-                <p className="text-xs text-slate-400 mt-1">Despachá entradas digitales oficiales desde <strong className="text-amber-400">liveexperience123@gmail.com</strong>.</p>
-              </div>
-
-              <div className="p-6 rounded-3xl bg-[#0c0f17] border border-white/5 space-y-6 shadow-xl">
-                <div className="space-y-2 text-xs">
-                  <label className="text-slate-400 uppercase font-bold block">Correo del Comprador</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="email"
-                      id="testEmail"
-                      placeholder="asistente@correo.com"
-                      className="flex-1 px-4 py-3.5 bg-[#07070a] border border-white/10 rounded-xl text-white font-bold focus:outline-none focus:border-amber-500"
-                      defaultValue="comprador@liveexperience.com"
-                    />
-                    <button
-                      type="button"
-                      disabled={isSendingMail}
-                      onClick={async () => {
-                        const emailInput = (document.getElementById('testEmail') as HTMLInputElement).value;
-                        if (!emailInput) return alert('Ingresá un correo válido.');
-
-                        setIsSendingMail(true);
-                        try {
-                          const res = await fetch('https://formsubmit.co/ajax/liveexperience123@gmail.com', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                            body: JSON.stringify({
-                              _subject: `🎟️ Pase Oficial - ${producerEvents[0]?.name || 'LIVE EXPERIENCE SUNSET EDITION'}`,
-                              Destinatario: emailInput,
-                              Evento: producerEvents[0]?.name || 'LIVE EXPERIENCE SUNSET EDITION',
-                              Tanda: 'General Anticipada',
-                              Titular: 'Asistente Oficial',
-                              QR_Token: 'LE-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
-                              Token_Barra: 'BR-9912',
-                              _template: 'table'
-                            })
-                          });
-
-                          const data = await res.json();
-                          if (data.success || res.ok) {
-                            setSimulatedDispatch({
-                              email: emailInput,
-                              eventName: producerEvents[0]?.name || 'LIVE EXPERIENCE SUNSET EDITION',
-                              timestamp: new Date().toLocaleTimeString()
-                            });
-                            alert('¡Entrada enviada con éxito a ' + emailInput + ' desde liveexperience123@gmail.com!');
-                          } else {
-                            alert('Error al despachar el correo.');
-                          }
-                        } catch (err) {
-                          console.error(err);
-                          alert('Error de conexión al enviar el correo.');
-                        } finally {
-                          setIsSendingMail(false);
-                        }
-                      }}
-                      className="px-6 py-3.5 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 text-black font-black uppercase text-xs rounded-xl transition cursor-pointer shadow-lg shadow-amber-500/20 disabled:opacity-50"
-                    >
-                      {isSendingMail ? 'Enviando...' : 'Enviar por Mail Real 🚀'}
-                    </button>
-                  </div>
-                </div>
-
-                {simulatedDispatch && (
-                  <div className="p-5 rounded-2xl bg-[#0c170f] border border-emerald-900/60 space-y-3 text-xs">
-                    <div className="flex items-center gap-2 text-emerald-400 font-bold">
-                      <span>✓</span>
-                      <span>¡Correo con PDF y APK adjuntos despachado a {simulatedDispatch.email} desde liveexperience123@gmail.com!</span>
-                    </div>
-                    <p className="text-slate-400 text-[11px]">El usuario recibió los archivos oficiales correctamente.</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* SECCIÓN MERCADO DE TICKETS PREPAGOS */}
-          {currentSection === 'prepaid_market' && (
-            <div className="space-y-8 max-w-4xl mx-auto font-mono">
-              <div className="border-b border-white/5 pb-4">
-                <h1 className="font-luxury text-2xl font-black text-white uppercase">🎟️ Adquirir Tickets Prepagos</h1>
-                <p className="text-xs text-slate-400 mt-1">Comprá paquetes o personalizá la cantidad para <strong className="text-amber-400">{activeProducer}</strong> (Saldo actual: {currentPrepaidCount}).</p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                {[
-                  { name: 'Pack Start', count: 250, desc: 'Ideal para eventos medianos.' },
-                  { name: 'Pack Pro', count: 1000, desc: 'Para productoras con flujo constante.', popular: true },
-                  { name: 'Pack Enterprise', count: 5000, desc: 'Volumen máximo con tarifa preferencial.' }
-                ].map((pack, idx) => {
-                  const totalPrice = calculatePriceForQuantity(pack.count);
-                  return (
-                    <div key={idx} className={`p-6 rounded-3xl bg-[#0c0f17] border flex flex-col justify-between space-y-6 relative shadow-xl ${pack.popular ? 'border-amber-500 ring-2 ring-amber-500/20' : 'border-white/5'}`}>
-                      {pack.popular && (
-                        <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3.5 py-1 bg-amber-500 text-black font-black text-[10px] uppercase rounded-full shadow-lg">
-                          Más Elegido ⭐
-                        </span>
-                      )}
-                      <div className="space-y-2">
-                        <h3 className="font-luxury text-lg font-black text-white uppercase">{pack.name}</h3>
-                        <span className="text-3xl font-black text-amber-400 block">+{pack.count} <span className="text-xs text-slate-400">pases</span></span>
-                        <p className="text-xs text-slate-400 font-sans">{pack.desc}</p>
-                      </div>
-
-                      <div className="space-y-4 pt-4 border-t border-white/5">
-                        <span className="text-xl font-black text-white block">${totalPrice.toLocaleString('es-AR')}</span>
-                        <button
-                          onClick={() => setCheckoutPackage({ name: pack.name, count: pack.count, price: totalPrice })}
-                          className="w-full py-3.5 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 text-black font-black uppercase text-xs rounded-xl transition shadow-lg shadow-amber-500/20 cursor-pointer"
-                        >
-                          Comprar con Pasarela 💳
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="p-8 rounded-3xl bg-[#0c0f17] border border-amber-500/30 space-y-6 shadow-2xl">
-                <div className="space-y-1">
-                  <h3 className="font-luxury text-base font-black text-white uppercase">⚙️ Compra Personalizada de Tickets</h3>
-                  <p className="text-xs text-slate-400">Ingresá la cantidad exacta que necesites.</p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
-                  <div className="space-y-2 text-xs">
-                    <label className="text-slate-400 uppercase font-bold block">Cantidad de Tickets</label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="50000"
-                      value={customTicketQtyStr}
-                      onChange={(e) => setCustomTicketQtyStr(e.target.value)}
-                      className="w-full px-4 py-3.5 bg-[#07070a] border border-white/10 rounded-xl text-white font-black text-lg focus:outline-none focus:border-amber-500"
-                    />
-                  </div>
-
-                  <div className="p-6 rounded-2xl bg-[#07070a] border border-white/5 flex flex-col justify-between space-y-4">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-slate-400">Total a Pagar:</span>
-                      <span className="text-2xl font-black text-amber-400">${calculatePriceForQuantity(customTicketQty).toLocaleString('es-AR')}</span>
-                    </div>
-                    <button
-                      onClick={() => setCheckoutPackage({ name: `Pack Personalizado (${customTicketQty}u)`, count: customTicketQty, price: calculatePriceForQuantity(customTicketQty) })}
-                      className="w-full py-4 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 text-black font-black uppercase text-xs rounded-xl transition shadow-xl shadow-amber-500/20 cursor-pointer tracking-wider"
-                    >
-                      Pagar {customTicketQty} Tickets 🚀
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* SECCIÓN DASHBOARD Y MÉTRICAS */}
-          {currentSection === 'dashboard' && (
-            <div className="space-y-8 max-w-5xl mx-auto font-mono">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <h2 className="font-luxury text-2xl font-black uppercase text-white tracking-tight">Rendimiento: {activeProducer}</h2>
-                  <p className="text-xs text-slate-400 mt-1">Métricas de venta, acreditación y auditoría financiera.</p>
-                </div>
-                <select
-                  value={selectedDashboardEventId}
-                  onChange={(e) => setSelectedDashboardEventId(e.target.value)}
-                  className="px-4 py-3 rounded-xl bg-[#0c0f17] border border-white/10 text-xs font-bold text-white focus:outline-none"
-                >
-                  <option value="all">🌐 Todos los Eventos</option>
-                  {producerEvents.map((ev) => (<option key={ev.id} value={ev.id}>{ev.name}</option>))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="p-5 rounded-3xl bg-[#0c0f17] border border-white/5 space-y-2 shadow-xl">
-                  <span className="text-[10px] text-slate-500 uppercase font-bold block">🎟️ Recaudación Entradas</span>
-                  <span className="text-2xl font-black text-white block">${totalTicketRev.toLocaleString('es-AR')}</span>
-                  <span className="text-[11px] text-amber-400 block font-bold">{filteredTickets.length} pases emitidos</span>
-                </div>
-                <div className="p-5 rounded-3xl bg-[#0c0f17] border border-white/5 space-y-2 shadow-xl">
-                  <span className="text-[10px] text-slate-500 uppercase font-bold block">🍸 Recaudación Barra</span>
-                  <span className="text-2xl font-black text-amber-400 block">${totalBarRev.toLocaleString('es-AR')}</span>
-                  <span className="text-[11px] text-slate-400 block">{filteredOrders.length} consumiciones</span>
-                </div>
-                <div className="p-5 rounded-3xl bg-[#0c0f17] border border-white/5 space-y-2 shadow-xl">
-                  <span className="text-[10px] text-slate-500 uppercase font-bold block">🚪 Acreditación Puerta</span>
-                  <span className="text-2xl font-black text-emerald-400 block">{attendanceRate}%</span>
-                  <span className="text-[11px] text-slate-400 block">{totalScanned} validados</span>
-                </div>
-                <div className="p-5 rounded-3xl bg-[#0c0f17] border border-white/5 space-y-2 shadow-xl">
-                  <span className="text-[10px] text-slate-500 uppercase font-bold block">📈 Balance Neto</span>
-                  <span className={`text-2xl font-black block ${netProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>${netProfit.toLocaleString('es-AR')}</span>
-                  <span className="text-[11px] text-slate-500 block">Ingresos menos costos</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* SECCIÓN CUPONES & RRPP */}
-          {currentSection === 'marketing' && (
-            <div className="space-y-8 max-w-5xl mx-auto font-mono">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <form onSubmit={handleAddCoupon} className="p-6 sm:p-8 rounded-3xl bg-[#0c0f17] border border-white/5 space-y-4 shadow-xl">
-                  <h3 className="font-luxury text-base font-black uppercase text-white">🏷️ Crear Cupón de Descuento</h3>
-                  <div className="space-y-1 text-xs">
-                    <label className="text-slate-400 uppercase font-bold text-[10px]">Código de Cupón</label>
-                    <input type="text" required placeholder="Ej: VERANO20" value={newCoupon.code} onChange={(e) => setNewCoupon({ ...newCoupon, code: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-amber-400 font-black uppercase focus:outline-none" />
-                  </div>
-                  <div className="space-y-1 text-xs">
-                    <label className="text-slate-400 uppercase font-bold text-[10px]">Descuento (%)</label>
-                    <input type="number" required min="1" max="100" value={newCoupon.discountPct} onChange={(e) => setNewCoupon({ ...newCoupon, discountPct: Number(e.target.value) })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-white font-bold focus:outline-none" />
-                  </div>
-                  <button type="submit" className="w-full py-3.5 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 text-black font-black uppercase text-xs rounded-xl cursor-pointer tracking-wider">Guardar Cupón +</button>
-                  <div className="space-y-2 pt-4 border-t border-white/5">
-                    {coupons.map((c) => (
-                      <div key={c.id} className="flex justify-between items-center p-3 rounded-xl bg-[#07070a] border border-white/5 text-xs">
-                        <div><span className="font-black text-amber-400">{c.code}</span> <span className="text-slate-400">({c.discountPct}% OFF)</span></div>
-                        <button type="button" onClick={() => removeCoupon(c.id)} className="text-rose-400 cursor-pointer">✕</button>
+                        <span className="text-[10px] text-slate-500">{log.time}</span>
                       </div>
                     ))}
                   </div>
-                </form>
-
-                <form onSubmit={handleAddRrpp} className="p-6 sm:p-8 rounded-3xl bg-[#0c0f17] border border-white/5 space-y-4 shadow-xl">
-                  <h3 className="font-luxury text-base font-black uppercase text-white">🤝 Alta de Embajador RRPP</h3>
-                  <div className="space-y-1 text-xs">
-                    <label className="text-slate-400 uppercase font-bold text-[10px]">Nombre</label>
-                    <input type="text" required placeholder="Ej: Franco Martínez" value={newRrpp.name} onChange={(e) => setNewRrpp({ ...newRrpp, name: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-white" />
-                  </div>
-                  <div className="space-y-1 text-xs">
-                    <label className="text-slate-400 uppercase font-bold text-[10px]">Código Único (Ej: asd)</label>
-                    <input type="text" required placeholder="asd" value={newRrpp.code} onChange={(e) => setNewRrpp({ ...newRrpp, code: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-amber-400 font-black lowercase" />
-                  </div>
-                  <div className="space-y-1 text-xs">
-                    <label className="text-slate-400 uppercase font-bold text-[10px]">Comisión por Entrada ($)</label>
-                    <input type="number" required value={newRrpp.commissionPerTicket} onChange={(e) => setNewRrpp({ ...newRrpp, commissionPerTicket: Number(e.target.value) })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-emerald-400 font-bold" />
-                  </div>
-                  <button type="submit" className="w-full py-3.5 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 text-black font-black uppercase text-xs rounded-xl cursor-pointer tracking-wider">Crear RRPP +</button>
-                </form>
-              </div>
-            </div>
-          )}
-
-          {/* SECCIÓN EQUIPO & PERMISOS */}
-          {currentSection === 'team' && (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-6xl mx-auto font-mono">
-              <div className="lg:col-span-5 space-y-6">
-                <form onSubmit={handleAddTeamMember} className="rounded-3xl bg-[#0c0f17] border border-white/5 p-6 sm:p-8 space-y-4 shadow-xl">
-                  <h3 className="font-luxury text-base font-black uppercase text-white">👥 Invitar Colaborador ({activeProducer})</h3>
-                  <div className="space-y-1 text-xs">
-                    <label className="text-slate-400 uppercase font-bold text-[10px]">Nombre y Apellido</label>
-                    <input type="text" required placeholder="Ej: Juan Pérez" value={newTeamMember.name} onChange={(e) => setNewTeamMember({ ...newTeamMember, name: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-white" />
-                  </div>
-                  <div className="space-y-1 text-xs">
-                    <label className="text-slate-400 uppercase font-bold text-[10px]">Correo Electrónico</label>
-                    <input type="email" required placeholder="juan@productora.com" value={newTeamMember.email} onChange={(e) => setNewTeamMember({ ...newTeamMember, email: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-white" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="space-y-1">
-                      <label className="text-slate-400 uppercase font-bold text-[10px]">DNI</label>
-                      <input type="text" required placeholder="35123456" value={newTeamMember.dni} onChange={(e) => setNewTeamMember({ ...newTeamMember, dni: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-white" />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-slate-400 uppercase font-bold text-[10px]">Teléfono</label>
-                      <input type="text" required placeholder="1123456789" value={newTeamMember.phone} onChange={(e) => setNewTeamMember({ ...newTeamMember, phone: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-white" />
-                    </div>
-                  </div>
-                  <div className="space-y-1 text-xs">
-                    <label className="text-slate-400 uppercase font-bold text-[10px]">Rol en el Sistema</label>
-                    <select value={newTeamMember.role} onChange={(e) => setNewTeamMember({ ...newTeamMember, role: e.target.value as any })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-white font-bold">
-                      <option value="ADMIN">🛡️ Administrador</option>
-                      <option value="DOOR">📷 Validador de Puerta</option>
-                      <option value="BAR">🍸 Cajero de Barra</option>
-                    </select>
-                  </div>
-                  <button type="submit" className="w-full py-3.5 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 text-black font-black uppercase text-xs rounded-xl cursor-pointer tracking-wider">Otorgar Permisos +</button>
-                </form>
-
-                <div className="rounded-3xl bg-rose-950/20 border border-rose-900/40 p-6 space-y-3 shadow-xl">
-                  <h4 className="text-xs font-black uppercase text-rose-400">⚠️ Zona de Peligro: {activeProducer}</h4>
-                  <p className="text-[11px] text-slate-400">
-                    {isUserOwner ? 'Como dueño, podés eliminar por completo esta productora y todos sus datos.' : 'Podés abandonar esta productora para salir de su equipo.'}
-                  </p>
-                  <button type="button" onClick={handleDeleteOrLeaveProducer} className="w-full py-3 bg-rose-600 hover:bg-rose-500 text-white font-black uppercase text-xs rounded-xl transition cursor-pointer">
-                    {isUserOwner ? 'Eliminar Productora 🗑️' : 'Abandonar Productora 🚪'}
-                  </button>
                 </div>
-              </div>
+              )}
 
-              <div className="lg:col-span-7 space-y-4">
-                <div className="flex justify-between border-b border-white/5 pb-2 text-xs font-bold text-slate-400 uppercase">
-                  <span>Equipo de {activeProducer}</span>
-                  <span className="text-emerald-400">{teamMembers.filter(m => m.producerName === activeProducer).length} activos</span>
-                </div>
-                <div className="space-y-3">
-                  {teamMembers.filter(m => m.producerName === activeProducer).map((m) => (
-                    <div key={m.id} className="p-4 rounded-2xl bg-[#0c0f17] border border-white/5 flex justify-between items-center text-xs shadow-md">
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-white text-sm">{m.name}</span>
-                          <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase ${m.role === 'OWNER' ? 'bg-amber-500/20 text-amber-300' : 'bg-blue-500/20 text-blue-300'}`}>{m.role}</span>
-                        </div>
-                        <span className="text-slate-400 block">{m.email} {m.dni ? `· DNI: ${m.dni}` : ''}</span>
+              {/* SECCIÓN PASES PDF & APP */}
+              {currentSection === 'delivery' && (
+                <div className="space-y-6 max-w-4xl mx-auto font-mono">
+                  <div className="border-b border-white/5 pb-4">
+                    <h1 className="font-luxury text-2xl font-black text-white uppercase">📨 Envío Automático de Pases (PDF & APK)</h1>
+                    <p className="text-xs text-slate-400 mt-1">Despachá entradas digitales oficiales desde <strong className="text-amber-400">liveexperience123@gmail.com</strong>.</p>
+                  </div>
+
+                  <div className="p-6 rounded-3xl bg-[#0c0f17] border border-white/5 space-y-6 shadow-xl">
+                    <div className="space-y-2 text-xs">
+                      <label className="text-slate-400 uppercase font-bold block">Correo del Comprador</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="email"
+                          id="testEmail"
+                          placeholder="asistente@correo.com"
+                          className="flex-1 px-4 py-3.5 bg-[#07070a] border border-white/10 rounded-xl text-white font-bold focus:outline-none focus:border-amber-500"
+                          defaultValue="comprador@liveexperience.com"
+                        />
+                        <button
+                          type="button"
+                          disabled={isSendingMail}
+                          onClick={async () => {
+                            const emailInput = (document.getElementById('testEmail') as HTMLInputElement).value;
+                            if (!emailInput) return alert('Ingresá un correo válido.');
+
+                            setIsSendingMail(true);
+                            try {
+                              const res = await fetch('https://formsubmit.co/ajax/liveexperience123@gmail.com', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                                body: JSON.stringify({
+                                  _subject: `🎟️ Pase Oficial - ${producerEvents[0]?.name || 'Evento'}`,
+                                  Destinatario: emailInput,
+                                  Evento: producerEvents[0]?.name || 'Evento',
+                                  Tanda: 'General Anticipada',
+                                  Titular: 'Asistente Oficial',
+                                  QR_Token: 'LE-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
+                                  Token_Barra: 'BR-9912',
+                                  _template: 'table'
+                                })
+                              });
+
+                              const data = await res.json();
+                              if (data.success || res.ok) {
+                                setSimulatedDispatch({
+                                  email: emailInput,
+                                  eventName: producerEvents[0]?.name || 'Evento',
+                                  timestamp: new Date().toLocaleTimeString()
+                                });
+                                alert('¡Entrada enviada con éxito a ' + emailInput + ' desde liveexperience123@gmail.com!');
+                              } else {
+                                alert('Error al despachar el correo.');
+                              }
+                            } catch (err) {
+                              console.error(err);
+                              alert('Error de conexión al enviar el correo.');
+                            } finally {
+                              setIsSendingMail(false);
+                            }
+                          }}
+                          className="px-6 py-3.5 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 text-black font-black uppercase text-xs rounded-xl transition cursor-pointer shadow-lg shadow-amber-500/20 disabled:opacity-50"
+                        >
+                          {isSendingMail ? 'Enviando...' : 'Enviar por Mail Real 🚀'}
+                        </button>
                       </div>
-                      {m.role !== 'OWNER' && (
-                        <button onClick={() => removeTeamMember(m.id)} className="text-slate-500 hover:text-rose-400 p-2 cursor-pointer font-bold">Revocar</button>
-                      )}
                     </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
 
-          {/* SECCIÓN COSTOS */}
-          {currentSection === 'costs' && (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-6xl mx-auto font-mono">
-              <div className="lg:col-span-5">
-                <form onSubmit={handleAddCost} className="rounded-3xl bg-[#0c0f17] border border-white/5 p-6 sm:p-8 space-y-4 shadow-xl">
-                  <h3 className="font-luxury text-base font-black uppercase text-white">Registrar Costo Operativo</h3>
-                  <div className="space-y-1 text-xs">
-                    <label className="text-slate-400 uppercase font-bold text-[10px]">Evento</label>
-                    <select required value={newCost.eventId} onChange={(e) => setNewCost({ ...newCost, eventId: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-white text-xs">
-                      <option value="">-- Elegir Evento --</option>
+                    {simulatedDispatch && (
+                      <div className="p-5 rounded-2xl bg-[#0c170f] border border-emerald-900/60 space-y-3 text-xs">
+                        <div className="flex items-center gap-2 text-emerald-400 font-bold">
+                          <span>✓</span>
+                          <span>¡Correo con PDF y APK adjuntos despachado a {simulatedDispatch.email} desde liveexperience123@gmail.com!</span>
+                        </div>
+                        <p className="text-slate-400 text-[11px]">El usuario recibió los archivos oficiales correctamente.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* SECCIÓN MERCADO DE TICKETS PREPAGOS */}
+              {currentSection === 'prepaid_market' && (
+                <div className="space-y-8 max-w-4xl mx-auto font-mono">
+                  <div className="border-b border-white/5 pb-4">
+                    <h1 className="font-luxury text-2xl font-black text-white uppercase">🎟️ Adquirir Tickets Prepagos</h1>
+                    <p className="text-xs text-slate-400 mt-1">Comprá paquetes o personalizá la cantidad para <strong className="text-amber-400">{activeProducer}</strong> (Saldo actual: {currentPrepaidCount}).</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                    {[
+                      { name: 'Pack Start', count: 250, desc: 'Ideal para eventos medianos.' },
+                      { name: 'Pack Pro', count: 1000, desc: 'Para productoras con flujo constante.', popular: true },
+                      { name: 'Pack Enterprise', count: 5000, desc: 'Volumen máximo con tarifa preferencial.' }
+                    ].map((pack, idx) => {
+                      const totalPrice = calculatePriceForQuantity(pack.count);
+                      return (
+                        <div key={idx} className={`p-6 rounded-3xl bg-[#0c0f17] border flex flex-col justify-between space-y-6 relative shadow-xl ${pack.popular ? 'border-amber-500 ring-2 ring-amber-500/20' : 'border-white/5'}`}>
+                          {pack.popular && (
+                            <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3.5 py-1 bg-amber-500 text-black font-black text-[10px] uppercase rounded-full shadow-lg">
+                              Más Elegido ⭐
+                            </span>
+                          )}
+                          <div className="space-y-2">
+                            <h3 className="font-luxury text-lg font-black text-white uppercase">{pack.name}</h3>
+                            <span className="text-3xl font-black text-amber-400 block">+{pack.count} <span className="text-xs text-slate-400">pases</span></span>
+                            <p className="text-xs text-slate-400 font-sans">{pack.desc}</p>
+                          </div>
+
+                          <div className="space-y-4 pt-4 border-t border-white/5">
+                            <span className="text-xl font-black text-white block">${totalPrice.toLocaleString('es-AR')}</span>
+                            <button
+                              onClick={() => setCheckoutPackage({ name: pack.name, count: pack.count, price: totalPrice })}
+                              className="w-full py-3.5 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 text-black font-black uppercase text-xs rounded-xl transition shadow-lg shadow-amber-500/20 cursor-pointer"
+                            >
+                              Comprar con Pasarela 💳
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="p-8 rounded-3xl bg-[#0c0f17] border border-amber-500/30 space-y-6 shadow-2xl">
+                    <div className="space-y-1">
+                      <h3 className="font-luxury text-base font-black text-white uppercase">⚙️ Compra Personalizada de Tickets</h3>
+                      <p className="text-xs text-slate-400">Ingresá la cantidad exacta que necesites.</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
+                      <div className="space-y-2 text-xs">
+                        <label className="text-slate-400 uppercase font-bold block">Cantidad de Tickets</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="50000"
+                          value={customTicketQtyStr}
+                          onChange={(e) => setCustomTicketQtyStr(e.target.value)}
+                          className="w-full px-4 py-3.5 bg-[#07070a] border border-white/10 rounded-xl text-white font-black text-lg focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div className="p-6 rounded-2xl bg-[#07070a] border border-white/5 flex flex-col justify-between space-y-4">
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-400">Total a Pagar:</span>
+                          <span className="text-2xl font-black text-amber-400">${calculatePriceForQuantity(customTicketQty).toLocaleString('es-AR')}</span>
+                        </div>
+                        <button
+                          onClick={() => setCheckoutPackage({ name: `Pack Personalizado (${customTicketQty}u)`, count: customTicketQty, price: calculatePriceForQuantity(customTicketQty) })}
+                          className="w-full py-4 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 text-black font-black uppercase text-xs rounded-2xl transition shadow-xl shadow-amber-500/20 cursor-pointer tracking-wider"
+                        >
+                          Pagar {customTicketQty} Tickets 🚀
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* SECCIÓN DASHBOARD Y MÉTRICAS */}
+              {currentSection === 'dashboard' && (
+                <div className="space-y-8 max-w-5xl mx-auto font-mono">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <h2 className="font-luxury text-2xl font-black uppercase text-white tracking-tight">Rendimiento: {activeProducer}</h2>
+                      <p className="text-xs text-slate-400 mt-1">Métricas de venta, acreditación y auditoría financiera.</p>
+                    </div>
+                    <select
+                      value={selectedDashboardEventId}
+                      onChange={(e) => setSelectedDashboardEventId(e.target.value)}
+                      className="px-4 py-3 rounded-xl bg-[#0c0f17] border border-white/10 text-xs font-bold text-white focus:outline-none"
+                    >
+                      <option value="all">🌐 Todos los Eventos</option>
                       {producerEvents.map((ev) => (<option key={ev.id} value={ev.id}>{ev.name}</option>))}
                     </select>
                   </div>
-                  <div className="space-y-1 text-xs">
-                    <label className="text-slate-400 uppercase font-bold text-[10px]">Concepto</label>
-                    <input type="text" required placeholder="Ej: Sonido" value={newCost.concept} onChange={(e) => setNewCost({ ...newCost, concept: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-white text-xs" />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="p-5 rounded-3xl bg-[#0c0f17] border border-white/5 space-y-2 shadow-xl">
+                      <span className="text-[10px] text-slate-500 uppercase font-bold block">🎟️ Recaudación Entradas</span>
+                      <span className="text-2xl font-black text-white block">${totalTicketRev.toLocaleString('es-AR')}</span>
+                      <span className="text-[11px] text-amber-400 block font-bold">{filteredTickets.length} pases emitidos</span>
+                    </div>
+                    <div className="p-5 rounded-3xl bg-[#0c0f17] border border-white/5 space-y-2 shadow-xl">
+                      <span className="text-[10px] text-slate-500 uppercase font-bold block">🍸 Recaudación Barra</span>
+                      <span className="text-2xl font-black text-amber-400 block">${totalBarRev.toLocaleString('es-AR')}</span>
+                      <span className="text-[11px] text-slate-400 block">{filteredOrders.length} consumiciones</span>
+                    </div>
+                    <div className="p-5 rounded-3xl bg-[#0c0f17] border border-white/5 space-y-2 shadow-xl">
+                      <span className="text-[10px] text-slate-500 uppercase font-bold block">🚪 Acreditación Puerta</span>
+                      <span className="text-2xl font-black text-emerald-400 block">{attendanceRate}%</span>
+                      <span className="text-[11px] text-slate-400 block">{totalScanned} validados</span>
+                    </div>
+                    <div className="p-5 rounded-3xl bg-[#0c0f17] border border-white/5 space-y-2 shadow-xl">
+                      <span className="text-[10px] text-slate-500 uppercase font-bold block">📈 Balance Neto</span>
+                      <span className={`text-2xl font-black block ${netProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>${netProfit.toLocaleString('es-AR')}</span>
+                      <span className="text-[11px] text-slate-500 block">Ingresos menos costos</span>
+                    </div>
                   </div>
-                  <div className="space-y-1 text-xs">
-                    <label className="text-slate-400 uppercase font-bold text-[10px]">Monto ($)</label>
-                    <input type="number" required value={newCost.amount} onChange={(e) => setNewCost({ ...newCost, amount: Number(e.target.value) })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-rose-400 font-bold text-xs" />
-                  </div>
-                  <button type="submit" className="w-full py-3.5 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 text-black font-black uppercase text-xs rounded-xl cursor-pointer tracking-wider">Guardar Costo +</button>
-                </form>
-              </div>
-              <div className="lg:col-span-7 space-y-4">
-                <div className="flex justify-between border-b border-white/5 pb-2 text-xs font-bold text-slate-400 uppercase">
-                  <span>Egresos</span><span className="text-rose-400">Total: ${costs.reduce((a, c) => a + c.amount, 0).toLocaleString('es-AR')}</span>
                 </div>
-                {costs.map((c) => {
-                  const evAssigned = events.find((e) => e.id === c.eventId);
-                  return (
-                    <div key={c.id} className="p-4 rounded-2xl bg-[#0c0f17] border border-white/5 flex justify-between items-center text-xs shadow-md">
-                      <div>
-                        <span className="text-[10px] text-amber-400 font-bold uppercase">{evAssigned?.name}</span>
-                        <span className="font-bold text-white block">{c.concept}</span>
-                        <span className="text-rose-400 font-black">${c.amount.toLocaleString('es-AR')}</span>
+              )}
+
+              {/* SECCIÓN CUPONES & RRPP */}
+              {currentSection === 'marketing' && (
+                <div className="space-y-8 max-w-5xl mx-auto font-mono">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <form onSubmit={handleAddCoupon} className="p-6 sm:p-8 rounded-3xl bg-[#0c0f17] border border-white/5 space-y-4 shadow-xl">
+                      <h3 className="font-luxury text-base font-black text-white uppercase">🏷️ Crear Cupón de Descuento</h3>
+                      <div className="space-y-1 text-xs">
+                        <label className="text-slate-400 uppercase font-bold text-[10px]">Código de Cupón</label>
+                        <input type="text" required placeholder="Ej: VERANO20" value={newCoupon.code} onChange={(e) => setNewCoupon({ ...newCoupon, code: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-amber-400 font-black uppercase focus:outline-none" />
                       </div>
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => toggleCostPaid(c.id)} className={`px-3 py-1 rounded-xl text-[10px] font-bold ${c.paid ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>{c.paid ? '✓ Abonado' : '⏳ Pendiente'}</button>
-                        <button onClick={() => removeCost(c.id)} className="text-slate-500 hover:text-rose-400 p-1 cursor-pointer">✕</button>
+                      <div className="space-y-1 text-xs">
+                        <label className="text-slate-400 uppercase font-bold text-[10px]">Descuento (%)</label>
+                        <input type="number" required min="1" max="100" value={newCoupon.discountPct} onChange={(e) => setNewCoupon({ ...newCoupon, discountPct: Number(e.target.value) })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-white font-bold focus:outline-none" />
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+                      <button type="submit" className="w-full py-3.5 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 text-black font-black uppercase text-xs rounded-xl cursor-pointer tracking-wider">Guardar Cupón +</button>
+                      <div className="space-y-2 pt-4 border-t border-white/5">
+                        {coupons.map((c) => (
+                          <div key={c.id} className="flex justify-between items-center p-3 rounded-xl bg-[#07070a] border border-white/5 text-xs">
+                            <div><span className="font-black text-amber-400">{c.code}</span> <span className="text-slate-400">({c.discountPct}% OFF)</span></div>
+                            <button type="button" onClick={() => removeCoupon(c.id)} className="text-rose-400 cursor-pointer">✕</button>
+                          </div>
+                        ))}
+                      </div>
+                    </form>
 
-          {/* FORMULARIOS DE CREAR / EDITAR EVENTO (CON TANDAS Y BARRA) */}
-          {(eventSubView === 'create' || eventSubView === 'edit') && (
-            <form onSubmit={eventSubView === 'create' ? handleSaveNewEvent : handleUpdateEvent} className="space-y-8 max-w-4xl mx-auto font-mono">
-              <div className="flex justify-between items-center border-b border-white/5 pb-4">
-                <h2 className="font-luxury text-xl font-black uppercase text-white">{eventSubView === 'create' ? `Publicar Evento (${activeProducer})` : 'Modificar Evento'}</h2>
-                <button type="button" onClick={() => setEventSubView('list')} className="px-4 py-2.5 rounded-xl border border-white/10 bg-[#0c0f17] text-slate-300 text-xs font-bold cursor-pointer">← Volver</button>
-              </div>
-
-              <div className="rounded-3xl bg-[#0c0f17] border border-white/5 p-6 sm:p-8 space-y-4 shadow-xl">
-                <h3 className="font-luxury text-sm font-black uppercase text-white">1. Información General y Productora</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                  <div className="space-y-1">
-                    <label className="text-slate-400 uppercase font-bold text-[10px]">Productora Organizadora</label>
-                    <input type="text" disabled value={activeProducer} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-amber-400 font-bold opacity-80" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-slate-400 uppercase font-bold text-[10px]">Nombre del Evento</label>
-                    <input type="text" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-white text-sm" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-slate-400 uppercase font-bold text-[10px]">Fecha</label>
-                    <input type="date" required value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-white" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <label className="text-slate-400 uppercase font-bold text-[10px]">Inicio</label>
-                      <input type="time" required value={formData.startTime} onChange={(e) => setFormData({ ...formData, startTime: e.target.value })} className="w-full px-3.5 py-3 rounded-xl bg-[#07070a] border border-white/10 text-white" />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-slate-400 uppercase font-bold text-[10px]">Fin</label>
-                      <input type="time" required value={formData.endTime} onChange={(e) => setFormData({ ...formData, endTime: e.target.value })} className="w-full px-3.5 py-3 rounded-xl bg-[#07070a] border border-white/10 text-white" />
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-slate-400 uppercase font-bold text-[10px]">Lugar / Venue</label>
-                    <input type="text" required value={formData.venue} onChange={(e) => setFormData({ ...formData, venue: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-white" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-slate-400 uppercase font-bold text-[10px]">Ciudad</label>
-                    <input type="text" required value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-white" />
-                  </div>
-                  <div className="space-y-1.5 sm:col-span-2">
-                    <label className="text-slate-400 uppercase font-bold text-[10px]">Flyer (Multimedia)</label>
-                    <div className="flex items-center gap-4 p-4 rounded-2xl bg-[#07070a] border border-white/10">
-                      <img src={formData.imageUrl} alt="" className="w-20 h-20 rounded-xl object-cover border border-slate-700" />
-                      <input type="file" accept="image/*" onChange={handleFileUpload} className="w-full text-xs text-slate-400 cursor-pointer" />
-                    </div>
-                  </div>
-                  <div className="space-y-1 sm:col-span-2">
-                    <label className="text-slate-400 uppercase font-bold text-[10px]">Descripción</label>
-                    <textarea rows={3} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-white font-sans text-xs" />
+                    <form onSubmit={handleAddRrpp} className="p-6 sm:p-8 rounded-3xl bg-[#0c0f17] border border-white/5 space-y-4 shadow-xl">
+                      <h3 className="font-luxury text-base font-black text-white uppercase">🤝 Alta de Embajador RRPP</h3>
+                      <div className="space-y-1 text-xs">
+                        <label className="text-slate-400 uppercase font-bold text-[10px]">Nombre</label>
+                        <input type="text" required placeholder="Ej: Franco Martínez" value={newRrpp.name} onChange={(e) => setNewRrpp({ ...newRrpp, name: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-white" />
+                      </div>
+                      <div className="space-y-1 text-xs">
+                        <label className="text-slate-400 uppercase font-bold text-[10px]">Código Único (Ej: asd)</label>
+                        <input type="text" required placeholder="asd" value={newRrpp.code} onChange={(e) => setNewRrpp({ ...newRrpp, code: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-amber-400 font-black lowercase" />
+                      </div>
+                      <div className="space-y-1 text-xs">
+                        <label className="text-slate-400 uppercase font-bold text-[10px]">Comisión por Entrada ($)</label>
+                        <input type="number" required value={newRrpp.commissionPerTicket} onChange={(e) => setNewRrpp({ ...newRrpp, commissionPerTicket: Number(e.target.value) })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-emerald-400 font-bold" />
+                      </div>
+                      <button type="submit" className="w-full py-3.5 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 text-black font-black uppercase text-xs rounded-xl cursor-pointer tracking-wider">Crear RRPP +</button>
+                    </form>
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* TANDAS AVANZADAS */}
-              <div className="rounded-3xl bg-[#0c0f17] border border-white/5 p-6 sm:p-8 space-y-6 shadow-xl">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-luxury text-sm font-black uppercase text-white">2. Tandas de Entradas y Opciones Avanzadas</h3>
-                    <p className="text-xs text-slate-400 mt-0.5">Precios ($0 Free), hora límite de ingreso y alerta de últimas entradas.</p>
+              {/* SECCIÓN EQUIPO & PERMISOS */}
+              {currentSection === 'team' && (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-6xl mx-auto font-mono">
+                  <div className="lg:col-span-5 space-y-6">
+                    <form onSubmit={handleAddTeamMember} className="rounded-3xl bg-[#0c0f17] border border-white/5 p-6 sm:p-8 space-y-4 shadow-xl">
+                      <h3 className="font-luxury text-base font-black text-white uppercase">👥 Invitar Colaborador ({activeProducer})</h3>
+                      <div className="space-y-1 text-xs">
+                        <label className="text-slate-400 uppercase font-bold text-[10px]">Nombre y Apellido</label>
+                        <input type="text" required placeholder="Ej: Juan Pérez" value={newTeamMember.name} onChange={(e) => setNewTeamMember({ ...newTeamMember, name: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-white" />
+                      </div>
+                      <div className="space-y-1 text-xs">
+                        <label className="text-slate-400 uppercase font-bold text-[10px]">Correo Electrónico</label>
+                        <input type="email" required placeholder="juan@productora.com" value={newTeamMember.email} onChange={(e) => setNewTeamMember({ ...newTeamMember, email: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-white" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="space-y-1">
+                          <label className="text-slate-400 uppercase font-bold text-[10px]">DNI</label>
+                          <input type="text" required placeholder="35123456" value={newTeamMember.dni} onChange={(e) => setNewTeamMember({ ...newTeamMember, dni: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-white" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-slate-400 uppercase font-bold text-[10px]">Teléfono</label>
+                          <input type="text" required placeholder="1123456789" value={newTeamMember.phone} onChange={(e) => setNewTeamMember({ ...newTeamMember, phone: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-white" />
+                        </div>
+                      </div>
+                      <div className="space-y-1 text-xs">
+                        <label className="text-slate-400 uppercase font-bold text-[10px]">Rol en el Sistema</label>
+                        <select value={newTeamMember.role} onChange={(e) => setNewTeamMember({ ...newTeamMember, role: e.target.value as any })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-white font-bold">
+                          <option value="ADMIN">🛡️ Administrador</option>
+                          <option value="DOOR">📷 Validador de Puerta</option>
+                          <option value="BAR">🍸 Cajero de Barra</option>
+                        </select>
+                      </div>
+                      <button type="submit" className="w-full py-3.5 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 text-black font-black uppercase text-xs rounded-xl cursor-pointer tracking-wider">Otorgar Permisos +</button>
+                    </form>
+
+                    <div className="rounded-3xl bg-rose-950/20 border border-rose-900/40 p-6 space-y-3 shadow-xl">
+                      <h4 className="text-xs font-black uppercase text-rose-400">⚠️ Zona de Peligro: {activeProducer}</h4>
+                      <p className="text-[11px] text-slate-400">
+                        {isUserOwner ? 'Como dueño, podés eliminar por completo esta productora y todos sus datos.' : 'Podés abandonar esta productora para salir de su equipo.'}
+                      </p>
+                      <button type="button" onClick={handleDeleteOrLeaveProducer} className="w-full py-3 bg-rose-600 hover:bg-rose-500 text-white font-black uppercase text-xs rounded-xl transition cursor-pointer">
+                        {isUserOwner ? 'Eliminar Productora 🗑️' : 'Abandonar Productora 🚪'}
+                      </button>
+                    </div>
                   </div>
-                  <button type="button" onClick={() => setTiers([...tiers, { name: `Tanda ${tiers.length + 1}`, price: 15000, capacity: 150, originalCapacity: 150, status: 'ACTIVE', scarcityThreshold: 15 }])} className="px-4 py-2.5 bg-amber-500 text-black text-xs font-black uppercase rounded-xl cursor-pointer shadow-md">+ Agregar Tanda</button>
-                </div>
-                <div className="space-y-4">
-                  {tiers.map((tier, idx) => {
-                    const origCap = tier.originalCapacity ?? tier.capacity;
-                    return (
-                      <div key={idx} className="p-5 rounded-2xl bg-[#07070a] border border-white/5 space-y-4 text-xs">
-                        <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                          <span className="font-black text-white uppercase">Lote #{idx + 1}</span>
-                          {tiers.length > 1 && (
-                            <button type="button" onClick={() => setTiers(tiers.filter((_, i) => i !== idx))} className="text-rose-400 cursor-pointer">✕ Quitar</button>
+
+                  <div className="lg:col-span-7 space-y-4">
+                    <div className="flex justify-between border-b border-white/5 pb-2 text-xs font-bold text-slate-400 uppercase">
+                      <span>Equipo de {activeProducer}</span>
+                      <span className="text-emerald-400">{teamMembers.filter(m => m.producerName === activeProducer).length} activos</span>
+                    </div>
+                    <div className="space-y-3">
+                      {teamMembers.filter(m => m.producerName === activeProducer).map((m) => (
+                        <div key={m.id} className="p-4 rounded-2xl bg-[#0c0f17] border border-white/5 flex justify-between items-center text-xs shadow-md">
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-white text-sm">{m.name}</span>
+                              <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase ${m.role === 'OWNER' ? 'bg-amber-500/20 text-amber-300' : 'bg-blue-500/20 text-blue-300'}`}>{m.role}</span>
+                            </div>
+                            <span className="text-slate-400 block">{m.email} {m.dni ? `· DNI: ${m.dni}` : ''}</span>
+                          </div>
+                          {m.role !== 'OWNER' && (
+                            <button onClick={() => removeTeamMember(m.id)} className="text-slate-500 hover:text-rose-400 p-2 cursor-pointer font-bold">Revocar</button>
                           )}
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                          <input type="text" required placeholder="Nombre" value={tier.name} onChange={(e) => { const c = [...tiers]; c[idx].name = e.target.value; setTiers(c); }} className="px-4 py-3 bg-[#0c0f17] rounded-xl border border-white/10 text-white font-bold" />
-                          <input type="number" required min="0" placeholder="Precio" value={tier.price} onChange={(e) => { const c = [...tiers]; c[idx].price = Number(e.target.value); setTiers(c); }} className="px-4 py-3 bg-[#0c0f17] rounded-xl border border-white/10 text-emerald-400 font-black" />
-                          <input type="number" required min={origCap} placeholder="Capacidad" value={tier.capacity} onChange={(e) => { const c = [...tiers]; c[idx].capacity = Number(e.target.value); setTiers(c); }} className="px-4 py-3 bg-[#0c0f17] rounded-xl border border-white/10 text-white font-bold" />
-                          <select value={tier.status || 'ACTIVE'} onChange={(e) => { const c = [...tiers]; c[idx].status = e.target.value as any; setTiers(c); }} className="px-4 py-3 bg-[#0c0f17] rounded-xl border border-white/10 text-white font-bold">
-                            <option value="ACTIVE">▶️ Activa</option>
-                            <option value="SOLD_OUT">🔴 Sold Out</option>
-                            <option value="HIDDEN">👁️‍🗨️ Oculta</option>
-                          </select>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* SECCIÓN COSTOS */}
+              {currentSection === 'costs' && (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-6xl mx-auto font-mono">
+                  <div className="lg:col-span-5">
+                    <form onSubmit={handleAddCost} className="rounded-3xl bg-[#0c0f17] border border-white/5 p-6 sm:p-8 space-y-4 shadow-xl">
+                      <h3 className="font-luxury text-base font-black uppercase text-white">Registrar Costo Operativo</h3>
+                      <div className="space-y-1 text-xs">
+                        <label className="text-slate-400 uppercase font-bold text-[10px]">Evento</label>
+                        <select required value={newCost.eventId} onChange={(e) => setNewCost({ ...newCost, eventId: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-white text-xs">
+                          <option value="">-- Elegir Evento --</option>
+                          {producerEvents.map((ev) => (<option key={ev.id} value={ev.id}>{ev.name}</option>))}
+                        </select>
+                      </div>
+                      <div className="space-y-1 text-xs">
+                        <label className="text-slate-400 uppercase font-bold text-[10px]">Concepto</label>
+                        <input type="text" required placeholder="Ej: Sonido" value={newCost.concept} onChange={(e) => setNewCost({ ...newCost, concept: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-white text-xs" />
+                      </div>
+                      <div className="space-y-1 text-xs">
+                        <label className="text-slate-400 uppercase font-bold text-[10px]">Monto ($)</label>
+                        <input type="number" required value={newCost.amount} onChange={(e) => setNewCost({ ...newCost, amount: Number(e.target.value) })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-rose-400 font-bold text-xs" />
+                      </div>
+                      <button type="submit" className="w-full py-3.5 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 text-black font-black uppercase text-xs rounded-xl cursor-pointer tracking-wider">Guardar Costo +</button>
+                    </form>
+                  </div>
+                  <div className="lg:col-span-7 space-y-4">
+                    <div className="flex justify-between border-b border-white/5 pb-2 text-xs font-bold text-slate-400 uppercase">
+                      <span>Egresos</span><span className="text-rose-400">Total: ${costs.reduce((a, c) => a + c.amount, 0).toLocaleString('es-AR')}</span>
+                    </div>
+                    {costs.map((c) => {
+                      const evAssigned = events.find((e) => e.id === c.eventId);
+                      return (
+                        <div key={c.id} className="p-4 rounded-2xl bg-[#0c0f17] border border-white/5 flex justify-between items-center text-xs shadow-md">
+                          <div>
+                            <span className="text-[10px] text-amber-400 font-bold uppercase">{evAssigned?.name}</span>
+                            <span className="font-bold text-white block">{c.concept}</span>
+                            <span className="text-rose-400 font-black">${c.amount.toLocaleString('es-AR')}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button onClick={() => toggleCostPaid(c.id)} className={`px-3 py-1 rounded-xl text-[10px] font-bold ${c.paid ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>{c.paid ? '✓ Abonado' : '⏳ Pendiente'}</button>
+                            <button onClick={() => removeCost(c.id)} className="text-slate-500 hover:text-rose-400 p-1 cursor-pointer">✕</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* FORMULARIOS DE CREAR / EDITAR EVENTO (CON TANDAS Y BARRA) */}
+              {(eventSubView === 'create' || eventSubView === 'edit') && (
+                <form onSubmit={eventSubView === 'create' ? handleSaveNewEvent : handleUpdateEvent} className="space-y-8 max-w-4xl mx-auto font-mono">
+                  <div className="flex justify-between items-center border-b border-white/5 pb-4">
+                    <h2 className="font-luxury text-xl font-black uppercase text-white">{eventSubView === 'create' ? `Publicar Evento (${activeProducer})` : 'Modificar Evento'}</h2>
+                    <button type="button" onClick={() => setEventSubView('list')} className="px-4 py-2.5 rounded-xl border border-white/10 bg-[#0c0f17] text-slate-300 text-xs font-bold cursor-pointer">← Volver</button>
+                  </div>
+
+                  <div className="rounded-3xl bg-[#0c0f17] border border-white/5 p-6 sm:p-8 space-y-4 shadow-xl">
+                    <h3 className="font-luxury text-sm font-black uppercase text-white">1. Información General y Productora</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                      <div className="space-y-1">
+                        <label className="text-slate-400 uppercase font-bold text-[10px]">Productora Organizadora</label>
+                        <input type="text" disabled value={activeProducer} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-amber-400 font-bold opacity-80" />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-slate-400 uppercase font-bold text-[10px]">Nombre del Evento</label>
+                        <input type="text" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-white text-sm" />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-slate-400 uppercase font-bold text-[10px]">Fecha</label>
+                        <input type="date" required value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-white" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <label className="text-slate-400 uppercase font-bold text-[10px]">Inicio</label>
+                          <input type="time" required value={formData.startTime} onChange={(e) => setFormData({ ...formData, startTime: e.target.value })} className="w-full px-3.5 py-3 rounded-xl bg-[#07070a] border border-white/10 text-white" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-slate-400 uppercase font-bold text-[10px]">Fin</label>
+                          <input type="time" required value={formData.endTime} onChange={(e) => setFormData({ ...formData, endTime: e.target.value })} className="w-full px-3.5 py-3 rounded-xl bg-[#07070a] border border-white/10 text-white" />
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* BARRA INICIAL */}
-              <div className="rounded-3xl bg-[#0c0f17] border border-white/5 p-6 sm:p-8 space-y-4 shadow-xl">
-                <h3 className="font-luxury text-sm font-black uppercase text-white">3. Carta de Barra Inicial</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-2">
-                  <input type="text" placeholder="Bebida" value={newDrink.name} onChange={(e) => setNewDrink({ ...newDrink, name: e.target.value })} className="px-4 py-3 bg-[#07070a] rounded-xl border border-white/10 text-white" />
-                  <input type="number" placeholder="Precio ($)" value={newDrink.price} onChange={(e) => setNewDrink({ ...newDrink, price: Number(e.target.value) })} className="px-4 py-3 bg-[#07070a] rounded-xl border border-white/10 text-amber-400 font-bold" />
-                  <input type="number" placeholder="Stock" value={newDrink.stock} onChange={(e) => setNewDrink({ ...newDrink, stock: Number(e.target.value) })} className="px-4 py-3 bg-[#07070a] rounded-xl border border-white/10 text-white" />
-                </div>
-                <button type="button" onClick={() => { if (!newDrink.name) return; setBarMenu([...barMenu, { id: `b-${Date.now()}`, ...newDrink }]); setNewDrink({ name: '', category: 'Tragos', price: 6500, stock: 100 }); }} className="w-full py-3 bg-amber-500 text-black font-black uppercase rounded-xl text-xs cursor-pointer shadow-md">Agregar Bebida +</button>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                  {barMenu.map((b) => (
-                    <div key={b.id} className="p-4 rounded-2xl bg-[#07070a] border border-white/5 flex justify-between items-center text-xs">
-                      <div><span className="font-bold text-white block text-sm">{b.name}</span><span className="text-amber-400 font-bold">${b.price.toLocaleString('es-AR')} · Stock: {b.stock}u.</span></div>
-                      <button type="button" onClick={() => setBarMenu(barMenu.filter(i => i.id !== b.id))} className="text-slate-500 hover:text-rose-400 font-bold cursor-pointer p-1">✕</button>
+                      <div className="space-y-1">
+                        <label className="text-slate-400 uppercase font-bold text-[10px]">Lugar / Venue</label>
+                        <input type="text" required value={formData.venue} onChange={(e) => setFormData({ ...formData, venue: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-white" />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-slate-400 uppercase font-bold text-[10px]">Ciudad</label>
+                        <input type="text" required value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-white" />
+                      </div>
+                      <div className="space-y-1.5 sm:col-span-2">
+                        <label className="text-slate-400 uppercase font-bold text-[10px]">Flyer (Multimedia)</label>
+                        <div className="flex items-center gap-4 p-4 rounded-2xl bg-[#07070a] border border-white/10">
+                          <img src={formData.imageUrl} alt="" className="w-20 h-20 rounded-xl object-cover border border-slate-700" />
+                          <input type="file" accept="image/*" onChange={handleFileUpload} className="w-full text-xs text-slate-400 cursor-pointer" />
+                        </div>
+                      </div>
+                      <div className="space-y-1 sm:col-span-2">
+                        <label className="text-slate-400 uppercase font-bold text-[10px]">Descripción</label>
+                        <textarea rows={3} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[#07070a] border border-white/10 text-white font-sans text-xs" />
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </div>
+                  </div>
 
-              <button type="submit" className="w-full py-4 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 text-black font-black uppercase text-xs rounded-2xl transition shadow-xl cursor-pointer tracking-wider">
-                {eventSubView === 'create' ? 'Publicar Evento Oficial 🚀' : 'Guardar Cambios 💾'}
-              </button>
-            </form>
+                  {/* TANDAS AVANZADAS */}
+                  <div className="rounded-3xl bg-[#0c0f17] border border-white/5 p-6 sm:p-8 space-y-6 shadow-xl">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-luxury text-sm font-black uppercase text-white">2. Tandas de Entradas y Opciones Avanzadas</h3>
+                        <p className="text-xs text-slate-400 mt-0.5">Control de precios, cupos, horario límite de ingreso y visibilidad de stock.</p>
+                      </div>
+                      <button 
+                        type="button" 
+                        onClick={() => setTiers([...tiers, { 
+                          name: `Tanda ${tiers.length + 1}`, 
+                          price: 15000, 
+                          capacity: 150, 
+                          originalCapacity: 150, 
+                          soldCount: 0,
+                          entryCutoffTime: '02:00', 
+                          showStockToClients: true, 
+                          scarcityThreshold: 20, 
+                          status: 'ACTIVE' 
+                        }])} 
+                        className="px-4 py-2.5 bg-amber-500 text-black text-xs font-black uppercase rounded-xl cursor-pointer shadow-md"
+                      >
+                        + Agregar Tanda
+                      </button>
+                    </div>
+
+                    <div className="space-y-4">
+                      {tiers.map((tier, idx) => {
+                        const origCap = tier.originalCapacity ?? tier.capacity;
+                        return (
+                          <div key={idx} className="p-5 rounded-2xl bg-[#07070a] border border-white/5 space-y-4 text-xs">
+                            <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                              <span className="font-black text-amber-400 uppercase">Tanda / Lote #{idx + 1}</span>
+                              {tiers.length > 1 && (
+                                <button type="button" onClick={() => setTiers(tiers.filter((_, i) => i !== idx))} className="text-rose-400 font-bold cursor-pointer hover:underline">✕ Quitar</button>
+                              )}
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                              <div className="space-y-1">
+                                <label className="text-slate-400 text-[9px] uppercase font-bold">Nombre de Tanda</label>
+                                <input type="text" required placeholder="Ej: Early Bird" value={tier.name} onChange={(e) => { const c = [...tiers]; c[idx].name = e.target.value; setTiers(c); }} className="w-full px-4 py-3 bg-[#0c0f17] rounded-xl border border-white/10 text-white font-bold" />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-emerald-400 text-[9px] uppercase font-bold">Precio ($)</label>
+                                <input type="number" required min="0" placeholder="Precio" value={tier.price} onChange={(e) => { const c = [...tiers]; c[idx].price = Number(e.target.value); setTiers(c); }} className="w-full px-4 py-3 bg-[#0c0f17] rounded-xl border border-white/10 text-emerald-400 font-black" />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-slate-400 text-[9px] uppercase font-bold">Capacidad Total</label>
+                                <input type="number" required min={origCap} placeholder="Capacidad" value={tier.capacity} onChange={(e) => { const c = [...tiers]; c[idx].capacity = Number(e.target.value); setTiers(c); }} className="w-full px-4 py-3 bg-[#0c0f17] rounded-xl border border-white/10 text-white font-bold" />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-slate-400 text-[9px] uppercase font-bold">Estado del Lote</label>
+                                <select value={tier.status || 'ACTIVE'} onChange={(e) => { const c = [...tiers]; c[idx].status = e.target.value as any; setTiers(c); }} className="w-full px-4 py-3 bg-[#0c0f17] rounded-xl border border-white/10 text-white font-bold">
+                                  <option value="ACTIVE">▶️ Activa (A la venta)</option>
+                                  <option value="SOLD_OUT">🔴 Sold Out (Agotada)</option>
+                                  <option value="HIDDEN">👁️‍🗨️ Oculta</option>
+                                </select>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-white/5">
+                              <div className="space-y-1">
+                                <label className="text-amber-400 text-[9px] uppercase font-bold">⏰ Hora Límite de Ingreso</label>
+                                <input type="time" value={tier.entryCutoffTime || '02:00'} onChange={(e) => { const c = [...tiers]; c[idx].entryCutoffTime = e.target.value; setTiers(c); }} className="w-full px-4 py-2.5 bg-[#0c0f17] rounded-xl border border-white/10 text-white font-bold" />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-slate-400 text-[9px] uppercase font-bold">⚠️ Alerta Escasez (Stock menor a)</label>
+                                <input type="number" min="1" value={tier.scarcityThreshold ?? 20} onChange={(e) => { const c = [...tiers]; c[idx].scarcityThreshold = Number(e.target.value); setTiers(c); }} className="w-full px-4 py-2.5 bg-[#0c0f17] rounded-xl border border-white/10 text-white font-bold" />
+                              </div>
+                              <div className="flex items-center pt-5">
+                                <label className="flex items-center gap-2 cursor-pointer text-slate-300 font-bold select-none">
+                                  <input 
+                                    type="checkbox" 
+                                    checked={tier.showStockToClients ?? true} 
+                                    onChange={(e) => { const c = [...tiers]; c[idx].showStockToClients = e.target.checked; setTiers(c); }}
+                                    className="w-4 h-4 rounded bg-[#0c0f17] border-white/20 text-amber-500 focus:ring-0 cursor-pointer" 
+                                  />
+                                  <span>Mostrar stock restante al público</span>
+                                </label>
+                              </div>
+                            </div>
+
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* BARRA INICIAL */}
+                  <div className="rounded-3xl bg-[#0c0f17] border border-white/5 p-6 sm:p-8 space-y-4 shadow-xl">
+                    <h3 className="font-luxury text-sm font-black uppercase text-white">3. Carta de Barra Inicial</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-2">
+                      <input type="text" placeholder="Bebida" value={newDrink.name} onChange={(e) => setNewDrink({ ...newDrink, name: e.target.value })} className="px-4 py-3 bg-[#07070a] rounded-xl border border-white/10 text-white" />
+                      <input type="number" placeholder="Precio ($)" value={newDrink.price} onChange={(e) => setNewDrink({ ...newDrink, price: Number(e.target.value) })} className="px-4 py-3 bg-[#07070a] rounded-xl border border-white/10 text-amber-400 font-bold" />
+                      <input type="number" placeholder="Stock" value={newDrink.stock} onChange={(e) => setNewDrink({ ...newDrink, stock: Number(e.target.value) })} className="px-4 py-3 bg-[#07070a] rounded-xl border border-white/10 text-white" />
+                    </div>
+                    <button type="button" onClick={() => { if (!newDrink.name) return; setBarMenu([...barMenu, { id: `b-${Date.now()}`, ...newDrink }]); setNewDrink({ name: '', category: 'Tragos', price: 6500, stock: 100 }); }} className="w-full py-3 bg-amber-500 text-black font-black uppercase rounded-xl text-xs cursor-pointer shadow-md">Agregar Bebida +</button>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                      {barMenu.map((b) => (
+                        <div key={b.id} className="p-4 rounded-2xl bg-[#07070a] border border-white/5 flex justify-between items-center text-xs">
+                          <div><span className="font-bold text-white block text-sm">{b.name}</span><span className="text-amber-400 font-bold">${b.price.toLocaleString('es-AR')} · Stock: {b.stock}u.</span></div>
+                          <button type="button" onClick={() => setBarMenu(barMenu.filter(i => i.id !== b.id))} className="text-slate-500 hover:text-rose-400 font-bold cursor-pointer p-1">✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button type="submit" className="w-full py-4 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 text-black font-black uppercase text-xs rounded-2xl transition shadow-xl cursor-pointer tracking-wider">
+                    {eventSubView === 'create' ? 'Publicar Evento Oficial 🚀' : 'Guardar Cambios 💾'}
+                  </button>
+                </form>
+              )}
+            </>
           )}
 
         </main>
@@ -1887,7 +2009,7 @@ export default function LiveExperienceAdmin() {
         </div>
       )}
 
-      {/* MODAL CREAR NUEVA PRODUCTORA CON REDIRECCIÓN A CLUB SI ES DEPORTE */}
+      {/* MODAL CREAR NUEVA PRODUCTORA */}
       {newProducerModal && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 font-mono text-xs">
           <div className="max-w-md w-full rounded-3xl bg-[#0c0f17] border border-amber-500/40 p-6 space-y-4 shadow-2xl">
@@ -1910,7 +2032,7 @@ export default function LiveExperienceAdmin() {
                 <input type="text" required placeholder="Apellido" value={producerForm.lastName} onChange={e => setProducerForm({...producerForm, lastName: e.target.value})} className="px-3.5 py-3 bg-[#07070a] border border-white/10 rounded-xl text-white" />
               </div>
               <input type="text" required placeholder="DNI" value={producerForm.dni} onChange={e => setProducerForm({...producerForm, dni: e.target.value})} className="w-full px-4 py-3 bg-[#07070a] border border-white/10 rounded-xl text-white" />
-              <input type="email" required placeholder="Correo" value={producerForm.email} onChange={e => setProducerForm({...producerForm, email: e.target.value})} className="w-full px-4 py-3 bg-[#07070a] border border-white/10 rounded-xl text-white" />
+              <input type="email" required disabled value={currentUserEmail} className="w-full px-4 py-3 bg-[#07070a] border border-white/10 rounded-xl text-emerald-400 font-bold opacity-80" />
               <input type="text" required placeholder="Teléfono" value={producerForm.phone} onChange={e => setProducerForm({...producerForm, phone: e.target.value})} className="w-full px-4 py-3 bg-[#07070a] border border-white/10 rounded-xl text-white" />
               
               <div className="flex gap-2 pt-2">

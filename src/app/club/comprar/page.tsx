@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
-export default function ClubCheckoutPage() {
+function ClubCheckoutContent() {
   const searchParams = useSearchParams();
   const matchId = searchParams.get('id');
 
@@ -90,39 +90,65 @@ export default function ClubCheckoutPage() {
       return;
     }
 
-    // Validación si elige Canje de Socio contra el padrón
+    // VALIDACIÓN ESTRICTA DE PADRÓN DE SOCIOS SI ELIGE CANJE DE SOCIO
     if (accessType === 'member') {
       if (!holderMemberNumber.trim()) {
-        alert('Por favor ingresá tu Número de Socio para validar el canje.');
+        alert('Por favor ingresá tu Número de Socio para validar el canje en el padrón.');
         return;
       }
 
       try {
-        const membersDb = JSON.parse(localStorage.getItem('oasis_club_members') || localStorage.getItem('le_club_members_db') || '[]');
-        if (membersDb.length > 0) {
-          const found = membersDb.find((m: any) => 
-            (m.dni && m.dni.trim() === holderDni.trim()) || 
-            (m.memberNumber && m.memberNumber.trim() === holderMemberNumber.trim())
-          );
-          if (!found) {
-            alert('⚠️ El DNI o Número de Socio ingresado no se encuentra activo en el padrón de socios del club.');
-            return;
-          }
-          if (found.status && found.status.toUpperCase() === 'INACTIVE') {
-            alert('⚠️ Acceso denegado: El socio registra cuotas impagas o padrón inactivo.');
-            return;
-          }
+        const membersDb = JSON.parse(localStorage.getItem('le_club_members_db') || localStorage.getItem('oasis_club_members') || localStorage.getItem('oasis_global_users_db') || '[]');
+        
+        const foundMember = membersDb.find((m: any) => {
+          const matchDni = m.dni && String(m.dni).trim() === String(holderDni).trim();
+          const matchMemberNo = m.memberNumber && String(m.memberNumber).trim() === String(holderMemberNumber).trim();
+          return matchDni || matchMemberNo;
+        });
+
+        if (!foundMember) {
+          alert('❌ ACCESO DENEGADO: El DNI o Número de Socio ingresado NO figura en el padrón oficial de socios del club.');
+          return;
+        }
+
+        if (foundMember.status && String(foundMember.status).toUpperCase() === 'INACTIVE') {
+          alert('⚠️ ACCESO DENEGADO: El socio registra cuotas impagas o figura como inactivo en el padrón.');
+          return;
         }
       } catch (err) {
         console.error(err);
+        alert('Error al validar con el padrón del club.');
+        return;
       }
     }
 
     try {
+      const issued = JSON.parse(localStorage.getItem('oasis_issued_tickets') || '[]');
+      const eventFullName = `${match.clubName || 'Club'} vs ${match.name}`;
+
+      // VALIDACIÓN DE BENEFICIO ÚNICO: Solo aplica si selecciona Canje de Socio ('member')
+      if (accessType === 'member') {
+        const alreadyHasMemberTicket = issued.some((t: any) => {
+          const isSameEvent = t.eventName === eventFullName;
+          const isSameDni = t.holderDni && String(t.holderDni).trim() === String(holderDni).trim();
+          const isSameMember = t.holderMemberNumber && String(t.holderMemberNumber).trim() === String(holderMemberNumber).trim();
+          const isMemberTier = String(t.tierName || '').toLowerCase().includes('socio') || String(t.tierName || '').toLowerCase().includes('canje');
+          const isActiveOrUsed = t.status === 'VALID' || t.status === 'USED';
+
+          return isSameEvent && (isSameDni || isSameMember) && isMemberTier && isActiveOrUsed;
+        });
+
+        if (alreadyHasMemberTicket) {
+          alert('❌ BENEFICIO DE SOCIO YA UTILIZADO: Ya realizaste tu canje de socio para este partido con este DNI o Número de Socio. Solo se permite un canje por socio por encuentro.');
+          return;
+        }
+      }
+
       const newTicket = {
         id: `TKT-SPORT-${Date.now()}`,
         isSport: true,
-        eventName: `${match.clubName || 'Club'} vs ${match.name}`,
+        clubName: match.clubName || 'CLUB ATLÉTICO',
+        eventName: eventFullName,
         tierName: `${selectedSector?.name} (${accessType === 'member' ? `Socio N° ${holderMemberNumber} / Canje` : 'General'})`,
         price: totalPrice,
         holderName: holderName.trim(),
@@ -134,10 +160,31 @@ export default function ClubCheckoutPage() {
         purchasedAt: new Date().toISOString()
       };
 
-      const issued = JSON.parse(localStorage.getItem('oasis_issued_tickets') || '[]');
-      localStorage.setItem('oasis_issued_tickets', JSON.stringify([newTicket, ...issued]));
+      // ACTUALIZAR MÉTRICAS Y OCUPACIÓN EN TIEMPO REAL
+      const storedMatches = JSON.parse(localStorage.getItem('le_club_matches') || '[]');
+      const updatedMatches = storedMatches.map((m: any) => {
+        if (m.id === match.id) {
+          const updatedSectors = (m.sectors || []).map((sec: any) => {
+            if (sec.name === selectedSector?.name) {
+              const isMember = accessType === 'member';
+              return {
+                ...sec,
+                soldGeneral: isMember ? (sec.soldGeneral || 0) : (sec.soldGeneral || 0) + quantity,
+                soldMember: isMember ? (sec.soldMember || 0) + quantity : (sec.soldMember || 0)
+              };
+            }
+            return sec;
+          });
+          return { ...m, sectors: updatedSectors };
+        }
+        return m;
+      });
 
-      alert(`¡Validación exitosa! Tu pase fue emitido y guardado en tu Billetera Deportiva.`);
+      localStorage.setItem('le_club_matches', JSON.stringify(updatedMatches));
+      localStorage.setItem('oasis_issued_tickets', JSON.stringify([newTicket, ...issued]));
+      window.dispatchEvent(new Event('storage'));
+
+      alert(`¡Validación y canje exitoso! Tu pase fue emitido y guardado en tu Billetera.`);
       window.location.href = '/club';
     } catch (err) {
       console.error(err);
@@ -216,8 +263,8 @@ export default function ClubCheckoutPage() {
                 <div className="flex items-center gap-3">
                   <input type="radio" checked={accessType === 'member'} onChange={() => setAccessType('member')} className="accent-amber-500" />
                   <div>
-                    <span className="font-bold text-white text-xs block">Canje de Socio (Verificación en Padrón)</span>
-                    <span className="text-[10px] text-slate-400">Exclusivo masa societaria al día</span>
+                    <span className="font-bold text-white text-xs block">Canje de Socio (Verificación estricta en Padrón)</span>
+                    <span className="text-[10px] text-slate-400">Exclusivo socios activos registrados en base</span>
                   </div>
                 </div>
                 <span className="font-black text-emerald-400 text-xs uppercase">{selectedSector?.memberPrice === 0 ? 'FREE' : `$${selectedSector?.memberPrice}`}</span>
@@ -232,7 +279,7 @@ export default function ClubCheckoutPage() {
                   <input type="radio" checked={accessType === 'general'} onChange={() => setAccessType('general')} className="accent-amber-500" />
                   <div>
                     <span className="font-bold text-white text-xs block">Entrada General</span>
-                    <span className="text-[10px] text-slate-400">Público general / No socios</span>
+                    <span className="text-[10px] text-slate-400">Público general / Compras libres</span>
                   </div>
                 </div>
                 <span className="font-black text-xs uppercase" style={{ color: clubColors.accent }}>${selectedSector?.generalPrice?.toLocaleString('es-AR')}</span>
@@ -336,5 +383,19 @@ export default function ClubCheckoutPage() {
 
       </main>
     </div>
+  );
+}
+
+export default function ClubCheckoutPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#07070a] text-white flex items-center justify-center font-mono">
+          <p className="text-sm">Cargando encuentro...</p>
+        </div>
+      }
+    >
+      <ClubCheckoutContent />
+    </Suspense>
   );
 }

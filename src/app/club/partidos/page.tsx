@@ -100,6 +100,15 @@ export default function SportsCatalogPage() {
         </div>
         
         <div className="flex items-center gap-3 text-xs font-bold">
+          {/* BOTÓN NUEVO: CARNETS DE SOCIO MULTICLUB */}
+          <Link
+            href="/club/carnet"
+            className="px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 transition cursor-pointer flex items-center gap-2 shadow-md shadow-amber-500/10"
+          >
+            <span>🪪</span>
+            <span>Carnets de Socio</span>
+          </Link>
+
           <Link
             href="/club"
             className="px-4 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 transition cursor-pointer flex items-center gap-2"
