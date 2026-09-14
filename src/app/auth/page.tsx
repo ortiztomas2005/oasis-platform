@@ -1,15 +1,17 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/core/supabase/client';
+import { useSession } from '@/core/auth/useSession';
 
 function AuthContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get('redirect') || '/';
   const supabase = createClient();
+  const { user: sessionUser, isAuthenticated } = useSession();
 
   // Modos: 'login' | 'register_client' | 'register_producer'
   const [mode, setMode] = useState<'login' | 'register_client' | 'register_producer'>('login');
@@ -26,6 +28,14 @@ function AuthContent() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (isAuthenticated && sessionUser) {
+      setEmail(sessionUser.email);
+      setName((prev) => prev || sessionUser.name);
+      setDni((prev) => prev || sessionUser.dni);
+    }
+  }, [isAuthenticated, sessionUser]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
@@ -33,6 +43,30 @@ function AuthContent() {
     setLoading(true);
 
     try {
+      // Si ya hay una sesión iniciada y elegís "Productora", no tiene
+      // sentido pasar por signUp() de nuevo — ese email ya existe y
+      // signUp() lo rechaza, y la productora nunca se llega a crear. Se
+      // registra directo con la sesión actual.
+      if (isAuthenticated && mode === 'register_producer') {
+        if (!producerName.trim()) {
+          setErrorMsg('Por favor completá el nombre de la productora.');
+          return;
+        }
+        const res = await fetch('/api/auth/register-producer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ producerName: producerName.trim(), dni: dni.trim(), phone: phone.trim() }),
+        });
+        const resData = await res.json();
+        if (!res.ok) {
+          setErrorMsg(resData.error || 'Error al registrar la productora.');
+          return;
+        }
+        router.push('/admin');
+        router.refresh();
+        return;
+      }
+
       if (mode === 'login') {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
@@ -202,6 +236,12 @@ function AuthContent() {
         </div>
       )}
 
+      {isAuthenticated && mode === 'register_producer' && (
+        <div className="p-3 bg-blue-950/30 border border-blue-800/50 rounded-xl text-blue-300 text-xs text-center">
+          Ya estás logueado como <strong>{sessionUser?.email}</strong> — solo falta el nombre de tu productora.
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-4 text-xs">
         {mode === 'register_producer' && (
           <div className="space-y-1">
@@ -264,6 +304,7 @@ function AuthContent() {
           </>
         )}
 
+        {!(isAuthenticated && mode === 'register_producer') && (
         <div className="space-y-1">
           <label className="text-[10px] text-neutral-400 uppercase font-bold">
             Correo Electrónico
@@ -277,7 +318,9 @@ function AuthContent() {
             required
           />
         </div>
+        )}
 
+        {!(isAuthenticated && mode === 'register_producer') && (
         <div className="space-y-1">
           <label className="text-[10px] text-neutral-400 uppercase font-bold">
             Contraseña
@@ -292,6 +335,7 @@ function AuthContent() {
             required
           />
         </div>
+        )}
 
         <button
           type="submit"
