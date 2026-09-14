@@ -94,12 +94,16 @@ export default function ProducerOrdersPage() {
           </div>
           <div className="flex items-center gap-3">
             {balance !== null && (
-              <div className="px-4 py-2 rounded-xl bg-[#0c0f16] border border-white/10 text-xs">
+              <Link
+                href="/admin/comprar-tickets"
+                className="px-4 py-2 rounded-xl bg-[#0c0f16] border border-white/10 text-xs hover:border-amber-500/50 transition"
+              >
                 <span className="text-neutral-500 uppercase">Saldo: </span>
                 <span className={`font-black ${balance > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                   {balance} tickets
                 </span>
-              </div>
+                <span className="text-amber-400 ml-1.5">· Comprar más →</span>
+              </Link>
             )}
             <Link href="/admin" className="text-xs text-neutral-400 hover:text-white">
               ← Volver al panel
