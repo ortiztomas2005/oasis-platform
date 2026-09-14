@@ -89,6 +89,18 @@ function AuthContent() {
         return;
       }
 
+      // Por seguridad (para no dejar adivinar qué emails ya están
+      // registrados), Supabase responde signUp() como "éxito" incluso
+      // cuando el email ya tiene una cuenta sin confirmar — no tira error,
+      // pero data.user.identities viene vacío. Sin este chequeo, reintentar
+      // el registro con el mismo mail parece crear una cuenta nueva cada
+      // vez cuando en realidad sigue siendo la misma sin confirmar.
+      const looksLikeExistingUnconfirmed = (data.user?.identities?.length ?? 1) === 0;
+      if (looksLikeExistingUnconfirmed) {
+        setErrorMsg('Ya hay una cuenta con este correo esperando confirmación. Revisá tu bandeja de entrada (y spam) del registro anterior.');
+        return;
+      }
+
       // Si el proyecto de Supabase exige confirmar el email, signUp no abre
       // sesión todavía. Para "cliente" no hay nada más que hacer hasta que
       // confirme; para "productora" la creación queda pendiente en
