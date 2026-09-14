@@ -1,19 +1,39 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/core/supabase/admin';
 import { randomBytes, createHash } from 'crypto';
-import { requireAdminSession } from '@/core/auth/admin-session';
+import { canManageEvent, consumeProducerTicket, refundProducerTicket } from '@/core/services/producers';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
-  const unauthorized = await requireAdminSession();
-  if (unauthorized) return unauthorized;
-
   try {
     const { event_id, holder_name, holder_email, holder_dni, tier_name } = await req.json();
 
     if (!event_id || !holder_name || !holder_email || !holder_dni) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
+    }
+
+    // Antes esta ruta no chequeaba quién la llamaba: cualquiera podía
+    // mandarle un event_id y llevarse una entrada "VIP" gratis. Ahora hace
+    // falta ser staff (OWNER/ADMIN) de la productora dueña del evento, o
+    // admin de OASIS.
+    const access = await canManageEvent(event_id);
+    if (!access.ok) {
+      return NextResponse.json({ error: access.error }, { status: access.status });
+    }
+
+    // Una cortesía también consume 1 ticket del saldo prepago de la
+    // productora, igual que una venta — si no le queda saldo, no se emite.
+    if (access.producerName) {
+      const consumed = await consumeProducerTicket(access.producerName);
+      if (!consumed) {
+        return NextResponse.json(
+          {
+            error: `La productora "${access.producerName}" no tiene tickets disponibles. Recargá tu saldo prepago para poder enviar cortesías.`,
+          },
+          { status: 400 }
+        );
+      }
     }
 
     // Generar hash criptográfico único para el QR
@@ -39,6 +59,7 @@ export async function POST(req: Request) {
       .single();
 
     if (error) {
+      if (access.producerName) await refundProducerTicket(access.producerName);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
