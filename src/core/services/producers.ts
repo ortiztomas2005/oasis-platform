@@ -121,3 +121,71 @@ export async function refundProducerTicket(producerName: string): Promise<void> 
   const { error } = await supabaseAdmin.rpc('refund_producer_ticket', { p_producer_name: producerName });
   if (error) console.error('Error al devolver ticket al saldo de la productora:', error);
 }
+
+/**
+ * Crea la productora + la fila de team_members (OWNER) para una cuenta ya
+ * autenticada. La usan tanto /api/auth/register-producer (cuando el signup
+ * abre sesión al toque) como /auth/callback (cuando Supabase exige
+ * confirmar el email primero: ahí no hay sesión en el momento del signup,
+ * así que esto se termina de hacer recién cuando la persona confirma y
+ * vuelve).
+ */
+export async function createProducerForUser(
+  user: { email: string; user_metadata?: Record<string, any> },
+  { producerName, producerType, dni, phone }: { producerName: string; producerType?: string; dni?: string; phone?: string }
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const cleanName = String(producerName || '').trim().toUpperCase();
+  if (!cleanName) return { ok: false, error: 'Falta el nombre de la productora.' };
+
+  const email = user.email.toLowerCase();
+  const fullName = (user.user_metadata?.full_name as string) || (user.user_metadata?.name as string) || email;
+
+  const { error: producerErr } = await supabaseAdmin.from('producers').insert({
+    name: cleanName,
+    type: producerType || 'ENTERTAINMENT',
+    owner_email: email,
+  });
+
+  if (producerErr) {
+    return { ok: false, error: `No se pudo crear la productora: ${producerErr.message}` };
+  }
+
+  const { error: teamErr } = await supabaseAdmin.from('team_members').insert({
+    email,
+    name: fullName,
+    dni: dni || null,
+    phone: phone || null,
+    role: 'OWNER',
+    producer_name: cleanName,
+  });
+
+  if (teamErr) {
+    await supabaseAdmin.from('producers').delete().eq('name', cleanName);
+    return { ok: false, error: `No se pudo asignar el equipo: ${teamErr.message}` };
+  }
+
+  return { ok: true };
+}
+
+/**
+ * Chequeo de acceso al portal /admin (la sombrilla que usa AdminGate):
+ * entra un admin de Live Experience (admin_users o la contraseña
+ * compartida) O cualquier miembro del equipo de una productora, sea cual
+ * sea su rol — /admin hoy hospeda tanto herramientas exclusivas de Live
+ * Experience como herramientas de autoservicio de productoras
+ * (/admin/eventos, /admin/pedidos, etc.), y cada página/ruta ya hace su
+ * propio chequeo más fino (canManageEvent, requireSuperAdmin, etc.). Este
+ * gate es solo la puerta de entrada, no el control de acceso real.
+ */
+export async function hasAnyPortalAccess(): Promise<{ authenticated: boolean; role: string | null; email: string | null }> {
+  const adminCtx = await getAdminContext();
+  if (adminCtx.authenticated) return adminCtx;
+
+  const email = await getSessionEmail();
+  if (!email) return { authenticated: false, role: null, email: null };
+
+  const { data } = await supabaseAdmin.from('team_members').select('role').eq('email', email).limit(1).maybeSingle();
+
+  if (data) return { authenticated: true, role: data.role, email };
+  return { authenticated: false, role: null, email };
+}

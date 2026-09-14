@@ -59,11 +59,24 @@ function AuthContent() {
         return;
       }
 
+      // Si el modo es "productora", guardamos la intención en user_metadata:
+      // si el proyecto exige confirmar el email, signUp no abre sesión
+      // todavía y acá no se puede llamar a /api/auth/register-producer (no
+      // hay con qué autenticar el pedido). Queda pendiente y se termina de
+      // crear en /auth/callback cuando la persona confirma y vuelve.
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: { full_name: name.trim(), dni: dni.trim(), phone: phone.trim() },
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: {
+            full_name: name.trim(),
+            dni: dni.trim(),
+            phone: phone.trim(),
+            ...(mode === 'register_producer'
+              ? { pending_producer: { producerName: producerName.trim(), dni: dni.trim(), phone: phone.trim() } }
+              : {}),
+          },
         },
       });
 
@@ -77,10 +90,15 @@ function AuthContent() {
       }
 
       // Si el proyecto de Supabase exige confirmar el email, signUp no abre
-      // sesión todavía — no hay nada más para hacer del lado del cliente
-      // hasta que el usuario confirme desde su correo.
+      // sesión todavía. Para "cliente" no hay nada más que hacer hasta que
+      // confirme; para "productora" la creación queda pendiente en
+      // user_metadata y se completa sola en /auth/callback.
       if (!data.session) {
-        setInfoMsg('¡Cuenta creada! Revisá tu correo para confirmar la cuenta antes de iniciar sesión.');
+        setInfoMsg(
+          mode === 'register_producer'
+            ? '¡Cuenta creada! Revisá tu correo y confirmá la cuenta — apenas lo hagas, tu productora queda creada automáticamente.'
+            : '¡Cuenta creada! Revisá tu correo para confirmar la cuenta antes de iniciar sesión.'
+        );
         setMode('login');
         return;
       }

@@ -78,13 +78,14 @@ export default function CatalogPage() {
     setHolderEmail(sessionUser.email);
     setHolderDni(sessionUser.dni);
 
-    supabase
-      .from('team_members')
-      .select('producer_name')
-      .eq('email', sessionUser.email)
-      .eq('role', 'OWNER')
-      .maybeSingle()
-      .then(({ data }) => setUserProducerName(data?.producer_name || null));
+    // Se resuelve server-side (service role) en vez de con el cliente
+    // anon-key: una consulta directa a team_members desde el navegador
+    // depende de que haya políticas RLS de lectura, y si no las hay
+    // simplemente no devuelve nada sin avisar del error.
+    fetch('/api/producers/me')
+      .then((res) => (res.ok ? res.json() : { producer: null }))
+      .then((data) => setUserProducerName(data.producer?.name || null))
+      .catch(() => setUserProducerName(null));
   }, [sessionUser]);
 
   useEffect(() => {

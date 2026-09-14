@@ -5,17 +5,19 @@ import {
   ADMIN_SESSION_MAX_AGE_SECONDS,
   checkAdminPassword,
   createAdminSessionToken,
-  getAdminContext,
 } from '@/core/auth/admin-session';
+import { hasAnyPortalAccess } from '@/core/services/producers';
 
 export const dynamic = 'force-dynamic';
 
-// Consulta si ya hay una sesión de admin activa (para que el panel decida si
-// mostrar el login). Si ya estás logueado con una cuenta real dada de alta
-// en admin_users, esto ya da authenticated:true sin pedir la contraseña
-// compartida.
+// Consulta si ya hay acceso al portal /admin (para que AdminGate decida si
+// mostrar el login). Entra un admin de Live Experience (admin_users o la
+// contraseña compartida) O cualquier miembro del equipo de una productora
+// — /admin hospeda tanto herramientas de Live Experience como de
+// autoservicio de productoras, y cada página/ruta puntual ya hace su
+// propio chequeo más fino por encima de esto.
 export async function GET() {
-  const ctx = await getAdminContext();
+  const ctx = await hasAnyPortalAccess();
   return NextResponse.json(ctx);
 }
 
