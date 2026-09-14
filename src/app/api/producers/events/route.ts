@@ -1,0 +1,137 @@
+import { NextResponse } from 'next/server';
+import { supabaseAdmin } from '@/core/supabase/admin';
+import { getManagedProducerName } from '@/core/services/producers';
+
+export const dynamic = 'force-dynamic';
+
+interface TierInput {
+  name: string;
+  price: number;
+  capacity: number;
+}
+
+// Lista los eventos reales de la productora que gestiona el usuario
+// logueado (no localStorage, no un listado global de OASIS).
+export async function GET() {
+  const producerName = await getManagedProducerName();
+  if (!producerName) {
+    return NextResponse.json({ error: 'No sos staff de ninguna productora.' }, { status: 403 });
+  }
+
+  const { data: events, error } = await supabaseAdmin
+    .from('events')
+    .select('*, ticket_tiers(*)')
+    .eq('producer_name', producerName)
+    .order('created_at', { ascending: false });
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ events: events || [], producerName });
+}
+
+// Crea un evento de verdad en Supabase (antes esto solo pasaba en
+// localStorage dentro de /admin) con sus tandas, ya asignado a la
+// productora del usuario logueado.
+export async function POST(req: Request) {
+  const producerName = await getManagedProducerName();
+  if (!producerName) {
+    return NextResponse.json({ error: 'No sos staff de ninguna productora.' }, { status: 403 });
+  }
+
+  try {
+    const body = await req.json();
+    const {
+      title,
+      description,
+      venue,
+      address,
+      city,
+      date,
+      doorTime,
+      imageUrl,
+      capacity,
+      bankAlias,
+      bankCbu,
+      bankHolderName,
+      tiers,
+      publish,
+    } = body;
+
+    const cleanTitle = String(title || '').trim();
+    if (!cleanTitle) return NextResponse.json({ error: 'Falta el nombre del evento' }, { status: 400 });
+    if (!date) return NextResponse.json({ error: 'Falta la fecha del evento' }, { status: 400 });
+    if (!Array.isArray(tiers) || tiers.length === 0) {
+      return NextResponse.json({ error: 'Agregá al menos una tanda de entradas' }, { status: 400 });
+    }
+
+    const cleanTiers: TierInput[] = tiers.map((t: any) => ({
+      name: String(t.name || '').trim() || 'General',
+      price: Number(t.price) || 0,
+      capacity: Number(t.capacity) || 100,
+    }));
+
+    const baseSlug = cleanTitle
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)+/g, '');
+    const slug = `${baseSlug}-${Math.random().toString(36).substring(2, 6)}`;
+
+    const eventDate = new Date(date).toISOString();
+    const status = publish === false ? 'DRAFT' : 'PUBLISHED';
+    const eventImage =
+      imageUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=1200&auto=format&fit=crop';
+
+    const { data: event, error: eventErr } = await supabaseAdmin
+      .from('events')
+      .insert({
+        name: cleanTitle,
+        title: cleanTitle,
+        slug,
+        description: description || null,
+        venue: venue || null,
+        venue_name: venue || null,
+        address: address || null,
+        city: city || null,
+        date: eventDate,
+        start_date: eventDate,
+        door_time: doorTime || null,
+        image_url: eventImage,
+        cover_image_url: eventImage,
+        capacity: Number(capacity) || 500,
+        max_capacity: Number(capacity) || 500,
+        bank_alias: bankAlias || null,
+        bank_cbu: bankCbu || null,
+        bank_holder_name: bankHolderName || null,
+        cbu_alias: bankAlias || null,
+        status,
+        producer_name: producerName,
+      })
+      .select()
+      .single();
+
+    if (eventErr) return NextResponse.json({ error: eventErr.message }, { status: 500 });
+
+    const tierRows = cleanTiers.map((t) => ({
+      event_id: event.id,
+      name: t.name,
+      price: t.price,
+      total_capacity: t.capacity,
+      available_capacity: t.capacity,
+      capacity: t.capacity,
+      status: 'ACTIVE',
+    }));
+
+    const { error: tiersErr } = await supabaseAdmin.from('ticket_tiers').insert(tierRows);
+
+    if (tiersErr) {
+      // No dejamos un evento sin tandas colgado a medias
+      await supabaseAdmin.from('events').delete().eq('id', event.id);
+      return NextResponse.json({ error: `Error al crear las tandas: ${tiersErr.message}` }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, event });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
