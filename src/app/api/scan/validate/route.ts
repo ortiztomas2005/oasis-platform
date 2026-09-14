@@ -13,10 +13,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Código o DNI no proporcionado' }, { status: 400 });
     }
 
-    // Antes esto solo lo podía usar un admin de OASIS. El staff de puerta
-    // (DOOR/ADMIN/OWNER) de la productora dueña del evento también puede
-    // escanear — pero solo para SU evento puntual, nunca en modo "ALL"
-    // (eso sigue siendo exclusivo de un admin de OASIS).
+    // Antes esto solo lo podía usar un admin de Live Experience. El staff
+    // de puerta (DOOR/ADMIN/OWNER) de la productora dueña del evento
+    // también puede escanear — pero solo para SU evento puntual, nunca en
+    // modo "ALL" (eso sigue siendo exclusivo de un admin de Live Experience).
     if (!eventId || eventId === 'ALL') {
       const unauthorized = await requireAdminSession();
       if (unauthorized) return unauthorized;
@@ -105,7 +105,7 @@ export async function POST(req: Request) {
       status: 'APPROVED',
       ticket: { ...ticket, status: 'USED' },
       scannedAt: now,
-      message: 'ACCESO AUTORIZADO - Bienvenido a OASIS.',
+      message: 'ACCESO AUTORIZADO - Bienvenido a Live Experience.',
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

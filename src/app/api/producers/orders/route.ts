@@ -6,9 +6,9 @@ import { canManageEvent, getManagedProducerName } from '@/core/services/producer
 export const dynamic = 'force-dynamic';
 
 // Lista las órdenes de LOS EVENTOS DE MI PRODUCTORA (no todas como
-// /api/admin/orders, que es la vista de soporte de OASIS). Así una
+// /api/admin/orders, que es la vista de soporte de Live Experience). Así una
 // productora puede confirmar sus propias transferencias sin depender de
-// que alguien de OASIS lo haga a mano.
+// que alguien de Live Experience lo haga a mano.
 export async function GET() {
   const producerName = await getManagedProducerName();
   if (!producerName) {
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
     }
 
     // Solo el staff (OWNER/ADMIN) de la productora dueña del evento de esta
-    // orden puede confirmarla o rechazarla (o un admin de OASIS).
+    // orden puede confirmarla o rechazarla (o un admin de Live Experience).
     const access = await canManageEvent(order.event_id);
     if (!access.ok) {
       return NextResponse.json({ error: access.error }, { status: access.status });

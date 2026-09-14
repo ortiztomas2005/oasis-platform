@@ -35,7 +35,7 @@ export async function POST(req: Request) {
           items: [
             {
               id: resale.id,
-              title: `Reventa Oficial: ${resale.events?.name || 'OASIS Pass'}`,
+              title: `Reventa Oficial: ${resale.events?.name || 'Live Experience Pass'}`,
               quantity: 1,
               unit_price: price,
               currency_id: 'ARS',

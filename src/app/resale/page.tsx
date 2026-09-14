@@ -111,7 +111,7 @@ export default function ResaleMarketplacePage() {
             </Link>
             <div className="flex flex-col">
               <span className="text-xs font-black tracking-[0.2em] uppercase text-white leading-none">
-                OASIS
+                LIVE EXPERIENCE
               </span>
               <span className="text-[9px] text-indigo-400 font-mono tracking-wider mt-0.5">
                 SECURE RESALE
@@ -192,7 +192,7 @@ export default function ResaleMarketplacePage() {
                       📅 {r.events?.date || 'Fecha a confirmar'} · {r.events?.venue || ''}
                     </span>
                     <h3 className="text-lg font-black uppercase text-white tracking-tight mt-0.5">
-                      {r.events?.name || r.events?.title || 'Evento OASIS'}
+                      {r.events?.name || r.events?.title || 'Evento Live Experience'}
                     </h3>
                     <span className="text-xs text-slate-300 font-bold block mt-1">
                       Sector: {r.tickets?.tier_name || 'GENERAL'}
@@ -321,7 +321,7 @@ export default function ResaleMarketplacePage() {
       {/* FOOTER */}
       <footer className="border-t border-slate-800/80 bg-[#0c0f16] py-6 text-xs font-mono text-slate-500">
         <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <span>OASIS LIVE · Mercado Secundario Seguro</span>
+          <span>LIVE EXPERIENCE · Mercado Secundario Seguro</span>
           <span className="text-[11px] text-slate-400">Reemisión Criptográfica al Confirmarse el Pago</span>
         </div>
       </footer>

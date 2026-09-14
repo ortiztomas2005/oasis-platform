@@ -114,7 +114,7 @@ export default function EventDetailPage() {
   const serviceCharge = Math.round(subtotal * 0.12);
   const totalAmount = subtotal + serviceCharge;
   const activeMethod = PAYMENT_METHODS.find((m) => m.id === selectedPayment)!;
-  const eventName = event.name || event.title || 'Evento OASIS';
+  const eventName = event.name || event.title || 'Evento Live Experience';
   const eventVenue = event.venue || event.venue_name || 'A confirmar';
   const eventDate = event.date || event.start_date;
 
@@ -182,7 +182,7 @@ export default function EventDetailPage() {
               <span>Cartelera</span>
             </Link>
             <div className="flex flex-col">
-              <span className="text-xs font-black tracking-[0.2em] uppercase text-white leading-none">OASIS</span>
+              <span className="text-xs font-black tracking-[0.2em] uppercase text-white leading-none">LIVE EXPERIENCE</span>
               <span className="text-[9px] text-blue-400 font-mono tracking-wider mt-0.5">PASS CHECKOUT</span>
             </div>
           </div>

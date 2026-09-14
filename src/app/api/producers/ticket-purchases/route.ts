@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/core/supabase/admin';
 import { getManagedProducerName, getSessionEmail } from '@/core/services/producers';
-import { getTicketPack } from '@/core/services/ticket-packs';
+import { getTicketPack, calculateCustomPackPrice, MIN_CUSTOM_QUANTITY, MAX_CUSTOM_QUANTITY } from '@/core/services/ticket-packs';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,8 +22,9 @@ export async function GET() {
   return NextResponse.json({ purchases: data || [], producerName });
 }
 
-// Pedir un paquete: crea la orden PENDING. El saldo recién se acredita
-// cuando OASIS confirma el pago (ver /api/admin/ticket-purchases).
+// Pedir un paquete (fijo o cantidad a elección con precio dinámico): crea
+// la orden PENDING. El saldo recién se acredita cuando Live Experience
+// confirma el pago (ver /api/admin/ticket-purchases).
 export async function POST(req: Request) {
   const producerName = await getManagedProducerName(['OWNER', 'ADMIN']);
   if (!producerName) {
@@ -31,10 +32,28 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { packId, receiptUrl } = await req.json();
-    const pack = getTicketPack(packId);
-    if (!pack) {
-      return NextResponse.json({ error: 'Paquete inválido' }, { status: 400 });
+    const { packId, customQuantity, receiptUrl } = await req.json();
+
+    let quantity: number;
+    let amount: number;
+    let resolvedPackId: string;
+
+    if (packId === 'custom') {
+      quantity = Number(customQuantity);
+      if (!Number.isInteger(quantity) || quantity < MIN_CUSTOM_QUANTITY || quantity > MAX_CUSTOM_QUANTITY) {
+        return NextResponse.json(
+          { error: `La cantidad tiene que ser un entero entre ${MIN_CUSTOM_QUANTITY} y ${MAX_CUSTOM_QUANTITY}.` },
+          { status: 400 }
+        );
+      }
+      amount = calculateCustomPackPrice(quantity).total;
+      resolvedPackId = 'custom';
+    } else {
+      const pack = getTicketPack(packId);
+      if (!pack) return NextResponse.json({ error: 'Paquete inválido' }, { status: 400 });
+      quantity = pack.quantity;
+      amount = pack.price;
+      resolvedPackId = pack.id;
     }
 
     const email = await getSessionEmail();
@@ -44,9 +63,9 @@ export async function POST(req: Request) {
       .from('producer_ticket_purchases')
       .insert({
         producer_name: producerName,
-        pack_id: pack.id,
-        quantity: pack.quantity,
-        amount: pack.price,
+        pack_id: resolvedPackId,
+        quantity,
+        amount,
         status: 'PENDING',
         reference_code: referenceCode,
         receipt_url: receiptUrl || null,

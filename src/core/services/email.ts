@@ -56,9 +56,9 @@ export async function sendTicketConfirmationEmail({
 
     // 2. Enviar email con acción directa de Wallet y Bóveda
     const { data, error } = await resend.emails.send({
-      from: 'OASIS Tickets <onboarding@resend.dev>',
+      from: 'Live Experience <onboarding@resend.dev>',
       to: [toEmail],
-      subject: `🎟 Tu entrada oficial para ${eventName} - OASIS`,
+      subject: `🎟 Tu entrada oficial para ${eventName} - Live Experience`,
       attachments: [
         {
           filename: 'ticket-qr.png',
@@ -70,7 +70,7 @@ export async function sendTicketConfirmationEmail({
         <html>
           <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0a0a0a; color: #ffffff; padding: 20px; margin: 0;">
             <div style="max-width: 480px; margin: 0 auto; background-color: #141414; border: 1px solid #262626; border-radius: 24px; padding: 28px; text-align: center;">
-              <div style="font-size: 18px; font-weight: 900; letter-spacing: 2px; color: #facc15; margin-bottom: 20px;">● OASIS PLATFORM</div>
+              <div style="font-size: 18px; font-weight: 900; letter-spacing: 2px; color: #facc15; margin-bottom: 20px;">● LIVE EXPERIENCE</div>
               
               <span style="display: inline-block; background-color: #facc15; color: #000000; font-weight: 800; font-size: 11px; padding: 4px 14px; border-radius: 100px; text-transform: uppercase; margin-bottom: 12px;">
                 ${tierName}

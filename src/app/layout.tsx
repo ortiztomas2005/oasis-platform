@@ -1,7 +1,7 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'OASIS | Event Tickets',
+  title: 'Live Experience | Event Tickets',
   description: 'Plataforma oficial de eventos y tickets',
 };
 

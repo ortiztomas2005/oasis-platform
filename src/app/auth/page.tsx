@@ -123,7 +123,7 @@ function AuthContent() {
           </div>
         </Link>
         <h1 className="text-xl font-black uppercase text-white tracking-wide">
-          {mode === 'login' && 'Iniciar Sesión en OASIS'}
+          {mode === 'login' && 'Iniciar Sesión en Live Experience'}
           {mode === 'register_client' && 'Crear Cuenta de Asistente'}
           {mode === 'register_producer' && 'Registrar Nueva Productora'}
         </h1>

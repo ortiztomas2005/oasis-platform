@@ -1,8 +1,14 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { TICKET_PACKS, OASIS_BANK_INFO } from '@/core/services/ticket-packs';
+import {
+  TICKET_PACKS,
+  PLATFORM_BANK_INFO,
+  calculateCustomPackPrice,
+  MIN_CUSTOM_QUANTITY,
+  MAX_CUSTOM_QUANTITY,
+} from '@/core/services/ticket-packs';
 
 interface Purchase {
   id: string;
@@ -21,9 +27,17 @@ export default function BuyTicketsPage() {
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
   const [selectedPack, setSelectedPack] = useState<string | null>(null);
+  const [customQuantity, setCustomQuantity] = useState<string>('750');
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const customPricing = useMemo(() => {
+    const qty = Number(customQuantity);
+    if (!Number.isInteger(qty) || qty <= 0) return null;
+    return { quantity: qty, ...calculateCustomPackPrice(qty) };
+  }, [customQuantity]);
 
   const load = async () => {
     setLoading(true);
@@ -46,6 +60,14 @@ export default function BuyTicketsPage() {
 
   const handleBuy = async () => {
     if (!selectedPack) return;
+    if (selectedPack === 'custom') {
+      const qty = Number(customQuantity);
+      if (!Number.isInteger(qty) || qty < MIN_CUSTOM_QUANTITY || qty > MAX_CUSTOM_QUANTITY) {
+        alert(`Ingresá una cantidad entre ${MIN_CUSTOM_QUANTITY} y ${MAX_CUSTOM_QUANTITY}.`);
+        return;
+      }
+    }
+
     setSubmitting(true);
     try {
       let receiptUrl: string | null = null;
@@ -60,12 +82,16 @@ export default function BuyTicketsPage() {
       const res = await fetch('/api/producers/ticket-purchases', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ packId: selectedPack, receiptUrl }),
+        body: JSON.stringify({
+          packId: selectedPack,
+          customQuantity: selectedPack === 'custom' ? Number(customQuantity) : undefined,
+          receiptUrl,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al pedir el paquete');
 
-      alert(`Pedido registrado (ref ${data.purchase.reference_code}). Transferí y esperá la confirmación de OASIS.`);
+      alert(`Pedido registrado (ref ${data.purchase.reference_code}). Transferí y esperá la confirmación de Live Experience.`);
       setSelectedPack(null);
       setReceiptFile(null);
       await load();
@@ -84,7 +110,7 @@ export default function BuyTicketsPage() {
           <Link href="/admin" className="text-xs text-neutral-400 hover:text-white">← Volver al panel</Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
           {TICKET_PACKS.map((pack) => (
             <button
               key={pack.id}
@@ -93,7 +119,7 @@ export default function BuyTicketsPage() {
                 selectedPack === pack.id ? 'bg-amber-500/10 border-amber-500' : 'bg-[#0c0f16] border-white/10 hover:border-white/20'
               }`}
             >
-              <span className="text-2xl font-black text-white block">{pack.quantity}</span>
+              <span className="text-2xl font-black text-white block">{pack.quantity.toLocaleString('es-AR')}</span>
               <span className="text-[11px] text-neutral-400 uppercase block mb-2">tickets</span>
               <span className="text-emerald-400 font-bold text-sm">${pack.price.toLocaleString('es-AR')}</span>
               <span className="text-[10px] text-neutral-500 block">
@@ -101,15 +127,48 @@ export default function BuyTicketsPage() {
               </span>
             </button>
           ))}
+
+          <button
+            onClick={() => setSelectedPack('custom')}
+            className={`p-5 rounded-2xl border text-left transition cursor-pointer ${
+              selectedPack === 'custom' ? 'bg-amber-500/10 border-amber-500' : 'bg-[#0c0f16] border-white/10 hover:border-white/20'
+            }`}
+          >
+            <span className="text-2xl font-black text-white block">✏️</span>
+            <span className="text-[11px] text-neutral-400 uppercase block mb-2">Elegir cantidad</span>
+            <span className="text-[10px] text-neutral-500 block">Precio según volumen</span>
+          </button>
         </div>
+
+        {selectedPack === 'custom' && (
+          <div className="bg-[#0c0f16] border border-white/10 rounded-2xl p-5 space-y-3">
+            <label className="text-[10px] text-neutral-400 uppercase font-bold block">
+              Cantidad de tickets ({MIN_CUSTOM_QUANTITY.toLocaleString('es-AR')}–{MAX_CUSTOM_QUANTITY.toLocaleString('es-AR')})
+            </label>
+            <input
+              type="number"
+              min={MIN_CUSTOM_QUANTITY}
+              max={MAX_CUSTOM_QUANTITY}
+              value={customQuantity}
+              onChange={(e) => setCustomQuantity(e.target.value)}
+              className="w-full px-4 py-3 bg-black/60 border border-white/10 rounded-xl text-white text-sm outline-none focus:border-amber-500"
+            />
+            {customPricing && (
+              <div className="flex justify-between items-center pt-2 border-t border-white/10 text-xs">
+                <span className="text-neutral-400">${customPricing.pricePerTicket.toLocaleString('es-AR')}/ticket</span>
+                <span className="text-emerald-400 font-black text-base">${customPricing.total.toLocaleString('es-AR')}</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {selectedPack && (
           <div className="bg-[#0c0f16] border border-amber-500/40 rounded-2xl p-6 space-y-4">
-            <h2 className="text-xs font-bold uppercase text-amber-400">Transferí a OASIS</h2>
+            <h2 className="text-xs font-bold uppercase text-amber-400">Transferí a Live Experience</h2>
             <div className="text-xs space-y-1 text-neutral-300">
-              <p>Alias: <span className="text-white font-bold select-all">{OASIS_BANK_INFO.alias}</span></p>
-              <p>CBU/CVU: <span className="text-white font-bold select-all">{OASIS_BANK_INFO.cbu}</span></p>
-              <p>Titular: <span className="text-white font-bold">{OASIS_BANK_INFO.holderName}</span></p>
+              <p>Alias: <span className="text-white font-bold select-all">{PLATFORM_BANK_INFO.alias}</span></p>
+              <p>CBU/CVU: <span className="text-white font-bold select-all">{PLATFORM_BANK_INFO.cbu}</span></p>
+              <p>Titular: <span className="text-white font-bold">{PLATFORM_BANK_INFO.holderName}</span></p>
             </div>
 
             <div>
@@ -144,7 +203,7 @@ export default function BuyTicketsPage() {
             purchases.map((p) => (
               <div key={p.id} className="bg-[#0c0f16] border border-white/10 rounded-xl p-4 flex items-center justify-between text-xs">
                 <div>
-                  <span className="text-white font-bold block">{p.quantity} tickets · ${Number(p.amount).toLocaleString('es-AR')}</span>
+                  <span className="text-white font-bold block">{p.quantity.toLocaleString('es-AR')} tickets · ${Number(p.amount).toLocaleString('es-AR')}</span>
                   <span className="text-neutral-500">Ref: {p.reference_code}</span>
                 </div>
                 <span

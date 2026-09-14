@@ -59,7 +59,7 @@ export async function issuePrimaryTicketForOrder(order: any): Promise<string> {
         toEmail: order.customer_email,
         customerName: order.customer_name,
         customerDni: order.customer_dni,
-        eventName: order.events?.name || 'Evento Oficial OASIS',
+        eventName: order.events?.name || 'Evento Oficial Live Experience',
         eventDate: order.events?.date,
         eventVenue: order.events?.venue,
         tierName: order.ticket_tier,

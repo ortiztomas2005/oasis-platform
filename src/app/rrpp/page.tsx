@@ -105,7 +105,7 @@ export default function RRPPPortalPage() {
               O
             </div>
             <div>
-              <span className="text-xs font-black tracking-widest uppercase block">OASIS RRPP</span>
+              <span className="text-xs font-black tracking-widest uppercase block">LIVE EXPERIENCE RRPP</span>
               <span className="text-[10px] text-blue-400 font-mono">Portal de Embajadores</span>
             </div>
           </Link>
@@ -220,7 +220,7 @@ export default function RRPPPortalPage() {
                 </button>
                 <a
                   href={`https://wa.me/?text=${encodeURIComponent(
-                    `¡Hola! Conseguí tus entradas oficiales para OASIS con mi link de embajador acá: ${shareLink}`
+                    `¡Hola! Conseguí tus entradas oficiales para tu evento con mi link de embajador acá: ${shareLink}`
                   )}`}
                   target="_blank"
                   rel="noreferrer"
@@ -317,7 +317,7 @@ export default function RRPPPortalPage() {
       </main>
 
       <footer className="border-t border-neutral-800/60 py-6 text-center text-[10px] text-neutral-500 font-mono">
-        © 2026 OASIS Platform · Red Oficial de RRPP & Embajadores
+        © 2026 Live Experience · Red Oficial de RRPP & Embajadores
       </footer>
     </div>
   );

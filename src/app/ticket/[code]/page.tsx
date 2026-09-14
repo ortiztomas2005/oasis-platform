@@ -41,7 +41,7 @@ export default async function TicketPage({ params }: { params: Promise<{ code: s
   }
 
   // 3. Obtener datos del evento
-  let eventName = 'Evento OASIS';
+  let eventName = 'Evento Live Experience';
   let eventDate = 'Fecha a confirmar';
 
   if (ticket.event_id) {

@@ -398,7 +398,7 @@ export default function BarCounterValidationPage() {
       {/* FOOTER */}
       <footer className="border-t border-slate-800/80 bg-[#0c0f16] py-5 text-xs font-mono text-slate-500">
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
-          <span>OASIS LIVE · Sistema de Despacho Inmediato</span>
+          <span>LIVE EXPERIENCE · Sistema de Despacho Inmediato</span>
           <span className="text-[11px] text-slate-400">Terminal de Barra Conectada</span>
         </div>
       </footer>

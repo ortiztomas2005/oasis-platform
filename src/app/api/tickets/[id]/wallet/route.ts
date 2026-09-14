@@ -23,7 +23,7 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
       success: true,
       ticket: {
         id: ticket.id,
-        eventName: ticket.events?.name || ticket.events?.title || 'OASIS Event',
+        eventName: ticket.events?.name || ticket.events?.title || 'Live Experience Event',
         attendee: ticket.customer_name || ticket.holder_name,
         dni: ticket.customer_dni || ticket.holder_dni,
         tier: ticket.tier_name,

@@ -134,7 +134,7 @@ export default function HoloTicket({ ticket }: { ticket: TicketData }) {
         <div className="space-y-4 font-mono z-20">
           <div className="flex items-center justify-between">
             <span className={`text-[10px] tracking-[0.2em] font-black uppercase ${isBarTicket ? 'text-yellow-400' : 'text-blue-400'}`}>
-              OASIS ACCESS
+              LIVE EXPERIENCE ACCESS
             </span>
             <span
               className={`text-[9px] font-bold px-2.5 py-0.5 rounded-full uppercase border ${

@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     const body = await req.json();
 
     // Normalizar nombres de campos para que acepte cualquier formato
-    const rawName = body.customer_name || body.holder_name || `${body.name || ''} ${body.lastName || ''}`.trim() || 'Asistente OASIS';
+    const rawName = body.customer_name || body.holder_name || `${body.name || ''} ${body.lastName || ''}`.trim() || 'Asistente Live Experience';
     const rawEmail = body.customer_email || body.holder_email || body.email;
     const rawDni = body.customer_dni || body.holder_dni || body.dni;
     const tierName = body.tier_name || body.tier || 'GENERAL';

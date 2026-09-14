@@ -70,7 +70,7 @@ export async function POST(req: Request) {
     }
 
     // NOTA sin probar en vivo todavía: esto consulta el pago con el token
-    // de la aplicación de OASIS (platform-level), no con el de la
+    // de la aplicación de Live Experience (platform-level), no con el de la
     // productora que conectó su cuenta y cobró. Las apps de Mercado Pago
     // dadas de alta como marketplace deberían poder leer pagos hechos con
     // tokens obtenidos vía su propio flujo OAuth — pero esto recién se
@@ -91,7 +91,7 @@ export async function POST(req: Request) {
     if (metadata.type === 'RESALE_PURCHASE' && metadata.resale_id) {
       await completeResaleTransfer({
         resaleId: metadata.resale_id,
-        buyerName: metadata.buyer_name || 'Comprador OASIS',
+        buyerName: metadata.buyer_name || 'Comprador Live Experience',
         buyerEmail: metadata.buyer_email || '',
         buyerDni: metadata.buyer_dni || '',
       });

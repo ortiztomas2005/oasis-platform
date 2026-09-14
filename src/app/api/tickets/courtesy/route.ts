@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     // Antes esta ruta no chequeaba quién la llamaba: cualquiera podía
     // mandarle un event_id y llevarse una entrada "VIP" gratis. Ahora hace
     // falta ser staff (OWNER/ADMIN) de la productora dueña del evento, o
-    // admin de OASIS.
+    // admin de Live Experience.
     const access = await canManageEvent(event_id);
     if (!access.ok) {
       return NextResponse.json({ error: access.error }, { status: access.status });

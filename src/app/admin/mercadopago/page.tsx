@@ -118,7 +118,7 @@ function MercadoPagoConnectContent() {
 
               <p className="text-xs text-neutral-400 leading-relaxed">
                 {connected
-                  ? 'Las ventas de tus eventos por Mercado Pago se cobran directo a esta cuenta. OASIS no se queda con nada del pago en sí.'
+                  ? 'Las ventas de tus eventos por Mercado Pago se cobran directo a esta cuenta. Live Experience no se queda con nada del pago en sí.'
                   : 'Conectá tu cuenta de Mercado Pago para poder cobrar por MP en tus eventos. Sin esto, tus compradores solo van a poder pagar por transferencia.'}
               </p>
 

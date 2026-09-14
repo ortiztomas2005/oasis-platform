@@ -12,7 +12,7 @@ import { supabaseAdmin } from '@/core/supabase/admin';
  *    login de /auth que usa cualquier cliente) Y su cuenta figura en la
  *    tabla admin_users (ver supabase/migrations/001_admin_users.sql). Esta
  *    tabla es la separación real entre "cuenta de cliente/productora" y
- *    "cuenta de staff de OASIS" — team_members (OWNER/ADMIN/DOOR/BAR) es
+ *    "cuenta de staff de Live Experience" — team_members (OWNER/ADMIN/DOOR/BAR) es
  *    otra cosa, es el equipo de UNA productora puntual, no da acceso a
  *    /admin por sí solo.
  * 2. Contraseña compartida (ADMIN_PASSWORD): el mecanismo de arranque que

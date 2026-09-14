@@ -4,10 +4,10 @@ import { supabaseAdmin } from '@/core/supabase/admin';
 /**
  * "Conectar con Mercado Pago" por productora (OAuth), para que cada venta
  * primaria se cobre directo a la cuenta de la productora dueña del
- * evento — OASIS no se queda con nada del pago en sí (ver
+ * evento — Live Experience no se queda con nada del pago en sí (ver
  * supabase/migrations/003_mercadopago_connect.sql).
  *
- * Requiere que la app de OASIS esté dada de alta en el panel de
+ * Requiere que la app de Live Experience esté dada de alta en el panel de
  * desarrolladores de Mercado Pago con OAuth habilitado: MP_CLIENT_ID y
  * MP_CLIENT_SECRET (distintos del MP_ACCESS_TOKEN de una integración
  * simple de una sola cuenta).

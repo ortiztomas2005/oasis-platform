@@ -35,7 +35,7 @@ export async function POST(req: Request) {
       .replace(/^-+|-+$/g, '') + '-' + Math.floor(1000 + Math.random() * 9000);
 
     const eventDate = date ? new Date(date).toISOString() : new Date().toISOString();
-    const eventVenue = venue || 'Ubicación Central OASIS';
+    const eventVenue = venue || 'Ubicación Central Live Experience';
 
     // 3. Payload limpio y compatible
     const eventPayload: Record<string, any> = {
@@ -47,8 +47,8 @@ export async function POST(req: Request) {
       venue: eventVenue,
       venue_name: eventVenue,
       capacity: parseInt(capacity) || 1000,
-      description: description || 'Evento Oficial producido por OASIS Platform.',
-      cbu_alias: cbuAlias || 'OASIS.OFICIAL',
+      description: description || 'Evento Oficial producido por Live Experience.',
+      cbu_alias: cbuAlias || 'LIVEEXPERIENCE.OFICIAL',
       image_url: imageUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=1200&auto=format&fit=crop',
       status: 'ACTIVE',
     };

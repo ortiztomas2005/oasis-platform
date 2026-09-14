@@ -11,7 +11,7 @@ interface TierInput {
 }
 
 // Lista los eventos reales de la productora del usuario logueado (no
-// localStorage, no un listado global de OASIS). Cualquier rol del equipo
+// localStorage, no un listado global de Live Experience). Cualquier rol del equipo
 // puede leerla (DOOR/BAR la necesitan para saber qué evento escanear),
 // pero crear/editar sigue restringido a OWNER/ADMIN.
 export async function GET() {

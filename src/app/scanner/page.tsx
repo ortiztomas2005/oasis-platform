@@ -113,7 +113,7 @@ export default function ScannerPage() {
         <div className="max-w-lg mx-auto flex items-center justify-between">
           <div>
             <span className="text-[10px] text-blue-400 uppercase font-bold tracking-widest block">Puerta · Control de Acceso</span>
-            <h1 className="text-lg font-black uppercase text-white">Escáner OASIS</h1>
+            <h1 className="text-lg font-black uppercase text-white">Escáner Live Experience</h1>
           </div>
           <UserMenu />
         </div>

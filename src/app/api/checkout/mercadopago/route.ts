@@ -35,7 +35,7 @@ export async function POST(req: Request) {
     // 2. Resolver con qué cuenta de Mercado Pago cobrar. Si el evento es de
     // una productora que conectó su cuenta (ver /admin/mercadopago), el
     // cobro se crea con SU token — el dinero le entra directo a ella, no
-    // pasa por OASIS. Si el evento no tiene productora asignada, se usa el
+    // pasa por Live Experience. Si el evento no tiene productora asignada, se usa el
     // token de plataforma (MP_ACCESS_TOKEN) como respaldo.
     const { data: event } = await supabaseAdmin
       .from('events')

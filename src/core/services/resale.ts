@@ -84,7 +84,7 @@ export async function completeResaleTransfer({
       toEmail: buyerEmail,
       customerName: buyerName,
       customerDni: buyerDni,
-      eventName: event?.name || event?.title || 'Evento Oficial OASIS',
+      eventName: event?.name || event?.title || 'Evento Oficial Live Experience',
       eventDate: event?.date,
       eventVenue: event?.venue,
       tierName,

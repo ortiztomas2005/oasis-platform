@@ -82,7 +82,7 @@ export default function TicketDownloadPage() {
       doc.setTextColor(255, 255, 255);
       doc.setFont('courier', 'bold');
       doc.setFontSize(7);
-      doc.text('PASE OFICIAL DE ACCESO · OASIS', 8, 11);
+      doc.text('PASE OFICIAL DE ACCESO · LIVE EXPERIENCE', 8, 11);
 
       doc.setFontSize(11);
       doc.text(ticket.eventName.toUpperCase().substring(0, 24), 8, 18);
@@ -158,12 +158,12 @@ export default function TicketDownloadPage() {
         doc.text('• Pase valido durante toda la noche.', 10, y + 9);
       }
       doc.setTextColor(170, 170, 170);
-      doc.text('• Prohibida su reventa fuera de OASIS.', 10, y + 13);
+      doc.text('• Prohibida su reventa fuera de Live Experience.', 10, y + 13);
 
       // Pie
       doc.setFontSize(5);
       doc.setTextColor(100, 100, 100);
-      doc.text(`ID: ${ticket.id} | OASIS SECURITY PASS`, 45, 156, { align: 'center' });
+      doc.text(`ID: ${ticket.id} | LIVE EXPERIENCE SECURITY PASS`, 45, 156, { align: 'center' });
 
       // Guardar PDF
       const cleanName = ticket.eventName.replace(/[^a-zA-Z0-9]/g, '_');
@@ -218,7 +218,7 @@ export default function TicketDownloadPage() {
         <div className="bg-gradient-to-r from-blue-700 to-indigo-800 p-6 text-white flex justify-between items-start">
           <div>
             <span className="text-[9px] uppercase tracking-widest block font-bold opacity-80">
-              PASE OFICIAL DE ACCESO · OASIS
+              PASE OFICIAL DE ACCESO · LIVE EXPERIENCE
             </span>
             <h1 className="text-xl font-black uppercase mt-1 leading-tight">{ticket.eventName}</h1>
             <p className="text-[11px] opacity-90 mt-0.5">📍 {ticket.venue}</p>
@@ -275,7 +275,7 @@ export default function TicketDownloadPage() {
             ) : (
               <p>• Pase válido durante toda la noche.</p>
             )}
-            <p>• Prohibida su reventa fuera del mercado oficial OASIS.</p>
+            <p>• Prohibida su reventa fuera del mercado oficial de Live Experience.</p>
           </div>
         </div>
 

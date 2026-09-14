@@ -14,7 +14,7 @@ interface Purchase {
   created_at: string;
 }
 
-// Pantalla de OASIS (no de la productora) para confirmar las compras de
+// Pantalla de Live Experience (no de la productora) para confirmar las compras de
 // paquetes de tickets y acreditar el saldo.
 export default function ProducerPurchasesAdminPage() {
   const [purchases, setPurchases] = useState<Purchase[]>([]);

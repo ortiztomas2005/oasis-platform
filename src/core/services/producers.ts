@@ -73,7 +73,7 @@ export async function getProducerNameForEvent(eventId: string): Promise<string |
 /**
  * Chequeo de permiso para operaciones sobre un evento puntual (confirmar
  * ventas, enviar cortesías): o sos staff de rango suficiente en la
- * productora dueña del evento, o sos admin de OASIS (que puede operar
+ * productora dueña del evento, o sos admin de Live Experience (que puede operar
  * sobre cualquier evento como respaldo/soporte).
  */
 export async function canManageEvent(

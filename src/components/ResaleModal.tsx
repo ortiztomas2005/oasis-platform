@@ -33,7 +33,7 @@ export default function ResaleModal({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al publicar');
 
-      alert('¡Ticket publicado en el Marketplace oficial de OASIS!');
+      alert('¡Ticket publicado en el Marketplace oficial de Live Experience!');
       setOpen(false);
       if (onSuccess) onSuccess();
     } catch (err: any) {
@@ -49,7 +49,7 @@ export default function ResaleModal({
         onClick={() => setOpen(true)}
         className="w-full mt-3 py-3 px-4 rounded-xl border border-yellow-500/40 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 font-semibold text-xs tracking-wider uppercase transition-all flex items-center justify-center gap-2"
       >
-        <span>🔄</span> Revender este ticket en OASIS
+        <span>🔄</span> Revender este ticket en Live Experience
       </button>
 
       {open && (

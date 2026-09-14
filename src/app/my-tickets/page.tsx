@@ -167,7 +167,7 @@ export default function MyTicketsPage() {
               O
             </div>
             <span className="font-luxury text-lg font-black tracking-[0.1em] uppercase text-white leading-none group-hover:text-amber-400 transition">
-              OASIS
+              LIVE EXPERIENCE
             </span>
           </Link>
 
@@ -204,7 +204,7 @@ export default function MyTicketsPage() {
               Billetera Digital
             </h1>
             <p className="text-xs text-slate-400 font-sans">
-              Tus entradas oficiales, verificadas contra la base de OASIS.
+              Tus entradas oficiales, verificadas contra la base de Live Experience.
             </p>
           </div>
 
@@ -263,7 +263,7 @@ export default function MyTicketsPage() {
               const holoData: TicketData = {
                 id: t.id,
                 qrCode: qrValue,
-                eventName: t.events?.name || t.events?.title || 'Evento OASIS',
+                eventName: t.events?.name || t.events?.title || 'Evento Live Experience',
                 tierName: t.tier_name || 'GENERAL',
                 ownerName: t.holder_name || t.customer_name || user?.name || '',
                 ownerDni: t.holder_dni || t.customer_dni || user?.dni || '',
@@ -414,7 +414,7 @@ export default function MyTicketsPage() {
 
       {/* FOOTER */}
       <footer className="border-t border-white/5 bg-[#050507] py-6 text-xs font-mono text-slate-500 text-center space-y-1 mt-auto">
-        <p className="font-luxury text-amber-400 tracking-widest text-xs font-bold">OASIS</p>
+        <p className="font-luxury text-amber-400 tracking-widest text-xs font-bold">LIVE EXPERIENCE</p>
       </footer>
     </div>
   );

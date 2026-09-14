@@ -95,7 +95,7 @@ export default function SportsCatalogPage() {
             ⚽
           </div>
           <span className="font-luxury text-sm font-black text-white tracking-widest uppercase">
-            OASIS | TICKETERA DEPORTIVA MULTICLUB
+            LIVE EXPERIENCE | TICKETERA DEPORTIVA MULTICLUB
           </span>
         </div>
         

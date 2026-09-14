@@ -35,7 +35,7 @@ export async function POST(req: Request) {
       toEmail: email,
       customerName: name,
       customerDni: dni,
-      eventName: ticket.events?.name || 'Evento Oficial OASIS',
+      eventName: ticket.events?.name || 'Evento Oficial Live Experience',
       eventDate: ticket.events?.date,
       eventVenue: ticket.events?.venue,
       tierName: ticket.tier_name || 'GENERAL',

@@ -42,7 +42,7 @@ export default function AuthModal({
             Identificación de Seguridad
           </span>
           <h3 className="text-2xl font-black uppercase text-white mt-1">
-            Ingresar a OASIS
+            Ingresar a Live Experience
           </h3>
           <p className="text-xs font-mono text-neutral-400 mt-2">
             Iniciá sesión en un clic para acceder a tus tickets, transferirlos o ponerlos en reventa.
