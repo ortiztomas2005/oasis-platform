@@ -3,91 +3,114 @@
 import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '@/context/AuthContext';
+import { createClient } from '@/core/supabase/client';
 
 function AuthContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get('redirect') || '/';
-
-  const { login, register } = useAuth();
+  const supabase = createClient();
 
   // Modos: 'login' | 'register_client' | 'register_producer'
   const [mode, setMode] = useState<'login' | 'register_client' | 'register_producer'>('login');
-  
+  const [loading, setLoading] = useState(false);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [dni, setDni] = useState('');
   const [phone, setPhone] = useState('');
-  
+
   // Campos específicos para Productora
   const [producerName, setProducerName] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [infoMsg, setInfoMsg] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
+    setInfoMsg(null);
+    setLoading(true);
 
-    if (mode === 'login') {
-      const result = login(email, password);
-      if (result.success) {
+    try {
+      if (mode === 'login') {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          setErrorMsg(
+            error.message === 'Invalid login credentials'
+              ? 'Credenciales inválidas. Verificá tu correo o contraseña.'
+              : error.message
+          );
+          return;
+        }
         router.push(redirectUrl);
-      } else {
-        setErrorMsg(result.error || 'Error al iniciar sesión.');
+        router.refresh();
+        return;
       }
-    } else if (mode === 'register_client') {
+
+      // Ambos modos de registro validan campos obligatorios y crean el
+      // usuario en Supabase Auth (ya no en localStorage).
       if (!name || !dni || !email || !password) {
         setErrorMsg('Por favor completá todos los campos obligatorios.');
         return;
       }
-      const result = register({ name, dni, email, phone, password });
-      if (result.success) {
-        router.push(redirectUrl);
-      } else {
-        setErrorMsg(result.error || 'Error al crear la cuenta.');
-      }
-    } else if (mode === 'register_producer') {
-      if (!producerName || !name || !dni || !email || !password) {
-        setErrorMsg('Por favor completá todos los datos de la productora y el responsable.');
+      if (mode === 'register_producer' && !producerName.trim()) {
+        setErrorMsg('Por favor completá el nombre de la productora.');
         return;
       }
 
-      // 1. Registramos al usuario como owner
-      const result = register({ name, dni, email, phone, password });
-      if (!result.success) {
-        setErrorMsg(result.error || 'Error al registrar el responsable de la productora.');
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: name.trim(), dni: dni.trim(), phone: phone.trim() },
+        },
+      });
+
+      if (error) {
+        setErrorMsg(
+          error.message === 'User already registered'
+            ? 'Ya existe una cuenta registrada con este correo electrónico.'
+            : error.message
+        );
         return;
       }
 
-      // 2. Creamos la productora y le asignamos sus 500 tickets prepagos iniciales
-      try {
-        const prodNameClean = producerName.trim().toUpperCase();
-        
-        // Guardar equipo/dueño en localStorage
-        const teamMembers = JSON.parse(localStorage.getItem('le_team_members') || '[]');
-        const newOwner = {
-          id: `tm-${Date.now()}`,
-          name,
-          email: email.toLowerCase().trim(),
-          dni,
-          phone,
-          role: 'OWNER',
-          producerName: prodNameClean
-        };
-        localStorage.setItem('le_team_members', JSON.stringify([newOwner, ...teamMembers]));
+      // Si el proyecto de Supabase exige confirmar el email, signUp no abre
+      // sesión todavía — no hay nada más para hacer del lado del cliente
+      // hasta que el usuario confirme desde su correo.
+      if (!data.session) {
+        setInfoMsg('¡Cuenta creada! Revisá tu correo para confirmar la cuenta antes de iniciar sesión.');
+        setMode('login');
+        return;
+      }
 
-        // Inicializar saldo prepago de la productora en 500
-        const balances = JSON.parse(localStorage.getItem('le_prepaid_balances') || '{"OASIS": 500}');
-        balances[prodNameClean] = 500;
-        localStorage.setItem('le_prepaid_balances', JSON.stringify(balances));
-
-        alert(`¡Productora "${prodNameClean}" creada con éxito con 500 tickets prepagos de regalo!`);
+      if (mode === 'register_producer') {
+        const res = await fetch('/api/auth/register-producer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            producerName: producerName.trim(),
+            dni: dni.trim(),
+            phone: phone.trim(),
+          }),
+        });
+        const resData = await res.json();
+        if (!res.ok) {
+          setErrorMsg(resData.error || 'Tu cuenta se creó, pero hubo un error al registrar la productora.');
+          return;
+        }
         router.push('/admin');
-      } catch (err) {
-        console.error(err);
-        setErrorMsg('Error al inicializar la productora en el sistema.');
+        router.refresh();
+        return;
       }
+
+      router.push(redirectUrl);
+      router.refresh();
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Error del sistema. Probá de nuevo.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -115,7 +138,7 @@ function AuthContent() {
       <div className="grid grid-cols-2 gap-2 p-1 bg-black/40 rounded-2xl border border-neutral-800 text-[11px]">
         <button
           type="button"
-          onClick={() => { setMode('login'); setErrorMsg(null); }}
+          onClick={() => { setMode('login'); setErrorMsg(null); setInfoMsg(null); }}
           className={`py-2 rounded-xl font-bold transition cursor-pointer ${mode === 'login' ? 'bg-blue-600 text-white shadow-md' : 'text-neutral-400 hover:text-white'}`}
         >
           Iniciar Sesión
@@ -123,14 +146,14 @@ function AuthContent() {
         <div className="grid grid-cols-2 gap-1">
           <button
             type="button"
-            onClick={() => { setMode('register_client'); setErrorMsg(null); }}
+            onClick={() => { setMode('register_client'); setErrorMsg(null); setInfoMsg(null); }}
             className={`py-2 rounded-xl font-bold transition cursor-pointer text-[10px] ${mode === 'register_client' ? 'bg-purple-600 text-white shadow-md' : 'text-neutral-400 hover:text-white'}`}
           >
             Cliente
           </button>
           <button
             type="button"
-            onClick={() => { setMode('register_producer'); setErrorMsg(null); }}
+            onClick={() => { setMode('register_producer'); setErrorMsg(null); setInfoMsg(null); }}
             className={`py-2 rounded-xl font-bold transition cursor-pointer text-[10px] ${mode === 'register_producer' ? 'bg-emerald-600 text-white shadow-md' : 'text-neutral-400 hover:text-white'}`}
           >
             Productora
@@ -141,6 +164,11 @@ function AuthContent() {
       {errorMsg && (
         <div className="p-3 bg-rose-950/40 border border-rose-800/60 rounded-xl text-rose-300 text-xs font-bold text-center">
           ⚠️ {errorMsg}
+        </div>
+      )}
+      {infoMsg && (
+        <div className="p-3 bg-emerald-950/40 border border-emerald-800/60 rounded-xl text-emerald-300 text-xs font-bold text-center">
+          ✓ {infoMsg}
         </div>
       )}
 
@@ -229,6 +257,7 @@ function AuthContent() {
             placeholder="••••••••"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            minLength={6}
             className="w-full bg-black/60 border border-neutral-800 rounded-xl px-4 py-3 text-white outline-none focus:border-blue-500 font-mono"
             required
           />
@@ -236,17 +265,19 @@ function AuthContent() {
 
         <button
           type="submit"
-          className={`w-full py-3.5 text-white font-black uppercase text-xs rounded-xl shadow-lg transition-all hover:scale-[1.02] cursor-pointer ${
-            mode === 'register_producer' 
-              ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/30' 
-              : mode === 'register_client' 
-              ? 'bg-purple-600 hover:bg-purple-500 shadow-purple-600/30' 
+          disabled={loading}
+          className={`w-full py-3.5 text-white font-black uppercase text-xs rounded-xl shadow-lg transition-all hover:scale-[1.02] cursor-pointer disabled:opacity-50 disabled:hover:scale-100 ${
+            mode === 'register_producer'
+              ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/30'
+              : mode === 'register_client'
+              ? 'bg-purple-600 hover:bg-purple-500 shadow-purple-600/30'
               : 'bg-blue-600 hover:bg-blue-500 shadow-blue-600/30'
           }`}
         >
-          {mode === 'login' && 'Ingresar a mi Cuenta →'}
-          {mode === 'register_client' && 'Crear Cuenta de Asistente →'}
-          {mode === 'register_producer' && 'Crear Productora (500 Pases Free) 🚀'}
+          {loading && 'Procesando...'}
+          {!loading && mode === 'login' && 'Ingresar a mi Cuenta →'}
+          {!loading && mode === 'register_client' && 'Crear Cuenta de Asistente →'}
+          {!loading && mode === 'register_producer' && 'Crear Productora (500 Pases Free) 🚀'}
         </button>
       </form>
     </div>

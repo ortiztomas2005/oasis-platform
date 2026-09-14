@@ -3,32 +3,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useSession, signOut } from '@/core/auth/useSession';
 
 export default function UserMenu() {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const { user, loading } = useSession();
   const menuRef = useRef<HTMLDivElement>(null);
-
-  const checkUser = () => {
-    if (typeof window === 'undefined') return;
-    const session = localStorage.getItem('oasis_current_session') || localStorage.getItem('oasis_customer_user');
-    if (session) {
-      try {
-        setUser(JSON.parse(session));
-      } catch {
-        setUser(null);
-      }
-    } else {
-      setUser(null);
-    }
-  };
-
-  useEffect(() => {
-    checkUser();
-    window.addEventListener('storage', checkUser);
-    return () => window.removeEventListener('storage', checkUser);
-  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -40,13 +21,16 @@ export default function UserMenu() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('oasis_current_session');
-    localStorage.removeItem('oasis_customer_user');
-    setUser(null);
+  const handleLogout = async () => {
+    await signOut();
     setIsOpen(false);
     router.push('/');
+    router.refresh();
   };
+
+  if (loading) {
+    return <div className="w-24 h-8 rounded-xl bg-[#161a26] animate-pulse" />;
+  }
 
   if (!user) {
     return (
@@ -91,12 +75,12 @@ export default function UserMenu() {
           </Link>
 
           <Link
-            href="/p2p"
+            href="/resale"
             onClick={() => setIsOpen(false)}
             className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-slate-800/60 text-slate-200 text-xs font-bold transition"
           >
             <span>🔄</span>
-            <span>Resale (P2P)</span>
+            <span>Reventa</span>
           </Link>
 
           <div className="border-t border-slate-800/80 my-1" />

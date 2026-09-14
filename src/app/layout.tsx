@@ -1,5 +1,4 @@
 import './globals.css';
-import { AuthProvider } from '@/context/AuthContext';
 
 export const metadata = {
   title: 'OASIS | Event Tickets',
@@ -13,9 +12,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <body className="bg-[#05070d] text-white">
-        <AuthProvider>{children}</AuthProvider>
-      </body>
+      <body className="bg-[#05070d] text-white">{children}</body>
     </html>
   );
 }

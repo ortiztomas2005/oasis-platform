@@ -2,7 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import UserMenu from '@/components/UserMenu';
+import { createClient } from '@/core/supabase/client';
+import { useSession } from '@/core/auth/useSession';
+
+const supabase = createClient();
 
 export interface Tier {
   name: string;
@@ -33,82 +38,105 @@ export interface EventItem {
 }
 
 export default function CatalogPage() {
+  const router = useRouter();
   const [events, setEvents] = useState<EventItem[]>([]);
   const [featuredIndex, setFeaturedIndex] = useState<number>(0);
 
   const [viewMode, setViewMode] = useState<'catalog' | 'details' | 'checkout'>('catalog');
   const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
 
-  const [checkoutStep, setCheckoutStep] = useState<1 | 2 | 3>(1);
+  const [checkoutStep, setCheckoutStep] = useState<1 | 2 | 3>(3);
   const [cart, setCart] = useState<{ [tierName: string]: number }>({});
-  
+
+  const { user: sessionUser, isAuthenticated: isLoggedIn } = useSession();
   const [holderName, setHolderName] = useState<string>('');
   const [holderDni, setHolderDni] = useState<string>('');
   const [holderEmail, setHolderEmail] = useState<string>('');
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-  
+  const [userProducerName, setUserProducerName] = useState<string | null>(null);
+
   const [promoCode, setPromoCode] = useState<string>('');
   const [discountPct, setDiscountPct] = useState<number>(0);
   const [appliedPromoName, setAppliedPromoName] = useState<string>('');
-  
+
   const [paymentMethod, setPaymentMethod] = useState<'mercado_pago' | 'transfer'>('mercado_pago');
   const [acceptedTerms, setAcceptedTerms] = useState<boolean>(false);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
-  const checkUserSession = () => {
-    try {
-      const session = JSON.parse(
-        localStorage.getItem('le_current_session') || 
-        localStorage.getItem('oasis_current_session') || 
-        localStorage.getItem('oasis_customer_user') || '{}'
-      );
-      if (session && session.email) {
-        setHolderName(session.name || 'Usuario');
-        setHolderEmail(session.email.toLowerCase().trim());
-        setHolderDni(session.dni || '35123456');
-        setIsLoggedIn(true);
-        return true;
-      }
-    } catch {}
-    setIsLoggedIn(false);
-    return false;
-  };
+  // Prellenar los datos del comprador con la sesión real de Supabase Auth y
+  // resolver si ya es dueño de una productora (antes esto se leía de un
+  // localStorage que cualquiera podía editar a mano desde la consola).
+  useEffect(() => {
+    if (!sessionUser) {
+      setHolderName('');
+      setHolderDni('');
+      setHolderEmail('');
+      setUserProducerName(null);
+      return;
+    }
+
+    setHolderName(sessionUser.name);
+    setHolderEmail(sessionUser.email);
+    setHolderDni(sessionUser.dni);
+
+    supabase
+      .from('team_members')
+      .select('producer_name')
+      .eq('email', sessionUser.email)
+      .eq('role', 'OWNER')
+      .maybeSingle()
+      .then(({ data }) => setUserProducerName(data?.producer_name || null));
+  }, [sessionUser]);
 
   useEffect(() => {
-    checkUserSession();
-    try {
-      const storedEvents = JSON.parse(localStorage.getItem('le_local_events') || '[]');
-      if (storedEvents.length > 0) {
-        const active = storedEvents.filter((e: any) => e.status === 'ACTIVE');
-        setEvents(active);
-      } else {
-        const defaultEv: EventItem[] = [
-          {
-            id: 'ev-1',
-            producerName: 'LIVE EXPERIENCE',
-            name: 'SATA X LAUNDRY SOHO',
-            date: 'Sábado 5 de Septiembre',
-            startTime: '23:55',
-            endTime: '06:30',
-            venue: 'Gorriti 5143, CABA',
-            city: 'Buenos Aires',
-            imageUrl: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=1200&auto=format&fit=crop',
-            genre: 'Reggaeton & Urban',
-            description: 'La fiesta para los verdaderos amantes del reggaeton, llega a Palermo. Una noche única con los mejores DJs de la escena urbana.',
-            tiers: [
-              { name: 'EARLY BIRD', price: 8000, capacity: 50, description: 'Porque el que madruga Dios lo ayuda, las primeras 50 personas.', status: 'ACTIVE' },
-              { name: 'ENTRADA + CONSUMO', price: 10000, capacity: 100, description: 'Primeras 100 entradas.', status: 'ACTIVE' },
-              { name: 'ENTRADAS 3X2', price: 20000, capacity: 100, description: 'Ingresan 3 pagan 2.', status: 'ACTIVE' }
-            ],
-            status: 'ACTIVE'
-          }
-        ];
-        setEvents(defaultEv);
-        localStorage.setItem('le_local_events', JSON.stringify(defaultEv));
+    const loadEventsFromSupabase = async () => {
+      try {
+        // Consultar eventos activos en Supabase
+        const { data: dbEvents, error } = await supabase
+          .from('events')
+          .select('*, event_tiers(*)')
+          .eq('status', 'ACTIVE');
+
+        if (error) {
+          console.error('❌ Detalle del error de Supabase:', error.message, error.details, error.hint);
+          setEvents([]);
+          return;
+        }
+
+        if (dbEvents && dbEvents.length > 0) {
+          const formattedEvents: EventItem[] = dbEvents.map((ev: any) => ({
+            id: ev.id,
+            producerName: ev.producer_name,
+            name: ev.name,
+            date: ev.date,
+            startTime: ev.start_time,
+            endTime: ev.end_time,
+            venue: ev.venue,
+            city: ev.city,
+            imageUrl: ev.image_url || 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=1200&auto=format&fit=crop',
+            genre: ev.genre || 'Melodic Techno',
+            description: ev.description || '',
+            status: ev.status,
+            tiers: (ev.event_tiers || []).map((t: any) => ({
+              name: t.name,
+              price: t.price,
+              capacity: t.capacity,
+              soldCount: t.sold_count,
+              status: t.status
+            }))
+          }));
+
+          setEvents(formattedEvents);
+        } else {
+          console.log('ℹ️ La tabla de eventos en Supabase está vacía actualmente.');
+          setEvents([]);
+        }
+      } catch (e) {
+        console.error('❌ Excepción general cargando eventos:', e);
+        setEvents([]);
       }
-    } catch (e) {
-      console.error(e);
-    }
+    };
+
+    loadEventsFromSupabase();
   }, []);
 
   const goToDetails = (event: EventItem) => {
@@ -158,8 +186,7 @@ export default function CatalogPage() {
   const handleProceedFromTickets = () => {
     if (totalTickets === 0) return alert('Debes seleccionar al menos un ticket.');
     
-    const logged = checkUserSession();
-    if (logged) {
+    if (isLoggedIn) {
       setCheckoutStep(3);
     } else {
       setCheckoutStep(2);
@@ -168,49 +195,71 @@ export default function CatalogPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleConfirmPurchase = () => {
+  const handleConfirmPurchase = async () => {
     if (!holderName || !holderDni || !holderEmail) return alert('Por favor completá tus datos.');
     if (!acceptedTerms) return alert('Debes aceptar las condiciones generales de compra.');
+    if (!selectedEvent || totalTickets === 0) return alert('Tu carrito está vacío.');
 
     setIsProcessing(true);
 
-    setTimeout(() => {
-      try {
-        const newTickets: Record<string, unknown>[] = [];
-        Object.entries(cart).forEach(([tierName, qty]) => {
-          const tierInfo = selectedEvent?.tiers.find(t => t.name === tierName);
-          const unitPrice = tierInfo ? tierInfo.price - (tierInfo.price * discountPct / 100) : 0;
+    // Antes esta función insertaba tickets con status "VALID" directo a
+    // Supabase desde el navegador, sin pasar por ningún cobro: cualquiera
+    // podía "comprar" gratis con solo llenar el formulario. Ahora, igual que
+    // en /events/[slug], cada entrada del carrito se manda como una orden
+    // PENDING al backend. El ticket recién se emite cuando un admin aprueba
+    // la orden desde /admin (o, para MercadoPago, cuando se confirme el
+    // pago) — nunca directo desde el cliente.
+    try {
+      const endpoint = paymentMethod === 'mercado_pago' ? '/api/checkout/mercadopago' : '/api/checkout/transfer';
+      const orderReferences: string[] = [];
+      let redirectUrl: string | null = null;
 
-          for (let i = 0; i < qty; i++) {
-            newTickets.push({
-              id: `tkt-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-              eventId: selectedEvent?.id,
-              eventName: selectedEvent?.name,
-              tierName: tierName,
-              price: unitPrice,
-              holderName: holderName.trim(),
-              holderDni: holderDni.trim(),
-              holderEmail: holderEmail.toLowerCase().trim(),
-              qrToken: 'LE-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
-              status: 'VALID',
-              purchaseDate: new Date().toISOString()
-            });
-          }
-        });
+      for (const [tierName, qty] of Object.entries(cart)) {
+        const tierInfo = selectedEvent.tiers.find((t) => t.name === tierName);
+        const unitPrice = tierInfo ? tierInfo.price - (tierInfo.price * discountPct) / 100 : 0;
 
-        const existing = JSON.parse(localStorage.getItem('oasis_issued_tickets') || '[]');
-        localStorage.setItem('oasis_issued_tickets', JSON.stringify([...newTickets, ...existing]));
+        for (let i = 0; i < qty; i++) {
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              eventId: selectedEvent.id,
+              ticketTier: tierName,
+              amount: unitPrice,
+              customerName: holderName.trim(),
+              customerEmail: holderEmail.toLowerCase().trim(),
+              customerDni: holderDni.trim(),
+              userId: null,
+            }),
+          });
 
-        setIsProcessing(false);
-        setViewMode('catalog');
-        window.dispatchEvent(new Event('storage'));
-        alert(`¡Compra exitosa! Se han emitido ${totalTickets} pase(s) directo a tu Billetera.`);
-      } catch (err) {
-        console.error(err);
-        setIsProcessing(false);
-        alert('Error al procesar la compra.');
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Error al registrar la orden');
+
+          orderReferences.push(data.referenceCode);
+          if (data.redirectUrl && !redirectUrl) redirectUrl = data.redirectUrl;
+        }
       }
-    }, 1200);
+
+      setIsProcessing(false);
+      setCart({});
+
+      // Si MercadoPago devolvió un link de pago real, mandamos ahí directo
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
+        return;
+      }
+
+      setViewMode('catalog');
+      alert(
+        `Orden${orderReferences.length > 1 ? 'es' : ''} registrada${orderReferences.length > 1 ? 's' : ''}: ${orderReferences.join(', ')}.\n` +
+          'Tu compra quedó en revisión — vas a ver tus pases en "Mis Entradas" apenas se confirme el pago.'
+      );
+    } catch (err: any) {
+      console.error(err);
+      setIsProcessing(false);
+      alert('Error al procesar la compra: ' + err.message);
+    }
   };
 
   const featuredEvent = events[featuredIndex] || events[0];
@@ -239,7 +288,6 @@ export default function CatalogPage() {
           </Link>
 
           <div className="hidden sm:flex items-center gap-4 font-mono text-xs">
-            {/* BOTÓN DEPORTE CORREGIDO A LA RUTA PUBLICA /club/partidos */}
             <button
               onClick={() => { window.location.href = '/club/partidos'; }}
               className="text-amber-400 hover:text-amber-300 transition font-bold flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 cursor-pointer"
@@ -252,104 +300,150 @@ export default function CatalogPage() {
             <Link href="/my-tickets" className="px-4 py-2 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-400 font-bold transition hover:bg-amber-500/20">
               💳 Billetera
             </Link>
+            
+            {userProducerName ? (
+              <button 
+                onClick={() => router.push('/admin')}
+                className="px-4 py-2 rounded-full bg-amber-500 hover:bg-amber-400 text-black font-black transition cursor-pointer flex items-center gap-1.5 shadow-lg shadow-amber-500/20"
+              >
+                <span>📊</span> Ir a Panel ({userProducerName})
+              </button>
+            ) : (
+              <Link
+                href="/auth?redirect=/"
+                className="px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition cursor-pointer"
+              >
+                🏢 Crear / Iniciar Productora
+              </Link>
+            )}
+
             <div className="pl-2 border-l border-white/10"><UserMenu /></div>
           </div>
         </div>
       </header>
 
-      {/* VISTA 1: CARTELERA */}
+      {/* VISTA CARTELERA */}
       {viewMode === 'catalog' && (
         <main className="max-w-7xl mx-auto w-full px-6 py-10 space-y-12 flex-1">
-          {featuredEvent && (
-            <section className="relative rounded-3xl overflow-hidden border border-amber-500/30 bg-[#0c0f17] shadow-2xl group">
-              <div className="absolute inset-0 z-0">
-                <img
-                  src={featuredEvent.imageUrl}
-                  alt={featuredEvent.name}
-                  className="w-full h-full object-cover opacity-40 group-hover:scale-105 transition duration-1000"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#07070a] via-[#07070a]/60 to-transparent" />
-              </div>
-
-              <div className="relative z-10 p-8 sm:p-12 flex flex-col justify-end min-h-[380px] space-y-4 max-w-2xl">
-                <div className="flex items-center gap-3 font-mono">
-                  <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-black uppercase tracking-wider backdrop-blur-md">
-                    ★ Destacado
-                  </span>
-                  <span className="text-xs text-slate-300 font-semibold">{featuredEvent.venue} · {featuredEvent.city}</span>
-                </div>
-
-                <div className="space-y-2">
-                  <span className="text-xs text-amber-400 font-mono font-bold uppercase tracking-widest block">
-                    {featuredEvent.date} — {featuredEvent.startTime} HS
-                  </span>
-                  <h1 className="font-luxury text-3xl sm:text-4xl font-black uppercase text-white tracking-wide">
-                    {featuredEvent.name}
-                  </h1>
-                </div>
-
-                <div className="pt-2 flex items-center gap-4 font-mono">
-                  <button
-                    onClick={() => goToDetails(featuredEvent)}
-                    className="px-8 py-3.5 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 text-black font-black uppercase text-xs rounded-xl transition shadow-lg shadow-amber-500/20 cursor-pointer tracking-wider"
-                  >
-                    Ver Evento y Tickets →
-                  </button>
-                </div>
-              </div>
-            </section>
-          )}
-
-          <section className="space-y-6">
-            <div className="border-b border-white/5 pb-4">
-              <span className="text-[10px] text-amber-400 font-mono uppercase font-bold tracking-widest block">● Próximas Fechas</span>
-              <h2 className="font-luxury text-2xl font-bold uppercase text-white tracking-wider">Cartelera General</h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {events.map((ev) => (
-                <div
-                  key={ev.id}
-                  className="rounded-2xl bg-[#0c0f17] border border-white/5 hover:border-amber-500/40 transition-all duration-300 flex flex-col overflow-hidden shadow-xl group cursor-pointer"
-                  onClick={() => goToDetails(ev)}
+          {events.length === 0 ? (
+            <div className="p-16 text-center rounded-3xl bg-[#0c0f17] border border-white/5 space-y-3 my-auto">
+              <span className="text-3xl">🗓️</span>
+              <h3 className="font-luxury text-lg font-bold text-white uppercase">No hay eventos activos en la cartelera</h3>
+              <p className="text-xs text-slate-400">Creá una productora y publicá tu primer evento para verlo reflejado aquí.</p>
+              
+              {userProducerName ? (
+                <button 
+                  onClick={() => router.push('/admin')}
+                  className="mt-2 px-6 py-3 bg-amber-500 text-black font-black text-xs uppercase rounded-xl cursor-pointer shadow-lg"
                 >
-                  <div className="relative aspect-[16/9] overflow-hidden">
+                  Ir al Panel de {userProducerName} 📊
+                </button>
+              ) : (
+                <Link
+                  href="/auth?redirect=/"
+                  className="mt-2 inline-block px-6 py-3 bg-amber-500 text-black font-black text-xs uppercase rounded-xl cursor-pointer shadow-lg"
+                >
+                  Registrar Productora
+                </Link>
+              )}
+            </div>
+          ) : (
+            <>
+              {featuredEvent && (
+                <section 
+                  onClick={() => goToDetails(featuredEvent)}
+                  className="relative rounded-3xl overflow-hidden border border-amber-500/30 bg-[#0c0f17] shadow-2xl group cursor-pointer"
+                >
+                  <div className="absolute inset-0 z-0">
                     <img
-                      src={ev.imageUrl}
-                      alt={ev.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition duration-500 opacity-85"
+                      src={featuredEvent.imageUrl}
+                      alt={featuredEvent.name}
+                      className="w-full h-full object-cover opacity-40 group-hover:scale-105 transition duration-1000"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#0c0f17] via-transparent to-transparent" />
-                    <span className="absolute top-3 right-3 px-2.5 py-0.5 rounded-full bg-black/70 text-amber-300 border border-amber-500/30 text-[9px] font-mono font-bold uppercase">
-                      📍 {ev.city}
-                    </span>
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#07070a] via-[#07070a]/60 to-transparent" />
                   </div>
 
-                  <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
-                    <div className="space-y-1">
-                      <span className="text-[9px] text-amber-400 font-mono font-bold uppercase tracking-wider block">
-                        {ev.date}
+                  <div className="relative z-10 p-8 sm:p-12 flex flex-col justify-end min-h-[380px] space-y-4 max-w-2xl">
+                    <div className="flex items-center gap-3 font-mono">
+                      <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-black uppercase tracking-wider backdrop-blur-md">
+                        ★ Destacado
                       </span>
-                      <h3 className="font-luxury text-base font-bold text-white leading-snug">
-                        {ev.name}
-                      </h3>
+                      <span className="text-xs text-slate-300 font-semibold">{featuredEvent.venue} · {featuredEvent.city}</span>
                     </div>
 
-                    <button className="w-full py-2.5 bg-white/5 hover:bg-amber-500 border border-white/10 hover:border-amber-500 text-slate-300 hover:text-black font-black text-[11px] uppercase rounded-xl transition font-mono tracking-wider">
-                      Ver Información & Tickets →
-                    </button>
+                    <div className="space-y-2">
+                      <span className="text-xs text-amber-400 font-mono font-bold uppercase tracking-widest block">
+                        {featuredEvent.date} — {featuredEvent.startTime} HS
+                      </span>
+                      <h1 className="font-luxury text-3xl sm:text-4xl font-black uppercase text-white tracking-wide">
+                        {featuredEvent.name}
+                      </h1>
+                    </div>
+
+                    <div className="pt-2 flex items-center gap-4 font-mono">
+                      <span className="px-8 py-3.5 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 text-black font-black uppercase text-xs rounded-xl transition shadow-lg shadow-amber-500/20 tracking-wider inline-block">
+                        Ver Evento y Tickets →
+                      </span>
+                    </div>
                   </div>
+                </section>
+              )}
+
+              <section className="space-y-6">
+                <div className="border-b border-white/5 pb-4">
+                  <span className="text-[10px] text-amber-400 font-mono uppercase font-bold tracking-widest block">● Próximas Fechas</span>
+                  <h2 className="font-luxury text-2xl font-bold uppercase text-white tracking-wider">Cartelera General</h2>
                 </div>
-              ))}
-            </div>
-          </section>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {events.map((ev) => (
+                    <div
+                      key={ev.id}
+                      className="rounded-2xl bg-[#0c0f17] border border-white/5 hover:border-amber-500/40 transition-all duration-300 flex flex-col overflow-hidden shadow-xl group cursor-pointer"
+                      onClick={() => goToDetails(ev)}
+                    >
+                      <div className="relative aspect-[16/9] overflow-hidden">
+                        <img
+                          src={ev.imageUrl}
+                          alt={ev.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition duration-500 opacity-85"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#0c0f17] via-transparent to-transparent" />
+                        <span className="absolute top-3 right-3 px-2.5 py-0.5 rounded-full bg-black/70 text-amber-300 border border-amber-500/30 text-[9px] font-mono font-bold uppercase">
+                          📍 {ev.city}
+                        </span>
+                      </div>
+
+                      <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
+                        <div className="space-y-1">
+                          <span className="text-[9px] text-amber-400 font-mono font-bold uppercase tracking-wider block">
+                            {ev.date}
+                          </span>
+                          <h3 className="font-luxury text-base font-bold text-white leading-snug">
+                            {ev.name}
+                          </h3>
+                        </div>
+
+                        <div className="w-full py-2.5 bg-white/5 group-hover:bg-amber-500 border border-white/10 group-hover:border-amber-500 text-slate-300 group-hover:text-black font-black text-[11px] uppercase rounded-xl transition font-mono tracking-wider text-center">
+                          Ver Información & Tickets →
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </>
+          )}
         </main>
       )}
 
-      {/* VISTA 2: DETALLES + TANDAS */}
+      {/* VISTA DETALLES */}
       {viewMode === 'details' && selectedEvent && (
         <main className="max-w-6xl mx-auto w-full px-6 py-8 flex-1 animate-fade-in font-mono">
-          <button onClick={() => setViewMode('catalog')} className="text-xs text-slate-400 hover:text-amber-400 transition mb-6 block cursor-pointer">
+          <button 
+            onClick={() => setViewMode('catalog')} 
+            className="text-xs text-slate-400 hover:text-amber-400 transition mb-6 block cursor-pointer font-bold"
+          >
             ← Volver a la Cartelera
           </button>
 
@@ -373,7 +467,7 @@ export default function CatalogPage() {
             <div className="lg:col-span-7 space-y-8">
               <div className="space-y-3 border-b border-white/10 pb-6">
                 <h1 className="font-luxury text-3xl sm:text-4xl font-black text-white uppercase tracking-wide">
-                  {selectedEvent.name} 🔸
+                  {selectedEvent.name}
                 </h1>
                 <p className="text-xs text-slate-300 font-sans leading-relaxed">
                   {selectedEvent.description}
@@ -389,8 +483,7 @@ export default function CatalogPage() {
                     return (
                       <div key={idx} className="flex flex-col sm:flex-row bg-[#0c0f16] border border-white/5 rounded-2xl overflow-hidden shadow-lg p-5 justify-between items-start sm:items-center gap-4">
                         <div className="space-y-1">
-                          <h4 className="text-white font-bold text-sm flex items-center gap-2">
-                            <span className="text-amber-400 text-xs">🔸</span>
+                          <h4 className="text-white font-bold text-sm">
                             {tier.name}
                           </h4>
                           <p className="text-[11px] text-slate-400 font-sans">{tier.description || 'Acceso general.'}</p>
@@ -430,10 +523,9 @@ export default function CatalogPage() {
         </main>
       )}
 
-      {/* VISTA 3: CHECKOUT */}
+      {/* VISTA CHECKOUT */}
       {viewMode === 'checkout' && selectedEvent && (
         <main className="max-w-6xl mx-auto w-full px-6 py-10 flex-1 animate-fade-in font-mono space-y-8">
-          
           <div className="flex items-center justify-between border-b border-white/10 pb-6 mb-8 max-w-2xl mx-auto w-full">
             <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold">
               <span className="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500 flex items-center justify-center text-[10px]">✓</span>
@@ -491,9 +583,7 @@ export default function CatalogPage() {
 
           {checkoutStep === 3 && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start max-w-5xl mx-auto">
-              
               <div className="lg:col-span-7 space-y-6">
-                
                 <div className="bg-[#0c0f16] border border-white/10 rounded-3xl p-6 space-y-4">
                   <div className="flex items-center gap-2 text-amber-400 text-xs font-bold uppercase tracking-wider">
                     <span>🏷️</span>
@@ -508,14 +598,13 @@ export default function CatalogPage() {
                       Aplicar
                     </button>
                   </div>
-                  <p className="text-[10px] text-slate-500">Los cupones se aplican antes de seleccionar el método de pago.</p>
                   {appliedPromoName && <p className="text-xs text-emerald-400 font-bold">✓ Cupón {appliedPromoName} aplicado ({discountPct}% OFF)</p>}
                 </div>
 
                 <div className="bg-[#0c0f16] border border-white/10 rounded-3xl p-6 space-y-6">
                   <div className="space-y-1">
                     <h3 className="text-white font-bold text-base">¿Cómo quieres pagar?</h3>
-                    <p className="text-xs text-slate-400">Pagas directo al organizador. <strong className="text-amber-400">Sin cargos extra.</strong></p>
+                    <p className="text-xs text-slate-400">Pagas directo al organizador en la nube. <strong className="text-amber-400">Sin cargos extra.</strong></p>
                   </div>
 
                   <div className="space-y-3">
@@ -526,7 +615,7 @@ export default function CatalogPage() {
                       <input type="radio" name="payment" checked={paymentMethod === 'mercado_pago'} onChange={() => setPaymentMethod('mercado_pago')} className="mt-1 accent-amber-500" />
                       <div className="space-y-0.5">
                         <span className="text-white font-bold text-sm block">MercadoPago</span>
-                        <span className="text-[10px] text-slate-400 block uppercase">Puedes abonar con tarjeta de débito, crédito o dinero en cuenta.</span>
+                        <span className="text-[10px] text-slate-400 block uppercase">Tarjeta de débito, crédito o dinero en cuenta.</span>
                       </div>
                     </label>
 
@@ -537,7 +626,7 @@ export default function CatalogPage() {
                       <input type="radio" name="payment" checked={paymentMethod === 'transfer'} onChange={() => setPaymentMethod('transfer')} className="mt-1 accent-amber-500" />
                       <div className="space-y-0.5">
                         <span className="text-white font-bold text-sm block">Transferencia bancaria</span>
-                        <span className="text-[10px] text-slate-400 block uppercase">Debes subir el comprobante de la transferencia para que el organizador apruebe tu compra.</span>
+                        <span className="text-[10px] text-slate-400 block uppercase">Subir comprobante.</span>
                       </div>
                     </label>
                   </div>
@@ -557,7 +646,7 @@ export default function CatalogPage() {
                     disabled={isProcessing}
                     className="w-full py-5 bg-amber-500 hover:bg-amber-400 text-black font-black uppercase text-xs rounded-2xl transition cursor-pointer shadow-xl shadow-amber-500/20 tracking-wider disabled:opacity-50"
                   >
-                    {isProcessing ? 'Procesando...' : '🔒 Pagar'}
+                    {isProcessing ? 'Procesando...' : '🔒 Confirmar Orden'}
                   </button>
                 </div>
               </div>
@@ -603,10 +692,8 @@ export default function CatalogPage() {
                   </div>
                 </div>
               </div>
-
             </div>
           )}
-
         </main>
       )}
 
