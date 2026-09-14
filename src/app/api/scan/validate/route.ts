@@ -1,18 +1,30 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/core/supabase/admin';
+import { canManageEvent } from '@/core/services/producers';
 import { requireAdminSession } from '@/core/auth/admin-session';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
-  const unauthorized = await requireAdminSession();
-  if (unauthorized) return unauthorized;
-
   try {
     const { code, eventId } = await req.json();
 
     if (!code) {
       return NextResponse.json({ error: 'Código o DNI no proporcionado' }, { status: 400 });
+    }
+
+    // Antes esto solo lo podía usar un admin de OASIS. El staff de puerta
+    // (DOOR/ADMIN/OWNER) de la productora dueña del evento también puede
+    // escanear — pero solo para SU evento puntual, nunca en modo "ALL"
+    // (eso sigue siendo exclusivo de un admin de OASIS).
+    if (!eventId || eventId === 'ALL') {
+      const unauthorized = await requireAdminSession();
+      if (unauthorized) return unauthorized;
+    } else {
+      const access = await canManageEvent(eventId, ['OWNER', 'ADMIN', 'DOOR']);
+      if (!access.ok) {
+        return NextResponse.json({ error: access.error }, { status: access.status });
+      }
     }
 
     const cleanCode = String(code).trim();

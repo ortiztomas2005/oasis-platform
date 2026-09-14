@@ -10,10 +10,12 @@ interface TierInput {
   capacity: number;
 }
 
-// Lista los eventos reales de la productora que gestiona el usuario
-// logueado (no localStorage, no un listado global de OASIS).
+// Lista los eventos reales de la productora del usuario logueado (no
+// localStorage, no un listado global de OASIS). Cualquier rol del equipo
+// puede leerla (DOOR/BAR la necesitan para saber qué evento escanear),
+// pero crear/editar sigue restringido a OWNER/ADMIN.
 export async function GET() {
-  const producerName = await getManagedProducerName();
+  const producerName = await getManagedProducerName(['OWNER', 'ADMIN', 'DOOR', 'BAR']);
   if (!producerName) {
     return NextResponse.json({ error: 'No sos staff de ninguna productora.' }, { status: 403 });
   }
