@@ -61,6 +61,20 @@ export async function POST(req: Request) {
     const cleanTitle = String(title || '').trim();
     if (!cleanTitle) return NextResponse.json({ error: 'Falta el nombre del evento' }, { status: 400 });
     if (!date) return NextResponse.json({ error: 'Falta la fecha del evento' }, { status: 400 });
+
+    // Antes esto reventaba con "Invalid time value" (el mensaje crudo de
+    // toISOString() en una fecha inválida) si el input datetime-local traía
+    // algo que Date no puede parsear, como un año mal tipeado (ej: 222222).
+    const parsedDate = new Date(date);
+    if (Number.isNaN(parsedDate.getTime())) {
+      return NextResponse.json({ error: 'La fecha del evento no es válida. Revisala e intentá de nuevo.' }, { status: 400 });
+    }
+    const minYear = new Date().getFullYear() - 1;
+    const maxYear = new Date().getFullYear() + 10;
+    if (parsedDate.getFullYear() < minYear || parsedDate.getFullYear() > maxYear) {
+      return NextResponse.json({ error: `El año de la fecha parece un error de tipeo (${parsedDate.getFullYear()}). Revisalo.` }, { status: 400 });
+    }
+
     if (!Array.isArray(tiers) || tiers.length === 0) {
       return NextResponse.json({ error: 'Agregá al menos una tanda de entradas' }, { status: 400 });
     }
@@ -79,7 +93,7 @@ export async function POST(req: Request) {
       .replace(/(^-|-$)+/g, '');
     const slug = `${baseSlug}-${Math.random().toString(36).substring(2, 6)}`;
 
-    const eventDate = new Date(date).toISOString();
+    const eventDate = parsedDate.toISOString();
     const status = publish === false ? 'DRAFT' : 'PUBLISHED';
     const eventImage =
       imageUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=1200&auto=format&fit=crop';

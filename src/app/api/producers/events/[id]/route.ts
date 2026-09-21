@@ -31,7 +31,11 @@ export async function PATCH(req: Request, context: { params: Promise<{ id: strin
     if (body.address !== undefined) update.address = body.address;
     if (body.city !== undefined) update.city = body.city;
     if (body.date !== undefined) {
-      const iso = new Date(body.date).toISOString();
+      const parsedDate = new Date(body.date);
+      if (Number.isNaN(parsedDate.getTime())) {
+        return NextResponse.json({ error: 'La fecha del evento no es válida. Revisala e intentá de nuevo.' }, { status: 400 });
+      }
+      const iso = parsedDate.toISOString();
       update.date = iso;
       update.start_date = iso;
     }

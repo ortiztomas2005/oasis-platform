@@ -196,7 +196,15 @@ export default function ProducerEventsPage() {
 
               <div>
                 <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">Fecha y hora *</label>
-                <input required type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-amber-500" />
+                <input
+                  required
+                  type="datetime-local"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  min={`${new Date().getFullYear() - 1}-01-01T00:00`}
+                  max={`${new Date().getFullYear() + 10}-12-31T23:59`}
+                  className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-amber-500"
+                />
               </div>
               <div>
                 <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">Hora límite de ingreso</label>
