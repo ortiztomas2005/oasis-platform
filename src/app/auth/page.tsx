@@ -77,6 +77,27 @@ function AuthContent() {
           );
           return;
         }
+
+        // Si llegaste acá porque tenías el formulario de "Productora"
+        // abierto con un mail que ya tenía cuenta (te mandamos a loguearte
+        // en vez de dejarte trabado con "ya existe una cuenta"), termina de
+        // crear la productora ahora que ya hay sesión.
+        if (producerName.trim()) {
+          const res = await fetch('/api/auth/register-producer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ producerName: producerName.trim(), dni: dni.trim(), phone: phone.trim() }),
+          });
+          const resData = await res.json();
+          if (!res.ok) {
+            setErrorMsg(resData.error || 'Iniciaste sesión, pero hubo un error al registrar la productora.');
+            return;
+          }
+          router.push('/admin');
+          router.refresh();
+          return;
+        }
+
         router.push(redirectUrl);
         router.refresh();
         return;
@@ -115,11 +136,23 @@ function AuthContent() {
       });
 
       if (error) {
-        setErrorMsg(
-          error.message === 'User already registered'
-            ? 'Ya existe una cuenta registrada con este correo electrónico.'
-            : error.message
-        );
+        if (error.message === 'User already registered') {
+          // Antes esto dejaba a la persona trabada en el formulario de
+          // "Productora" con un error, sin ninguna salida clara — parecía
+          // que había que "volver a loguearse" pero no había cómo. Ahora
+          // la mandamos directo a Iniciar Sesión (con el mail ya cargado y
+          // el nombre de la productora guardado): apenas inicie sesión, la
+          // productora se termina de crear sola (ver la rama de arriba).
+          setMode('login');
+          setPassword(''); // la que escribiste acá no es tu contraseña real, que no la mande a "Credenciales inválidas" sin darse cuenta
+          setErrorMsg(
+            mode === 'register_producer'
+              ? 'Ese correo ya tiene una cuenta. Iniciá sesión con tu contraseña real y tu productora se crea sola.'
+              : 'Ya existe una cuenta registrada con este correo electrónico. Iniciá sesión.'
+          );
+          return;
+        }
+        setErrorMsg(error.message);
         return;
       }
 
