@@ -5,6 +5,23 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import UserMenu from '@/components/UserMenu';
 import { useSession } from '@/core/auth/useSession';
+// Las herramientas reales se muestran embebidas acá adentro (en vez de
+// mandar a otra URL con <Link>) para que un click en el sidebar cambie de
+// pantalla al instante, sin la navegación de página completa de Next. Son
+// los mismos componentes que usan las rutas /admin/eventos, /admin/pedidos,
+// etc. — esas rutas se mantienen intactas para accesos directos/bookmarks.
+import ProducerEventsPage from './eventos/page';
+import ProducerOrdersPage from './pedidos/page';
+import TeamPage from './equipo/page';
+import MercadoPagoConnectPage from './mercadopago/page';
+import BuyTicketsPage from './comprar-tickets/page';
+import ProducerCostsPage from './costos/page';
+import ProducerAttendeesPage from './asistentes/page';
+import ProducerCourtesyPage from './cortesias/page';
+import ProducerMetricsPage from './metricas/page';
+import ScannerPage from '../scanner/page';
+
+type RealTab = 'eventos' | 'pedidos' | 'equipo' | 'mercadopago' | 'comprar' | 'escanear' | 'asistentes' | 'cortesias' | 'costos' | 'metricas';
 
 export interface Tier {
   name: string;
@@ -111,7 +128,8 @@ export default function LiveExperienceAdmin() {
   const [rrppList, setRrppList] = useState<RRPPMember[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [activityLogs, setActivityLogs] = useState<any[]>([]);
-  
+  const [activeRealTab, setActiveRealTab] = useState<RealTab | null>(null);
+
   const [prepaidBalances, setPrepaidBalances] = useState<{ [producer: string]: number }>({});
   
   const [customTicketQtyStr, setCustomTicketQtyStr] = useState<string>('100');
@@ -789,36 +807,32 @@ export default function LiveExperienceAdmin() {
               <span className="px-3 text-[9px] text-emerald-400 uppercase font-bold tracking-widest block mb-1.5">
                 ● Conectado a tu cuenta real
               </span>
-              <Link href="/admin/eventos" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-emerald-300 hover:bg-emerald-500/10 transition">
-                <span>🎫</span><span>Eventos (real)</span>
-              </Link>
-              <Link href="/admin/pedidos" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-emerald-300 hover:bg-emerald-500/10 transition">
-                <span>💳</span><span>Confirmar Ventas</span>
-              </Link>
-              <Link href="/admin/equipo" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-emerald-300 hover:bg-emerald-500/10 transition">
-                <span>👥</span><span>Equipo (real)</span>
-              </Link>
-              <Link href="/admin/mercadopago" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-emerald-300 hover:bg-emerald-500/10 transition">
-                <span>💙</span><span>Mercado Pago</span>
-              </Link>
-              <Link href="/admin/comprar-tickets" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-emerald-300 hover:bg-emerald-500/10 transition">
-                <span>🎟️</span><span>Comprar Tickets</span>
-              </Link>
-              <Link href="/scanner" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-emerald-300 hover:bg-emerald-500/10 transition">
-                <span>📷</span><span>Escanear QR (Puerta)</span>
-              </Link>
-              <Link href="/admin/asistentes" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-emerald-300 hover:bg-emerald-500/10 transition">
-                <span>👥</span><span>CRM de Asistentes</span>
-              </Link>
-              <Link href="/admin/cortesias" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-emerald-300 hover:bg-emerald-500/10 transition">
-                <span>🎟️</span><span>Guestlist & Cortesías</span>
-              </Link>
-              <Link href="/admin/costos" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-emerald-300 hover:bg-emerald-500/10 transition">
-                <span>💳</span><span>Cobros & Gastos</span>
-              </Link>
-              <Link href="/admin/metricas" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-emerald-300 hover:bg-emerald-500/10 transition">
-                <span>📊</span><span>Dashboard & Métricas</span>
-              </Link>
+              {(
+                [
+                  { id: 'eventos', icon: '🎫', label: 'Eventos (real)' },
+                  { id: 'pedidos', icon: '💳', label: 'Confirmar Ventas' },
+                  { id: 'equipo', icon: '👥', label: 'Equipo (real)' },
+                  { id: 'mercadopago', icon: '💙', label: 'Mercado Pago' },
+                  { id: 'comprar', icon: '🎟️', label: 'Comprar Tickets' },
+                  { id: 'escanear', icon: '📷', label: 'Escanear QR (Puerta)' },
+                  { id: 'asistentes', icon: '👥', label: 'CRM de Asistentes' },
+                  { id: 'cortesias', icon: '🎟️', label: 'Guestlist & Cortesías' },
+                  { id: 'costos', icon: '💳', label: 'Cobros & Gastos' },
+                  { id: 'metricas', icon: '📊', label: 'Dashboard & Métricas' },
+                ] as { id: RealTab; icon: string; label: string }[]
+              ).map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setActiveRealTab(t.id)}
+                  className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl transition cursor-pointer text-left ${
+                    activeRealTab === t.id
+                      ? 'text-emerald-300 font-bold bg-emerald-500/10 border border-emerald-500/30'
+                      : 'text-emerald-300/90 hover:bg-emerald-500/10'
+                  }`}
+                >
+                  <span>{t.icon}</span><span>{t.label}</span>
+                </button>
+              ))}
             </div>
 
             <span className="px-3 text-[9px] text-slate-500 uppercase font-bold tracking-widest block mb-1.5">
@@ -826,15 +840,15 @@ export default function LiveExperienceAdmin() {
             </span>
 
             <button
-              onClick={() => setCurrentSection('broadcast')}
-              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl transition cursor-pointer ${currentSection === 'broadcast' ? 'text-amber-400 font-bold bg-amber-500/10 border border-amber-500/20' : 'text-slate-300 hover:bg-white/5'}`}
+              onClick={() => { setActiveRealTab(null); setCurrentSection('broadcast'); }}
+              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl transition cursor-pointer ${!activeRealTab && currentSection === 'broadcast' ? 'text-amber-400 font-bold bg-amber-500/10 border border-amber-500/20' : 'text-slate-300 hover:bg-white/5'}`}
             >
               <span>📢</span>
               <span>Broadcast & Alertas</span>
             </button>
 
             <button
-              onClick={() => setActiveScanner('bar')}
+              onClick={() => { setActiveRealTab(null); setActiveScanner('bar'); }}
               className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-white/5 transition cursor-pointer"
             >
               <span>🍸</span>
@@ -842,16 +856,16 @@ export default function LiveExperienceAdmin() {
             </button>
 
             <button
-              onClick={() => setCurrentSection('delivery')}
-              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl transition cursor-pointer ${currentSection === 'delivery' ? 'text-amber-400 font-bold bg-amber-500/10 border border-amber-500/20' : 'text-slate-300 hover:bg-white/5'}`}
+              onClick={() => { setActiveRealTab(null); setCurrentSection('delivery'); }}
+              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl transition cursor-pointer ${!activeRealTab && currentSection === 'delivery' ? 'text-amber-400 font-bold bg-amber-500/10 border border-amber-500/20' : 'text-slate-300 hover:bg-white/5'}`}
             >
               <span>📨</span>
               <span>Pases PDF & App (APK)</span>
             </button>
 
             <button
-              onClick={() => setCurrentSection('marketing')}
-              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl transition cursor-pointer ${currentSection === 'marketing' ? 'text-amber-400 font-bold bg-amber-500/10 border border-amber-500/20' : 'text-slate-300 hover:bg-white/5'}`}
+              onClick={() => { setActiveRealTab(null); setCurrentSection('marketing'); }}
+              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl transition cursor-pointer ${!activeRealTab && currentSection === 'marketing' ? 'text-amber-400 font-bold bg-amber-500/10 border border-amber-500/20' : 'text-slate-300 hover:bg-white/5'}`}
             >
               <span>🏷️</span>
               <span>Cupones & RRPP</span>
@@ -862,7 +876,7 @@ export default function LiveExperienceAdmin() {
 
         {/* CONTENIDO PRINCIPAL */}
         <main className="flex-1 overflow-y-auto p-8 space-y-8 bg-[#07070a]">
-          
+
           {!activeProducer ? (
             <div className="p-16 text-center rounded-3xl bg-[#0c0f17] border border-amber-500/30 space-y-4 max-w-lg mx-auto my-12 shadow-2xl">
               <span className="text-4xl">🏢</span>
@@ -874,6 +888,19 @@ export default function LiveExperienceAdmin() {
               >
                 + Crear Productora para este Mail 🚀
               </button>
+            </div>
+          ) : activeRealTab ? (
+            <div key={activeRealTab} className="-m-8">
+              {activeRealTab === 'eventos' && <ProducerEventsPage />}
+              {activeRealTab === 'pedidos' && <ProducerOrdersPage />}
+              {activeRealTab === 'equipo' && <TeamPage />}
+              {activeRealTab === 'mercadopago' && <MercadoPagoConnectPage />}
+              {activeRealTab === 'comprar' && <BuyTicketsPage />}
+              {activeRealTab === 'escanear' && <ScannerPage />}
+              {activeRealTab === 'asistentes' && <ProducerAttendeesPage />}
+              {activeRealTab === 'cortesias' && <ProducerCourtesyPage />}
+              {activeRealTab === 'costos' && <ProducerCostsPage />}
+              {activeRealTab === 'metricas' && <ProducerMetricsPage />}
             </div>
           ) : (
             <>
