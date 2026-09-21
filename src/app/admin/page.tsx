@@ -778,7 +778,35 @@ export default function LiveExperienceAdmin() {
         
         <aside className="w-64 border-r border-white/5 bg-[#050507] flex flex-col justify-between p-4 shrink-0 select-none overflow-y-auto">
           <nav className="space-y-1 text-xs font-medium">
-            
+
+            {/* HERRAMIENTAS CONECTADAS DE VERDAD A SUPABASE — todo lo de
+                abajo (Eventos & Tandas, Barra, Costos, etc.) sigue siendo
+                local/demo, no tiene tabla real todavía. */}
+            <div className="mb-4 pb-4 border-b border-white/10 space-y-1">
+              <span className="px-3 text-[9px] text-emerald-400 uppercase font-bold tracking-widest block mb-1.5">
+                ● Conectado a tu cuenta real
+              </span>
+              <Link href="/admin/eventos" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-emerald-300 hover:bg-emerald-500/10 transition">
+                <span>🎫</span><span>Eventos (real)</span>
+              </Link>
+              <Link href="/admin/pedidos" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-emerald-300 hover:bg-emerald-500/10 transition">
+                <span>💳</span><span>Confirmar Ventas</span>
+              </Link>
+              <Link href="/admin/equipo" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-emerald-300 hover:bg-emerald-500/10 transition">
+                <span>👥</span><span>Equipo (real)</span>
+              </Link>
+              <Link href="/admin/mercadopago" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-emerald-300 hover:bg-emerald-500/10 transition">
+                <span>💙</span><span>Mercado Pago</span>
+              </Link>
+              <Link href="/admin/comprar-tickets" className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-emerald-300 hover:bg-emerald-500/10 transition">
+                <span>🎟️</span><span>Comprar Tickets</span>
+              </Link>
+            </div>
+
+            <span className="px-3 text-[9px] text-slate-500 uppercase font-bold tracking-widest block mb-1.5">
+              Local / demo (sin conectar todavía)
+            </span>
+
             <div>
               <button
                 onClick={() => {
