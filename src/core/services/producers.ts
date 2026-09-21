@@ -144,13 +144,20 @@ export async function refundProducerTicket(producerName: string): Promise<void> 
  */
 export async function createProducerForUser(
   user: { email: string; user_metadata?: Record<string, any> },
-  { producerName, producerType, dni, phone }: { producerName: string; producerType?: string; dni?: string; phone?: string }
+  {
+    producerName,
+    producerType,
+    dni,
+    phone,
+    fullName: fullNameOverride,
+  }: { producerName: string; producerType?: string; dni?: string; phone?: string; fullName?: string }
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const cleanName = String(producerName || '').trim().toUpperCase();
   if (!cleanName) return { ok: false, error: 'Falta el nombre de la productora.' };
 
   const email = user.email.toLowerCase();
-  const fullName = (user.user_metadata?.full_name as string) || (user.user_metadata?.name as string) || email;
+  const fullName =
+    fullNameOverride || (user.user_metadata?.full_name as string) || (user.user_metadata?.name as string) || email;
 
   const { error: producerErr } = await supabaseAdmin.from('producers').insert({
     name: cleanName,

@@ -13,42 +13,62 @@ interface Ticket {
   venue: string;
   holderName: string;
   holderDni: string;
-  holderEmail: string;
   qrToken: string;
-  status: string;
-  price: number;
   entryCutoffTime?: string;
   purchaseDate: string;
 }
 
+// El pase se busca por ID contra la tabla real de tickets (vía la misma
+// ruta /api/tickets/[id]/wallet que ya usan las billeteras digitales), no
+// contra localStorage — antes esta pantalla solo funcionaba para pases
+// emitidos en ESE mismo navegador, ahora sirve para cualquier ticket real.
 export default function TicketDownloadPage() {
   const params = useParams();
   const router = useRouter();
   const ticketId = params?.id as string;
 
   const [ticket, setTicket] = useState<Ticket | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('oasis_issued_tickets');
-      if (stored) {
-        const all: Ticket[] = JSON.parse(stored);
-        const found = all.find((t) => t.id === ticketId);
-        if (found) {
-          setTicket(found);
-          QRCode.toDataURL(found.qrToken, {
-            width: 300,
-            margin: 1,
-            color: { dark: '#000000', light: '#ffffff' },
-          }).then((url) => setQrDataUrl(url));
+    fetch(`/api/tickets/${ticketId}/wallet`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.success || !data.ticket) {
+          setNotFound(true);
+          return;
         }
-      }
-    } catch (e) {
-      console.warn('Error leyendo ticket');
-    }
+        const t = data.ticket;
+        const mapped: Ticket = {
+          id: t.id,
+          eventName: t.eventName || 'Evento',
+          tierName: t.tier || 'GENERAL',
+          date: t.date ? new Date(t.date).toLocaleString('es-AR') : '',
+          venue: t.venue || '',
+          holderName: t.attendee || 'Asistente',
+          holderDni: t.dni || '-',
+          qrToken: t.authCode || t.id,
+          purchaseDate: new Date().toISOString(),
+        };
+        setTicket(mapped);
+        QRCode.toDataURL(mapped.qrToken, {
+          width: 300,
+          margin: 1,
+          color: { dark: '#000000', light: '#ffffff' },
+        }).then((url) => setQrDataUrl(url));
+      })
+      .catch(() => setNotFound(true));
   }, [ticketId]);
+
+  if (notFound) {
+    return (
+      <div className="min-h-screen bg-[#05070d] text-white flex items-center justify-center font-mono text-xs">
+        No se encontró este pase.
+      </div>
+    );
+  }
 
   const handleDownloadDirectPDF = async () => {
     if (!ticket) return;

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/core/supabase/admin';
-import { getManagedProducerName, getSessionRoleForProducer } from '@/core/services/producers';
+import { getManagedProducerName, getSessionRoleForProducer, getSessionEmail } from '@/core/services/producers';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +22,8 @@ export async function GET() {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const myRole = await getSessionRoleForProducer(producerName);
-  return NextResponse.json({ team: data || [], producerName, myRole });
+  const myEmail = await getSessionEmail();
+  return NextResponse.json({ team: data || [], producerName, myRole, myEmail });
 }
 
 // Sumar (o cambiarle el rol a) alguien del equipo. Solo el OWNER puede
@@ -82,35 +83,44 @@ export async function POST(req: Request) {
   }
 }
 
+// Sacar a alguien del equipo requiere ser OWNER — EXCEPTO cuando te estás
+// sacando a vos mismo (abandonar el equipo), eso lo puede hacer cualquier
+// rol sin depender de que otra persona lo gestione.
 export async function DELETE(req: Request) {
-  const producerName = await getManagedProducerName(['OWNER']);
-  if (!producerName) {
-    return NextResponse.json({ error: 'Solo el dueño de la productora puede gestionar el equipo.' }, { status: 403 });
-  }
-
   const { searchParams } = new URL(req.url);
   const id = searchParams.get('id');
   if (!id) return NextResponse.json({ error: 'Falta id' }, { status: 400 });
 
   const { data: target } = await supabaseAdmin
     .from('team_members')
-    .select('role, producer_name')
+    .select('role, producer_name, email')
     .eq('id', id)
     .maybeSingle();
 
-  if (!target || target.producer_name !== producerName) {
-    return NextResponse.json({ error: 'No encontrado en tu equipo' }, { status: 404 });
+  if (!target) return NextResponse.json({ error: 'No encontrado' }, { status: 404 });
+
+  const myEmail = await getSessionEmail();
+  const isSelf = !!myEmail && target.email.toLowerCase() === myEmail;
+
+  if (!isSelf) {
+    const producerName = await getManagedProducerName(['OWNER']);
+    if (!producerName || target.producer_name !== producerName) {
+      return NextResponse.json({ error: 'Solo el dueño de la productora puede gestionar el equipo.' }, { status: 403 });
+    }
   }
 
   if (target.role === 'OWNER') {
     const { count } = await supabaseAdmin
       .from('team_members')
       .select('*', { count: 'exact', head: true })
-      .eq('producer_name', producerName)
+      .eq('producer_name', target.producer_name)
       .eq('role', 'OWNER');
 
     if ((count || 0) <= 1) {
-      return NextResponse.json({ error: 'No podés sacar al último OWNER de la productora.' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Sos el último OWNER de esta productora — no te podés ir (ni sacar a nadie más) sin dejar otro OWNER antes.' },
+        { status: 400 }
+      );
     }
   }
 

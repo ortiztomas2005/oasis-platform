@@ -35,6 +35,9 @@ export default function TeamPage() {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
+  const [myEmail, setMyEmail] = useState<string | null>(null);
+  const [leaving, setLeaving] = useState(false);
+
   const load = async () => {
     setLoading(true);
     try {
@@ -44,6 +47,7 @@ export default function TeamPage() {
       setTeam(data.team || []);
       setProducerName(data.producerName || null);
       setIsOwner(data.myRole === 'OWNER');
+      setMyEmail(data.myEmail || null);
       setError(null);
     } catch (e: any) {
       setError(e.message);
@@ -93,6 +97,23 @@ export default function TeamPage() {
       await load();
     } catch (err: any) {
       alert(err.message);
+    }
+  };
+
+  const myRow = team.find((m) => m.email.toLowerCase() === (myEmail || '').toLowerCase());
+
+  const handleLeave = async () => {
+    if (!myRow) return;
+    if (!confirm(`¿Abandonar el equipo de ${producerName}? Vas a perder el acceso a este panel.`)) return;
+    setLeaving(true);
+    try {
+      const res = await fetch(`/api/producers/team?id=${myRow.id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      window.location.href = '/admin';
+    } catch (err: any) {
+      alert(err.message);
+      setLeaving(false);
     }
   };
 
@@ -186,6 +207,24 @@ export default function TeamPage() {
                 </div>
               ))}
             </div>
+
+            {myRow && (
+              <div className="rounded-2xl bg-rose-950/20 border border-rose-900/40 p-5 space-y-2">
+                <h4 className="text-xs font-black uppercase text-rose-400">Zona de peligro</h4>
+                <p className="text-[11px] text-neutral-400">
+                  {isOwner
+                    ? 'Como dueño, podés abandonar el equipo si hay otro OWNER además de vos.'
+                    : `Podés dejar de ser parte del equipo de ${producerName} cuando quieras.`}
+                </p>
+                <button
+                  onClick={handleLeave}
+                  disabled={leaving}
+                  className="w-full py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-black uppercase text-xs rounded-xl transition disabled:opacity-50 cursor-pointer"
+                >
+                  {leaving ? 'Saliendo...' : 'Abandonar productora 🚪'}
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>

@@ -24,10 +24,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Tenés que iniciar sesión primero.' }, { status: 401 });
     }
 
-    const { producerName, producerType, dni, phone } = await req.json();
+    const { producerName, producerType, dni, phone, fullName } = await req.json();
     const result = await createProducerForUser(
       { email: user.email, user_metadata: user.user_metadata },
-      { producerName, producerType, dni, phone }
+      { producerName, producerType, dni, phone, fullName }
     );
 
     if (!result.ok) {
