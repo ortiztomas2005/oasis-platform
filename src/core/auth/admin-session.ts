@@ -140,7 +140,12 @@ export async function getAdminContext(): Promise<AdminContext> {
     return { authenticated: true, role: 'PASSWORD', email: null };
   }
 
-  return { authenticated: false, role: null, email: null };
+  // Importante: se devuelve real.email (no null) acá. getRealAccountAdminContext
+  // ya resolvió el email de la cuenta logueada aunque no sea admin de Live
+  // Experience — si se pisa con null, cualquier código que confíe en este
+  // email (como hasAnyPortalAccess/canManageEvent para no pedirlo de nuevo)
+  // termina tratando a un productor real y logueado como si no tuviera sesión.
+  return { authenticated: false, role: null, email: real.email };
 }
 
 /**
