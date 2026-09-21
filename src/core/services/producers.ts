@@ -49,9 +49,17 @@ export async function getManagedProducerName(
   return data?.producer_name || null;
 }
 
-/** Rol del usuario logueado dentro del equipo de una productora puntual (o null si no pertenece). */
-export async function getSessionRoleForProducer(producerName: string): Promise<TeamRole | null> {
-  const email = await getSessionEmail();
+/**
+ * Rol del usuario logueado dentro del equipo de una productora puntual (o
+ * null si no pertenece). Si ya se tiene el email resuelto de antes en el
+ * mismo request (p. ej. de getAdminContext), pasalo en `knownEmail` para no
+ * pagar dos veces la ida y vuelta a Supabase Auth que hace getSessionEmail().
+ */
+export async function getSessionRoleForProducer(
+  producerName: string,
+  knownEmail?: string | null
+): Promise<TeamRole | null> {
+  const email = knownEmail !== undefined ? knownEmail : await getSessionEmail();
   if (!email) return null;
 
   const { data } = await supabaseAdmin
@@ -91,7 +99,11 @@ export async function canManageEvent(
     return { ok: false, error: 'Este evento no tiene una productora asignada.', status: 400 };
   }
 
-  const role = await getSessionRoleForProducer(producerName);
+  // adminCtx ya resolvió el usuario logueado (getRealAccountAdminContext
+  // llama a supabase.auth.getUser() puertas adentro); reusamos ese email en
+  // vez de pedirlo de nuevo, que antes eran dos idas y vueltas a Supabase
+  // Auth por request para cualquier request de una productora.
+  const role = await getSessionRoleForProducer(producerName, adminCtx.email);
   if (!role || !allowedRoles.includes(role)) {
     return { ok: false, error: 'No tenés permiso para operar sobre este evento.', status: 403 };
   }
@@ -181,7 +193,10 @@ export async function hasAnyPortalAccess(): Promise<{ authenticated: boolean; ro
   const adminCtx = await getAdminContext();
   if (adminCtx.authenticated) return adminCtx;
 
-  const email = await getSessionEmail();
+  // Mismo motivo que en canManageEvent: getAdminContext ya resolvió (o
+  // intentó resolver) el usuario vía getUser(), así que reusamos ese email
+  // en vez de volver a pegarle a Supabase Auth.
+  const email = adminCtx.email;
   if (!email) return { authenticated: false, role: null, email: null };
 
   const { data } = await supabaseAdmin.from('team_members').select('role').eq('email', email).limit(1).maybeSingle();

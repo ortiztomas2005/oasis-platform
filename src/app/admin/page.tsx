@@ -215,7 +215,11 @@ export default function LiveExperienceAdmin() {
     setProducerForm((prev) => ({ ...prev, email: sessionUser.email }));
 
     try {
-      const res = await fetch('/api/producers/team');
+      // Antes esto era secuencial (team, y recién después me) — dos idas y
+      // vueltas de red una atrás de la otra. Ninguna depende de la otra, así
+      // que se piden juntas para no duplicar la espera.
+      const [res, meRes] = await Promise.all([fetch('/api/producers/team'), fetch('/api/producers/me')]);
+
       if (!res.ok) {
         // No es staff de ninguna productora todavía
         setActiveProducer('');
@@ -237,7 +241,6 @@ export default function LiveExperienceAdmin() {
       }));
       setTeamMembers(mapped);
 
-      const meRes = await fetch('/api/producers/me');
       if (meRes.ok) {
         const meData = await meRes.json();
         if (meData.producer) {

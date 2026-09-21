@@ -35,9 +35,16 @@ export function useSession() {
     const supabase = createClient();
     let active = true;
 
-    supabase.auth.getUser().then(({ data }) => {
+    // getSession() lee la sesión ya guardada en el browser sin red; getUser()
+    // en cambio siempre pega contra el servidor de Auth para revalidar el
+    // token, lo cual suma una ida y vuelta de red completa en cada carga de
+    // página solo para saber "quién sos" en la UI. Esta pantalla no usa el
+    // resultado para autorizar nada sensible — eso lo sigue verificando cada
+    // ruta /api server-side con su propio getUser() — así que acá alcanza
+    // con la versión rápida y local.
+    supabase.auth.getSession().then(({ data }) => {
       if (!active) return;
-      setUser(mapUser(data.user));
+      setUser(mapUser(data.session?.user));
       setLoading(false);
     });
 
