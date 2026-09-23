@@ -16,7 +16,7 @@ export async function PATCH(req: Request, context: { params: Promise<{ id: strin
     const access = await canManageEvent(eventId);
     if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status });
 
-    const { tierId, status, showStockToClients, lowStockThreshold } = await req.json();
+    const { tierId, status, showStockToClients, lowStockThreshold, description, entryCutoffTime } = await req.json();
     if (!tierId) return NextResponse.json({ error: 'Falta el id de la tanda' }, { status: 400 });
 
     const { data: tier } = await supabaseAdmin.from('ticket_tiers').select('event_id').eq('id', tierId).maybeSingle();
@@ -33,6 +33,8 @@ export async function PATCH(req: Request, context: { params: Promise<{ id: strin
     }
     if (showStockToClients !== undefined) update.show_stock_to_clients = !!showStockToClients;
     if (lowStockThreshold !== undefined) update.low_stock_threshold = Math.max(0, Number(lowStockThreshold) || 0);
+    if (description !== undefined) update.description = String(description).trim() || null;
+    if (entryCutoffTime !== undefined) update.entry_cutoff_time = String(entryCutoffTime).trim() || null;
 
     if (Object.keys(update).length === 0) {
       return NextResponse.json({ error: 'Nada para actualizar' }, { status: 400 });

@@ -10,6 +10,8 @@ interface Tier {
   capacity: number;
   showStockToClients: boolean;
   lowStockThreshold: number;
+  description: string;
+  entryCutoffTime: string;
 }
 
 interface ExistingTier {
@@ -21,6 +23,8 @@ interface ExistingTier {
   status?: string;
   show_stock_to_clients?: boolean;
   low_stock_threshold?: number;
+  description?: string;
+  entry_cutoff_time?: string;
 }
 
 interface EventRow {
@@ -35,7 +39,15 @@ interface EventRow {
   ticket_tiers?: ExistingTier[];
 }
 
-const EMPTY_TIER: Tier = { name: '', price: 0, capacity: 100, showStockToClients: true, lowStockThreshold: 10 };
+const EMPTY_TIER: Tier = {
+  name: '',
+  price: 0,
+  capacity: 100,
+  showStockToClients: true,
+  lowStockThreshold: 10,
+  description: '',
+  entryCutoffTime: '',
+};
 
 export default function ProducerEventsPage() {
   const [events, setEvents] = useState<EventRow[]>([]);
@@ -103,9 +115,11 @@ export default function ProducerEventsPage() {
     setTiers((prev) => prev.map((t, i) => (i === idx ? { ...t, [field]: !t[field] } : t)));
   };
 
+  const TEXT_TIER_FIELDS: (keyof Tier)[] = ['name', 'description', 'entryCutoffTime'];
+
   const handleTierChange = (idx: number, field: keyof Tier, value: string) => {
     setTiers((prev) =>
-      prev.map((t, i) => (i === idx ? { ...t, [field]: field === 'name' ? value : Number(value) } : t))
+      prev.map((t, i) => (i === idx ? { ...t, [field]: TEXT_TIER_FIELDS.includes(field) ? value : Number(value) } : t))
     );
   };
 
@@ -174,8 +188,10 @@ export default function ProducerEventsPage() {
     }
   };
 
-  const toggleStatus = async (ev: EventRow) => {
-    const newStatus = ev.status === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED';
+  const setEventStatus = async (ev: EventRow, newStatus: string) => {
+    if (newStatus === 'CANCELLED' && !confirm(`¿Suspender "${ev.name || ev.title}"? Va a desaparecer de la cartelera pública hasta que lo reactivés.`)) {
+      return;
+    }
     try {
       const res = await fetch(`/api/producers/events/${ev.id}`, {
         method: 'PATCH',
@@ -189,6 +205,9 @@ export default function ProducerEventsPage() {
       alert(err.message);
     }
   };
+
+  const toggleStatus = (ev: EventRow) =>
+    setEventStatus(ev, ev.status === 'PUBLISHED' || ev.status === 'ACTIVE' ? 'DRAFT' : 'PUBLISHED');
 
   return (
     <div className="min-h-screen bg-[#05070d] text-white p-6 sm:p-10 font-mono">
@@ -329,6 +348,24 @@ export default function ProducerEventsPage() {
                     </button>
                   )}
 
+                  <div className="sm:col-span-4 grid grid-cols-1 sm:grid-cols-[1fr_120px] gap-2">
+                    <input
+                      placeholder="Descripción breve (ej: incluye acceso a pista y guardarropa)"
+                      value={t.description}
+                      onChange={(e) => handleTierChange(idx, 'description', e.target.value)}
+                      className="px-3.5 py-2 bg-black/60 border border-white/10 rounded-xl text-[11px] text-neutral-300 outline-none focus:border-amber-500"
+                    />
+                    <div className="flex items-center gap-1.5">
+                      <label className="text-[10px] text-neutral-500 whitespace-nowrap">Hora límite:</label>
+                      <input
+                        type="time"
+                        value={t.entryCutoffTime}
+                        onChange={(e) => handleTierChange(idx, 'entryCutoffTime', e.target.value)}
+                        className="flex-1 px-2 py-2 bg-black/60 border border-white/10 rounded-xl text-[11px] text-white outline-none focus:border-amber-500"
+                      />
+                    </div>
+                  </div>
+
                   <div className="sm:col-span-4 flex items-center gap-4 pl-1 pb-1">
                     <label className="flex items-center gap-1.5 text-[10px] text-neutral-400 cursor-pointer">
                       <input
@@ -393,25 +430,44 @@ export default function ProducerEventsPage() {
                         {(ev.ticket_tiers || []).length} tanda(s)
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span
                         className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border ${
                           ev.status === 'PUBLISHED' || ev.status === 'ACTIVE'
                             ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                            : ev.status === 'CANCELLED'
+                            ? 'bg-rose-500/10 text-rose-300 border-rose-500/30'
                             : 'bg-neutral-800 text-neutral-400 border-neutral-700'
                         }`}
                       >
-                        {ev.status}
+                        {ev.status === 'CANCELLED' ? 'SUSPENDIDO' : ev.status}
                       </span>
                       <Link href={`/events/${ev.slug}`} target="_blank" className="text-[11px] text-amber-400 underline">
                         Ver página →
                       </Link>
-                      <button
-                        onClick={() => toggleStatus(ev)}
-                        className="text-[11px] px-3 py-1.5 rounded-lg border border-white/10 text-neutral-300 hover:text-white transition cursor-pointer"
-                      >
-                        {ev.status === 'PUBLISHED' || ev.status === 'ACTIVE' ? 'Pasar a borrador' : 'Publicar'}
-                      </button>
+                      {ev.status === 'CANCELLED' ? (
+                        <button
+                          onClick={() => setEventStatus(ev, 'DRAFT')}
+                          className="text-[11px] px-3 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 transition cursor-pointer"
+                        >
+                          Reactivar (a borrador)
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => toggleStatus(ev)}
+                            className="text-[11px] px-3 py-1.5 rounded-lg border border-white/10 text-neutral-300 hover:text-white transition cursor-pointer"
+                          >
+                            {ev.status === 'PUBLISHED' || ev.status === 'ACTIVE' ? 'Pasar a borrador' : 'Publicar'}
+                          </button>
+                          <button
+                            onClick={() => setEventStatus(ev, 'CANCELLED')}
+                            className="text-[11px] px-3 py-1.5 rounded-lg border border-rose-800/60 bg-rose-950/30 text-rose-300 hover:bg-rose-950/50 transition cursor-pointer"
+                          >
+                            Suspender
+                          </button>
+                        </>
+                      )}
                       <button
                         onClick={() => setExpandedEventId(isExpanded ? null : ev.id)}
                         className="text-[11px] px-3 py-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 transition cursor-pointer"
@@ -430,13 +486,36 @@ export default function ProducerEventsPage() {
                           const isSoldOut = t.status === 'SOLD_OUT';
                           const busy = savingTierId === t.id;
                           return (
-                            <div key={t.id} className="p-3.5 rounded-xl bg-[#05070d] border border-white/10 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
-                              <div>
-                                <span className="text-xs font-bold text-white block">{t.name}</span>
-                                <span className="text-[11px] text-neutral-400">
-                                  ${Number(t.price).toLocaleString('es-AR')} · Quedan {t.available_capacity ?? '—'} de {t.total_capacity ?? '—'}
-                                </span>
+                            <div key={t.id} className="p-3.5 rounded-xl bg-[#05070d] border border-white/10 space-y-3">
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+                                <div>
+                                  <span className="text-xs font-bold text-white block">{t.name}</span>
+                                  <span className="text-[11px] text-neutral-400">
+                                    ${Number(t.price).toLocaleString('es-AR')} · Quedan {t.available_capacity ?? '—'} de {t.total_capacity ?? '—'}
+                                  </span>
+                                </div>
                               </div>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-[1fr_130px] gap-2">
+                                <input
+                                  defaultValue={t.description || ''}
+                                  placeholder="Descripción breve..."
+                                  disabled={busy}
+                                  onBlur={(e) => updateTierConfig(ev.id, t.id, { description: e.target.value })}
+                                  className="px-3 py-2 bg-black/60 border border-white/10 rounded-lg text-[11px] text-neutral-300 outline-none focus:border-amber-500"
+                                />
+                                <div className="flex items-center gap-1.5">
+                                  <label className="text-[10px] text-neutral-500 whitespace-nowrap">Hora límite:</label>
+                                  <input
+                                    type="time"
+                                    defaultValue={t.entry_cutoff_time || ''}
+                                    disabled={busy}
+                                    onBlur={(e) => updateTierConfig(ev.id, t.id, { entryCutoffTime: e.target.value })}
+                                    className="flex-1 px-2 py-2 bg-black/60 border border-white/10 rounded-lg text-[11px] text-white outline-none focus:border-amber-500"
+                                  />
+                                </div>
+                              </div>
+
                               <div className="flex flex-wrap items-center gap-3 text-[10px] text-neutral-400">
                                 <label className="flex items-center gap-1.5 cursor-pointer">
                                   <input

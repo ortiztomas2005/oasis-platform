@@ -134,6 +134,8 @@ export default function CatalogPage() {
                 showStockToClients: t.show_stock_to_clients ?? true,
                 scarcityThreshold: t.low_stock_threshold ?? 10,
                 status: t.status,
+                description: t.description || '',
+                entryCutoffTime: t.entry_cutoff_time || '',
               })),
             };
           });

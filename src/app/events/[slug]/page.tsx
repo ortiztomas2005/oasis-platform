@@ -15,6 +15,8 @@ interface Tier {
   status?: string;
   show_stock_to_clients?: boolean;
   low_stock_threshold?: number;
+  description?: string;
+  entry_cutoff_time?: string;
 }
 
 interface EventData {
@@ -319,8 +321,10 @@ export default function EventDetailPage() {
                       >
                         <div className="space-y-1">
                           <span className="text-xs font-black uppercase text-white tracking-wider block">{t.name}</span>
+                          {t.description && <span className="text-[11px] text-slate-500 block">{t.description}</span>}
                           <span className={`text-[11px] block ${showLow ? 'text-amber-400 font-bold' : 'text-slate-400'}`}>
                             {sold ? 'Agotado' : showLow ? `¡Quedan ${t.available_capacity}!` : 'Disponible'}
+                            {!sold && t.entry_cutoff_time ? ` · Ingreso hasta las ${t.entry_cutoff_time} hs` : ''}
                           </span>
                         </div>
                         <span className="text-base font-black text-white block">${t.price.toLocaleString('es-AR')}</span>
