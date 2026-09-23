@@ -8,6 +8,19 @@ interface Tier {
   name: string;
   price: number;
   capacity: number;
+  showStockToClients: boolean;
+  lowStockThreshold: number;
+}
+
+interface ExistingTier {
+  id: string;
+  name: string;
+  price: number;
+  total_capacity?: number;
+  available_capacity?: number;
+  status?: string;
+  show_stock_to_clients?: boolean;
+  low_stock_threshold?: number;
 }
 
 interface EventRow {
@@ -19,10 +32,10 @@ interface EventRow {
   date?: string;
   status: string;
   image_url?: string;
-  ticket_tiers?: Tier[];
+  ticket_tiers?: ExistingTier[];
 }
 
-const EMPTY_TIER: Tier = { name: '', price: 0, capacity: 100 };
+const EMPTY_TIER: Tier = { name: '', price: 0, capacity: 100, showStockToClients: true, lowStockThreshold: 10 };
 
 export default function ProducerEventsPage() {
   const [events, setEvents] = useState<EventRow[]>([]);
@@ -86,6 +99,10 @@ export default function ProducerEventsPage() {
     setFormError(null);
   };
 
+  const handleTierToggle = (idx: number, field: 'showStockToClients') => {
+    setTiers((prev) => prev.map((t, i) => (i === idx ? { ...t, [field]: !t[field] } : t)));
+  };
+
   const handleTierChange = (idx: number, field: keyof Tier, value: string) => {
     setTiers((prev) =>
       prev.map((t, i) => (i === idx ? { ...t, [field]: field === 'name' ? value : Number(value) } : t))
@@ -133,6 +150,27 @@ export default function ProducerEventsPage() {
       setFormError(err.message);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
+  const [savingTierId, setSavingTierId] = useState<string | null>(null);
+
+  const updateTierConfig = async (eventId: string, tierId: string, patch: Record<string, any>) => {
+    setSavingTierId(tierId);
+    try {
+      const res = await fetch(`/api/producers/events/${eventId}/tiers`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tierId, ...patch }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      await load();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setSavingTierId(null);
     }
   };
 
@@ -290,6 +328,30 @@ export default function ProducerEventsPage() {
                       Quitar
                     </button>
                   )}
+
+                  <div className="sm:col-span-4 flex items-center gap-4 pl-1 pb-1">
+                    <label className="flex items-center gap-1.5 text-[10px] text-neutral-400 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={t.showStockToClients}
+                        onChange={() => handleTierToggle(idx, 'showStockToClients')}
+                      />
+                      Avisar stock bajo al público
+                    </label>
+                    {t.showStockToClients && (
+                      <label className="flex items-center gap-1.5 text-[10px] text-neutral-400">
+                        Avisar cuando queden
+                        <input
+                          type="number"
+                          min={0}
+                          value={t.lowStockThreshold}
+                          onChange={(e) => handleTierChange(idx, 'lowStockThreshold', e.target.value)}
+                          className="w-14 px-2 py-1 bg-black/60 border border-white/10 rounded-lg text-white text-center"
+                        />
+                        o menos
+                      </label>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -319,37 +381,107 @@ export default function ProducerEventsPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {events.map((ev) => (
-              <div key={ev.id} className="bg-[#0c0f16] border border-white/10 rounded-2xl p-5 flex items-center justify-between gap-4 flex-wrap">
-                <div>
-                  <span className="text-sm font-bold text-white block">{ev.name || ev.title}</span>
-                  <span className="text-[11px] text-neutral-400">
-                    {ev.venue} · {ev.date ? new Date(ev.date).toLocaleString('es-AR') : ''} ·{' '}
-                    {(ev.ticket_tiers || []).length} tanda(s)
-                  </span>
+            {events.map((ev) => {
+              const isExpanded = expandedEventId === ev.id;
+              return (
+                <div key={ev.id} className="bg-[#0c0f16] border border-white/10 rounded-2xl overflow-hidden">
+                  <div className="p-5 flex items-center justify-between gap-4 flex-wrap">
+                    <div>
+                      <span className="text-sm font-bold text-white block">{ev.name || ev.title}</span>
+                      <span className="text-[11px] text-neutral-400">
+                        {ev.venue} · {ev.date ? new Date(ev.date).toLocaleString('es-AR') : ''} ·{' '}
+                        {(ev.ticket_tiers || []).length} tanda(s)
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border ${
+                          ev.status === 'PUBLISHED' || ev.status === 'ACTIVE'
+                            ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                            : 'bg-neutral-800 text-neutral-400 border-neutral-700'
+                        }`}
+                      >
+                        {ev.status}
+                      </span>
+                      <Link href={`/events/${ev.slug}`} target="_blank" className="text-[11px] text-amber-400 underline">
+                        Ver página →
+                      </Link>
+                      <button
+                        onClick={() => toggleStatus(ev)}
+                        className="text-[11px] px-3 py-1.5 rounded-lg border border-white/10 text-neutral-300 hover:text-white transition cursor-pointer"
+                      >
+                        {ev.status === 'PUBLISHED' || ev.status === 'ACTIVE' ? 'Pasar a borrador' : 'Publicar'}
+                      </button>
+                      <button
+                        onClick={() => setExpandedEventId(isExpanded ? null : ev.id)}
+                        className="text-[11px] px-3 py-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 transition cursor-pointer"
+                      >
+                        {isExpanded ? 'Cerrar tandas ▲' : 'Gestionar tandas ▾'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {isExpanded && (
+                    <div className="border-t border-white/10 p-5 space-y-2.5 bg-black/20">
+                      {(ev.ticket_tiers || []).length === 0 ? (
+                        <p className="text-[11px] text-neutral-500">Este evento no tiene tandas.</p>
+                      ) : (
+                        (ev.ticket_tiers || []).map((t) => {
+                          const isSoldOut = t.status === 'SOLD_OUT';
+                          const busy = savingTierId === t.id;
+                          return (
+                            <div key={t.id} className="p-3.5 rounded-xl bg-[#05070d] border border-white/10 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+                              <div>
+                                <span className="text-xs font-bold text-white block">{t.name}</span>
+                                <span className="text-[11px] text-neutral-400">
+                                  ${Number(t.price).toLocaleString('es-AR')} · Quedan {t.available_capacity ?? '—'} de {t.total_capacity ?? '—'}
+                                </span>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-3 text-[10px] text-neutral-400">
+                                <label className="flex items-center gap-1.5 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={t.show_stock_to_clients !== false}
+                                    disabled={busy}
+                                    onChange={(e) => updateTierConfig(ev.id, t.id, { showStockToClients: e.target.checked })}
+                                  />
+                                  Avisar stock bajo
+                                </label>
+                                {t.show_stock_to_clients !== false && (
+                                  <label className="flex items-center gap-1.5">
+                                    Con
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      defaultValue={t.low_stock_threshold ?? 10}
+                                      disabled={busy}
+                                      onBlur={(e) => updateTierConfig(ev.id, t.id, { lowStockThreshold: e.target.value })}
+                                      className="w-12 px-1.5 py-1 bg-black/60 border border-white/10 rounded-lg text-white text-center"
+                                    />
+                                    o menos
+                                  </label>
+                                )}
+                                <button
+                                  onClick={() => updateTierConfig(ev.id, t.id, { status: isSoldOut ? 'ACTIVE' : 'SOLD_OUT' })}
+                                  disabled={busy}
+                                  className={`px-3 py-1.5 rounded-lg font-bold uppercase transition cursor-pointer disabled:opacity-50 ${
+                                    isSoldOut
+                                      ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30'
+                                      : 'bg-rose-500/10 text-rose-300 border border-rose-500/30'
+                                  }`}
+                                >
+                                  {busy ? '...' : isSoldOut ? 'Reactivar' : 'Marcar agotada'}
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border ${
-                      ev.status === 'PUBLISHED' || ev.status === 'ACTIVE'
-                        ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
-                        : 'bg-neutral-800 text-neutral-400 border-neutral-700'
-                    }`}
-                  >
-                    {ev.status}
-                  </span>
-                  <Link href={`/events/${ev.slug}`} target="_blank" className="text-[11px] text-amber-400 underline">
-                    Ver página →
-                  </Link>
-                  <button
-                    onClick={() => toggleStatus(ev)}
-                    className="text-[11px] px-3 py-1.5 rounded-lg border border-white/10 text-neutral-300 hover:text-white transition cursor-pointer"
-                  >
-                    {ev.status === 'PUBLISHED' || ev.status === 'ACTIVE' ? 'Pasar a borrador' : 'Publicar'}
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

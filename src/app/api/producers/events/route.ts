@@ -8,6 +8,8 @@ interface TierInput {
   name: string;
   price: number;
   capacity: number;
+  showStockToClients: boolean;
+  lowStockThreshold: number;
 }
 
 // Lista los eventos reales de la productora del usuario logueado (no
@@ -83,6 +85,8 @@ export async function POST(req: Request) {
       name: String(t.name || '').trim() || 'General',
       price: Number(t.price) || 0,
       capacity: Number(t.capacity) || 100,
+      showStockToClients: t.showStockToClients !== false,
+      lowStockThreshold: Number(t.lowStockThreshold) || 10,
     }));
 
     const baseSlug = cleanTitle
@@ -136,6 +140,8 @@ export async function POST(req: Request) {
       available_capacity: t.capacity,
       capacity: t.capacity,
       status: 'ACTIVE',
+      show_stock_to_clients: t.showStockToClients,
+      low_stock_threshold: t.lowStockThreshold,
     }));
 
     const { error: tiersErr } = await supabaseAdmin.from('ticket_tiers').insert(tierRows);

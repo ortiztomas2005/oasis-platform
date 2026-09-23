@@ -26,6 +26,34 @@ export async function issuePrimaryTicketForOrder(order: any): Promise<string> {
     }
   }
 
+  // Descuenta 1 lugar de la tanda vendida (antes esto no pasaba nunca, así
+  // que el "stock" de una tanda era ficticio y nunca se agotaba solo por
+  // vender). Se busca por nombre porque las órdenes guardan el nombre de
+  // la tanda, no su id. Si no se encuentra o ya está en 0, no bloquea la
+  // venta (para no romper eventos con tandas cargadas de otra forma) pero
+  // sí revierte el saldo prepago si ya se había descontado.
+  let tierId: string | null = null;
+  if (order.event_id && order.ticket_tier) {
+    const { data: tierRow } = await supabaseAdmin
+      .from('ticket_tiers')
+      .select('id')
+      .eq('event_id', order.event_id)
+      .eq('name', order.ticket_tier)
+      .maybeSingle();
+    tierId = tierRow?.id || null;
+
+    if (tierId) {
+      const { data: decremented, error: decErr } = await supabaseAdmin.rpc('decrement_tier_capacity', {
+        p_tier_id: tierId,
+      });
+      if (decErr) console.error('Error al descontar stock de la tanda:', decErr);
+      if (!decErr && !decremented) {
+        if (producerName) await refundProducerTicket(producerName);
+        throw new Error(`La tanda "${order.ticket_tier}" ya está agotada.`);
+      }
+    }
+  }
+
   try {
     const rawSeed = `${order.event_id}-${order.customer_dni}-${Date.now()}-${Math.random()}`;
     const uniqueHash = crypto.createHash('sha256').update(rawSeed).digest('hex').substring(0, 32);
@@ -71,10 +99,11 @@ export async function issuePrimaryTicketForOrder(order: any): Promise<string> {
 
     return uniqueHash;
   } catch (err) {
-    // Si se llegó a descontar el ticket del saldo pero la emisión falló
-    // después, se lo devolvemos — no le queda debiendo un ticket a la
-    // productora por un error nuestro.
+    // Si se llegó a descontar el ticket del saldo (o el lugar de la tanda)
+    // pero la emisión falló después, se devuelven ambos — no le queda
+    // debiendo nada a la productora por un error nuestro.
     if (producerName) await refundProducerTicket(producerName);
+    if (tierId) await supabaseAdmin.rpc('increment_tier_capacity', { p_tier_id: tierId });
     throw err;
   }
 }

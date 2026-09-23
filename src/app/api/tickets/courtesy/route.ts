@@ -36,6 +36,28 @@ export async function POST(req: Request) {
       }
     }
 
+    // Y también descuenta 1 lugar real de la tanda (si existe con ese
+    // nombre), igual que una venta paga — una cortesía ocupa un asiento
+    // real, no es gratis en términos de stock.
+    let tierId: string | null = null;
+    const { data: tierRow } = await supabaseAdmin
+      .from('ticket_tiers')
+      .select('id')
+      .eq('event_id', event_id)
+      .eq('name', tier_name || 'VIP INVITADO')
+      .maybeSingle();
+    tierId = tierRow?.id || null;
+
+    if (tierId) {
+      const { data: decremented, error: decErr } = await supabaseAdmin.rpc('decrement_tier_capacity', {
+        p_tier_id: tierId,
+      });
+      if (!decErr && !decremented) {
+        if (access.producerName) await refundProducerTicket(access.producerName);
+        return NextResponse.json({ error: `La tanda "${tier_name}" ya está agotada.` }, { status: 400 });
+      }
+    }
+
     // Generar hash criptográfico único para el QR
     const entropy = randomBytes(16).toString('hex');
     const qr_hash = createHash('sha256')
@@ -60,6 +82,7 @@ export async function POST(req: Request) {
 
     if (error) {
       if (access.producerName) await refundProducerTicket(access.producerName);
+      if (tierId) await supabaseAdmin.rpc('increment_tier_capacity', { p_tier_id: tierId });
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 

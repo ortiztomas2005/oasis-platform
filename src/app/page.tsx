@@ -91,11 +91,16 @@ export default function CatalogPage() {
   useEffect(() => {
     const loadEventsFromSupabase = async () => {
       try {
-        // Consultar eventos activos en Supabase
+        // Antes esto consultaba status='ACTIVE' y el join 'event_tiers' —
+        // ninguno de los dos existe de verdad: los eventos reales se crean
+        // con status 'PUBLISHED' (ver /api/producers/events) y la tabla de
+        // tandas se llama 'ticket_tiers'. Por eso nunca aparecía nada acá
+        // aunque la productora tuviera eventos publicados.
         const { data: dbEvents, error } = await supabase
           .from('events')
-          .select('*, event_tiers(*)')
-          .eq('status', 'ACTIVE');
+          .select('*, ticket_tiers(*)')
+          .in('status', ['PUBLISHED', 'ACTIVE'])
+          .order('date', { ascending: true });
 
         if (error) {
           console.error('❌ Detalle del error de Supabase:', error.message, error.details, error.hint);
@@ -104,27 +109,34 @@ export default function CatalogPage() {
         }
 
         if (dbEvents && dbEvents.length > 0) {
-          const formattedEvents: EventItem[] = dbEvents.map((ev: any) => ({
-            id: ev.id,
-            producerName: ev.producer_name,
-            name: ev.name,
-            date: ev.date,
-            startTime: ev.start_time,
-            endTime: ev.end_time,
-            venue: ev.venue,
-            city: ev.city,
-            imageUrl: ev.image_url || 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=1200&auto=format&fit=crop',
-            genre: ev.genre || 'Melodic Techno',
-            description: ev.description || '',
-            status: ev.status,
-            tiers: (ev.event_tiers || []).map((t: any) => ({
-              name: t.name,
-              price: t.price,
-              capacity: t.capacity,
-              soldCount: t.sold_count,
-              status: t.status
-            }))
-          }));
+          // La tabla real solo tiene un timestamp único 'date' (no
+          // start_time/end_time separados como esperaba este mapeo viejo),
+          // así que la fecha y la hora para mostrar se derivan de ahí.
+          const formattedEvents: EventItem[] = dbEvents.map((ev: any) => {
+            const eventDate = ev.date ? new Date(ev.date) : null;
+            return {
+              id: ev.id,
+              producerName: ev.producer_name,
+              name: ev.name,
+              date: eventDate ? eventDate.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '',
+              startTime: eventDate ? eventDate.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) : '',
+              endTime: ev.door_time || '',
+              venue: ev.venue,
+              city: ev.city,
+              imageUrl: ev.image_url || 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=1200&auto=format&fit=crop',
+              genre: ev.genre || 'Melodic Techno',
+              description: ev.description || '',
+              status: ev.status,
+              tiers: (ev.ticket_tiers || []).map((t: any) => ({
+                name: t.name,
+                price: t.price,
+                capacity: t.available_capacity ?? t.total_capacity ?? t.capacity ?? 0,
+                showStockToClients: t.show_stock_to_clients ?? true,
+                scarcityThreshold: t.low_stock_threshold ?? 10,
+                status: t.status,
+              })),
+            };
+          });
 
           setEvents(formattedEvents);
         } else {

@@ -13,6 +13,8 @@ interface Tier {
   total_capacity?: number;
   available_capacity?: number;
   status?: string;
+  show_stock_to_clients?: boolean;
+  low_stock_threshold?: number;
 }
 
 interface EventData {
@@ -107,8 +109,19 @@ export default function EventDetailPage() {
 
   const effectiveTiers: Tier[] = tiers.length > 0 ? tiers : [{ id: '', name: 'Acceso General', price: 15000 }];
   const currentTier = effectiveTiers[selectedTierIndex] || effectiveTiers[0];
+  // Agotado si la productora lo marcó a mano (status) o si el stock real
+  // ya llegó a 0 — antes solo se miraba el stock, así que marcar una
+  // tanda "Agotada" a mano desde el panel no tenía ningún efecto acá.
   const isSoldOut =
-    currentTier.available_capacity !== undefined ? currentTier.available_capacity <= 0 : false;
+    currentTier.status === 'SOLD_OUT' ||
+    (currentTier.available_capacity !== undefined && currentTier.available_capacity <= 0);
+  const lowStockCount =
+    !isSoldOut &&
+    currentTier.show_stock_to_clients !== false &&
+    currentTier.available_capacity !== undefined &&
+    currentTier.available_capacity <= (currentTier.low_stock_threshold ?? 10)
+      ? currentTier.available_capacity
+      : null;
 
   const subtotal = currentTier.price * quantity;
   const serviceCharge = Math.round(subtotal * 0.12);
@@ -281,7 +294,13 @@ export default function EventDetailPage() {
                 {/* Tandas */}
                 <div className="space-y-3 font-mono">
                   {effectiveTiers.map((t, idx) => {
-                    const sold = t.available_capacity !== undefined && t.available_capacity <= 0;
+                    const sold =
+                      t.status === 'SOLD_OUT' || (t.available_capacity !== undefined && t.available_capacity <= 0);
+                    const showLow =
+                      !sold &&
+                      t.show_stock_to_clients !== false &&
+                      t.available_capacity !== undefined &&
+                      t.available_capacity <= (t.low_stock_threshold ?? 10);
                     const isSelected = selectedTierIndex === idx;
 
                     return (
@@ -300,7 +319,9 @@ export default function EventDetailPage() {
                       >
                         <div className="space-y-1">
                           <span className="text-xs font-black uppercase text-white tracking-wider block">{t.name}</span>
-                          <span className="text-[11px] text-slate-400 block">{sold ? 'Agotado' : 'Disponible'}</span>
+                          <span className={`text-[11px] block ${showLow ? 'text-amber-400 font-bold' : 'text-slate-400'}`}>
+                            {sold ? 'Agotado' : showLow ? `¡Quedan ${t.available_capacity}!` : 'Disponible'}
+                          </span>
                         </div>
                         <span className="text-base font-black text-white block">${t.price.toLocaleString('es-AR')}</span>
                       </button>
@@ -310,6 +331,12 @@ export default function EventDetailPage() {
 
                 {!isSoldOut && (
                   <>
+                    {lowStockCount !== null && (
+                      <div className="px-3.5 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] font-bold font-mono text-center">
+                        ⚠️ ¡Quedan solo {lowStockCount} entradas de "{currentTier.name}"!
+                      </div>
+                    )}
+
                     {/* Cantidad */}
                     <div className="flex items-center justify-between font-mono border-y border-slate-800/80 py-4">
                       <span className="text-xs text-slate-300 font-bold uppercase">Cantidad:</span>
