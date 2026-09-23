@@ -1,5 +1,5 @@
-@import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
 
 /* Sistema de diseño único para todo el sitio: azul + oscuro, tipografía
    moderna. Se define acá (una sola vez) en vez de en cada página con
