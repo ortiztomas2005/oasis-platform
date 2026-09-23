@@ -122,7 +122,7 @@ export default function TeamPage() {
       <div className="max-w-3xl mx-auto space-y-8">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <span className="text-[10px] text-amber-400 uppercase font-bold tracking-widest block">
+            <span className="text-[10px] text-blue-400 uppercase font-bold tracking-widest block">
               {producerName || 'Tu Productora'}
             </span>
             <h1 className="text-2xl font-black uppercase text-white">Equipo</h1>
@@ -135,7 +135,7 @@ export default function TeamPage() {
         {loading ? (
           <p className="text-xs text-neutral-500">Cargando...</p>
         ) : error && team.length === 0 ? (
-          <p className="text-xs text-amber-400">{error}</p>
+          <p className="text-xs text-blue-400">{error}</p>
         ) : (
           <>
             {isOwner && (
@@ -148,14 +148,14 @@ export default function TeamPage() {
                 )}
                 <p className="text-[11px] text-neutral-500">
                   No hace falta que ya tenga cuenta — en cuanto se registre en{' '}
-                  <Link href="/auth" className="text-amber-400 underline">/auth</Link> con este mismo email, va a tener acceso automáticamente.
+                  <Link href="/auth" className="text-blue-400 underline">/auth</Link> con este mismo email, va a tener acceso automáticamente.
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <input required type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-amber-500" />
-                  <input required placeholder="Nombre y apellido" value={name} onChange={(e) => setName(e.target.value)} className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-amber-500" />
-                  <input placeholder="DNI (opcional)" value={dni} onChange={(e) => setDni(e.target.value)} className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-amber-500" />
-                  <input placeholder="Teléfono (opcional)" value={phone} onChange={(e) => setPhone(e.target.value)} className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-amber-500" />
+                  <input required type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
+                  <input required placeholder="Nombre y apellido" value={name} onChange={(e) => setName(e.target.value)} className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
+                  <input placeholder="DNI (opcional)" value={dni} onChange={(e) => setDni(e.target.value)} className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
+                  <input placeholder="Teléfono (opcional)" value={phone} onChange={(e) => setPhone(e.target.value)} className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
                 </div>
 
                 <div className="flex gap-2">
@@ -165,7 +165,7 @@ export default function TeamPage() {
                       type="button"
                       onClick={() => setRole(r)}
                       className={`flex-1 py-2.5 rounded-xl border text-[11px] font-bold uppercase transition cursor-pointer ${
-                        role === r ? 'bg-amber-500/15 border-amber-500 text-amber-400' : 'bg-black/40 border-white/10 text-neutral-400'
+                        role === r ? 'bg-blue-500/15 border-blue-500 text-blue-400' : 'bg-black/40 border-white/10 text-neutral-400'
                       }`}
                     >
                       {ROLE_INFO[r].label}
@@ -177,7 +177,7 @@ export default function TeamPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-black font-black text-xs uppercase rounded-xl transition disabled:opacity-50 cursor-pointer"
+                  className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs uppercase rounded-xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 cursor-pointer"
                 >
                   {submitting ? 'Guardando...' : 'Agregar →'}
                 </button>

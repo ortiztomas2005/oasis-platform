@@ -1,1 +1,49 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+/* Sistema de diseño único para todo el sitio: azul + oscuro, tipografía
+   moderna. Se define acá (una sola vez) en vez de en cada página con
+   <style jsx global>, para que cambiar la identidad visual no dependa de
+   tocar archivo por archivo — font-sans, font-mono y .font-luxury ya se
+   usan en todas las páginas, así que redefinirlos acá los actualiza a
+   todos de una. */
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
+}
+
+body {
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Antes esta clase cargaba Cinzel (una serif ornamental de "casino de
+   lujo"). El pedido ahora es un look pro/moderno, así que pasa a ser una
+   sans geométrica en negrita — misma clase, mismos usos en el código, look
+   completamente distinto. */
+.font-luxury {
+  font-family: 'Space Grotesk', 'Inter', ui-sans-serif, sans-serif;
+  letter-spacing: -0.01em;
+}
+
+::selection {
+  background: #3b82f6;
+  color: #ffffff;
+}
+
+* {
+  scrollbar-color: #1e293b #05070d;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #05070d;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}

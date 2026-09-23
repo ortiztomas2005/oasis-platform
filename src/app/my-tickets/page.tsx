@@ -152,21 +152,15 @@ export default function MyTicketsPage() {
   const loading = sessionLoading || loadingTickets;
 
   return (
-    <div className="min-h-screen bg-[#07070a] text-slate-100 flex flex-col justify-between font-sans antialiased selection:bg-amber-500 selection:text-black">
-      <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
-        .font-luxury { font-family: 'Cinzel', serif; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
-      `}</style>
-
+    <div className="min-h-screen bg-[#05070d] text-slate-100 flex flex-col justify-between font-sans antialiased selection:bg-blue-500 selection:text-white">
       {/* NAVBAR */}
-      <header className="border-b border-white/5 bg-[#07070a] sticky top-0 z-40 px-6 py-4">
+      <header className="border-b border-white/5 bg-[#05070d] sticky top-0 z-40 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3.5 cursor-pointer group">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-600 flex items-center justify-center font-black text-black text-sm shadow-lg shadow-amber-500/20">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-500 via-indigo-400 to-blue-600 flex items-center justify-center font-black text-white text-sm shadow-lg shadow-blue-500/20">
               O
             </div>
-            <span className="font-luxury text-lg font-black tracking-[0.1em] uppercase text-white leading-none group-hover:text-amber-400 transition">
+            <span className="font-luxury text-lg font-black tracking-[0.1em] uppercase text-white leading-none group-hover:text-blue-400 transition">
               LIVE EXPERIENCE
             </span>
           </Link>
@@ -181,7 +175,7 @@ export default function MyTicketsPage() {
             </Link>
             <Link
               href="/resale"
-              className="px-4 py-2.5 rounded-xl border border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/15 text-amber-300 font-bold transition flex items-center gap-2"
+              className="px-4 py-2.5 rounded-xl border border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/15 text-blue-300 font-bold transition flex items-center gap-2"
             >
               <span>🔄</span>
               <span className="hidden sm:inline">Reventa</span>
@@ -197,7 +191,7 @@ export default function MyTicketsPage() {
       <main className="max-w-7xl mx-auto w-full px-6 py-10 space-y-10 flex-1 font-mono">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-white/10 pb-6">
           <div className="space-y-2">
-            <span className="text-[10px] text-amber-400 uppercase font-bold tracking-widest block">
+            <span className="text-[10px] text-blue-400 uppercase font-bold tracking-widest block">
               ● Billetera Personal
             </span>
             <h1 className="font-luxury text-3xl font-black uppercase text-white tracking-tight">
@@ -215,7 +209,7 @@ export default function MyTicketsPage() {
                 onClick={() => setFilter(f)}
                 className={`px-4 py-2 rounded-xl border transition uppercase font-bold text-[11px] cursor-pointer ${
                   filter === f
-                    ? 'bg-amber-500/15 border-amber-500 text-amber-400 shadow-sm'
+                    ? 'bg-blue-500/15 border-blue-500 text-blue-400 shadow-sm'
                     : 'bg-[#0c0f16] border-white/10 text-slate-400 hover:text-white'
                 }`}
               >
@@ -240,7 +234,7 @@ export default function MyTicketsPage() {
             <p className="text-sm text-white font-bold">Iniciá sesión para ver tu billetera</p>
             <Link
               href="/auth?redirect=/my-tickets"
-              className="inline-block mt-3 px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-black font-black text-xs uppercase rounded-xl transition"
+              className="inline-block mt-3 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 text-white font-black text-xs uppercase rounded-xl transition"
             >
               Iniciar Sesión →
             </Link>
@@ -251,7 +245,7 @@ export default function MyTicketsPage() {
             <p className="text-sm text-slate-300 font-bold">No tenés elementos en este filtro</p>
             <Link
               href="/"
-              className="inline-block mt-3 px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-black font-black text-xs uppercase rounded-xl transition"
+              className="inline-block mt-3 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 text-white font-black text-xs uppercase rounded-xl transition"
             >
               Comprar en Cartelera
             </Link>
@@ -279,15 +273,15 @@ export default function MyTicketsPage() {
                 <div key={t.id} className="flex flex-col space-y-3">
                   <HoloTicket ticket={holoData} />
 
-                  <div className="p-4 rounded-2xl bg-[#0c0f17] border border-white/10 flex flex-col items-center justify-center space-y-2">
+                  <div className="p-4 rounded-2xl bg-[#0b1120] border border-white/10 flex flex-col items-center justify-center space-y-2">
                     <span className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">Código de Acceso</span>
-                    <span className="text-xs font-mono font-bold text-amber-400">{qrValue}</span>
+                    <span className="text-xs font-mono font-bold text-blue-400">{qrValue}</span>
                   </div>
 
                   {canResell && (
                     <div className="max-w-sm w-full mx-auto space-y-2">
                       {t.status === 'FROZEN_RESALE' && myResale && (
-                        <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-center text-xs text-amber-300 space-y-0.5">
+                        <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-center text-xs text-blue-300 space-y-0.5">
                           <div>
                             En venta a{' '}
                             <span className="font-black text-white">
@@ -311,7 +305,7 @@ export default function MyTicketsPage() {
                         className={`w-full py-3 rounded-2xl font-bold uppercase text-xs border transition flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-50 ${
                           t.status === 'FROZEN_RESALE'
                             ? 'bg-rose-500/15 border-rose-500/40 text-rose-300 hover:bg-rose-500/25'
-                            : 'bg-amber-500/10 border-amber-500/30 text-amber-300 hover:bg-amber-500/20'
+                            : 'bg-blue-500/10 border-blue-500/30 text-blue-300 hover:bg-blue-500/20'
                         }`}
                       >
                         <span>{t.status === 'FROZEN_RESALE' ? '✕' : '🔄'}</span>
@@ -334,11 +328,11 @@ export default function MyTicketsPage() {
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="max-w-md w-full rounded-3xl bg-[#0c0f16] border border-amber-500/40 p-6 sm:p-8 space-y-6 shadow-2xl"
+            className="max-w-md w-full rounded-3xl bg-[#0c0f16] border border-blue-500/40 p-6 sm:p-8 space-y-6 shadow-2xl"
           >
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div>
-                <span className="text-[10px] text-amber-400 uppercase font-bold block">Marketplace Oficial</span>
+                <span className="text-[10px] text-blue-400 uppercase font-bold block">Marketplace Oficial</span>
                 <h3 className="text-xl font-black uppercase text-white">Fijar Precio y Alias</h3>
               </div>
               <button
@@ -351,7 +345,7 @@ export default function MyTicketsPage() {
             </div>
 
             <form onSubmit={handlePublishWithPrice} className="space-y-4">
-              <div className="p-4 rounded-2xl bg-[#07070a] border border-white/5 space-y-1.5 text-xs">
+              <div className="p-4 rounded-2xl bg-[#05070d] border border-white/5 space-y-1.5 text-xs">
                 <div className="flex justify-between text-slate-400">
                   <span>Evento:</span>
                   <span className="font-bold text-white">{ticketToSell.events?.name || ticketToSell.events?.title}</span>
@@ -373,7 +367,7 @@ export default function MyTicketsPage() {
                   min={ticketToSell.purchase_price || ticketToSell.price_paid || 12000}
                   value={inputPrice}
                   onChange={(e) => setInputPrice(e.target.value)}
-                  className="w-full px-4 py-3 bg-[#07070a] rounded-xl border border-white/10 text-amber-400 font-black text-lg focus:outline-none focus:border-amber-500"
+                  className="w-full px-4 py-3 bg-[#05070d] rounded-xl border border-white/10 text-blue-400 font-black text-lg focus:outline-none focus:border-blue-500"
                 />
               </div>
 
@@ -387,7 +381,7 @@ export default function MyTicketsPage() {
                   placeholder="Ej: tu.alias.mp"
                   value={inputAlias}
                   onChange={(e) => setInputAlias(e.target.value)}
-                  className="w-full px-4 py-3 bg-[#07070a] rounded-xl border border-white/10 text-emerald-300 font-bold text-sm focus:outline-none focus:border-amber-500"
+                  className="w-full px-4 py-3 bg-[#05070d] rounded-xl border border-white/10 text-emerald-300 font-bold text-sm focus:outline-none focus:border-blue-500"
                 />
               </div>
 
@@ -395,14 +389,14 @@ export default function MyTicketsPage() {
                 <button
                   type="button"
                   onClick={() => setTicketToSell(null)}
-                  className="flex-1 py-3.5 border border-white/10 bg-[#07070a] text-slate-300 text-xs font-bold rounded-xl transition hover:bg-white/5 cursor-pointer"
+                  className="flex-1 py-3.5 border border-white/10 bg-[#05070d] text-slate-300 text-xs font-bold rounded-xl transition hover:bg-white/5 cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 py-3.5 bg-amber-500 hover:bg-amber-400 text-black font-black text-xs uppercase rounded-xl transition shadow-lg shadow-amber-500/20 cursor-pointer disabled:opacity-50"
+                  className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-500 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 text-white font-black text-xs uppercase rounded-xl transition shadow-lg shadow-blue-500/20 cursor-pointer disabled:opacity-50"
                 >
                   {submitting ? 'Publicando...' : 'Publicar Ahora →'}
                 </button>
@@ -414,7 +408,7 @@ export default function MyTicketsPage() {
 
       {/* FOOTER */}
       <footer className="border-t border-white/5 bg-[#050507] py-6 text-xs font-mono text-slate-500 text-center space-y-1 mt-auto">
-        <p className="font-luxury text-amber-400 tracking-widest text-xs font-bold">LIVE EXPERIENCE</p>
+        <p className="font-luxury text-blue-400 tracking-widest text-xs font-bold">LIVE EXPERIENCE</p>
       </footer>
     </div>
   );

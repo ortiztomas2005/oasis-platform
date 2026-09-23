@@ -104,12 +104,6 @@ export default function DigitalSocioCardPage() {
   return (
     <div className="min-h-screen bg-[#07070a] text-slate-100 flex flex-col justify-between font-sans antialiased selection:bg-amber-500 selection:text-black">
       
-      <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
-        .font-luxury { font-family: 'Cinzel', serif; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
-      `}</style>
-
       {/* NAVBAR */}
       <header className="border-b border-white/5 bg-[#07070a] sticky top-0 z-40 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">

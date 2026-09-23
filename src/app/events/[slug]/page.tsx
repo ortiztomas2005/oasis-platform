@@ -92,7 +92,7 @@ export default function EventDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0b0e14] text-slate-100 flex items-center justify-center font-mono text-xs">
+      <div className="min-h-screen bg-[#05070d] text-slate-100 flex items-center justify-center font-mono text-xs">
         Cargando evento...
       </div>
     );
@@ -100,7 +100,7 @@ export default function EventDetailPage() {
 
   if (notFound || !event) {
     return (
-      <div className="min-h-screen bg-[#0b0e14] text-slate-100 flex flex-col items-center justify-center gap-4 font-mono text-xs">
+      <div className="min-h-screen bg-[#05070d] text-slate-100 flex flex-col items-center justify-center gap-4 font-mono text-xs">
         <p>No encontramos este evento.</p>
         <Link href="/events" className="px-5 py-2.5 bg-blue-600 rounded-xl text-white font-bold">
           Ver Cartelera →
@@ -184,9 +184,9 @@ export default function EventDetailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0b0e14] text-slate-100 flex flex-col justify-between font-sans antialiased selection:bg-blue-600 selection:text-white">
+    <div className="min-h-screen bg-[#05070d] text-slate-100 flex flex-col justify-between font-sans antialiased selection:bg-blue-600 selection:text-white">
       {/* NAVBAR */}
-      <header className="border-b border-slate-800/80 bg-[#0f131c]/90 backdrop-blur-md sticky top-0 z-50 px-6 py-3.5">
+      <header className="border-b border-slate-800/80 bg-[#0b1120]/90 backdrop-blur-md sticky top-0 z-50 px-6 py-3.5">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link
@@ -266,7 +266,7 @@ export default function EventDetailPage() {
                   alt={eventName}
                   className="w-full h-full object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0b0e14] via-transparent to-black/30" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#05070d] via-transparent to-black/30" />
               </div>
 
               <div className="space-y-4">
@@ -433,7 +433,7 @@ export default function EventDetailPage() {
                       <button
                         type="submit"
                         disabled={isCheckingOut}
-                        className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black uppercase tracking-wider transition shadow-xl shadow-blue-600/30 disabled:opacity-50"
+                        className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black uppercase tracking-wider transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 shadow-xl shadow-blue-600/30 hover:shadow-blue-500/40 disabled:opacity-50 disabled:hover:translate-y-0 cursor-pointer"
                       >
                         {isCheckingOut ? 'Procesando...' : `Pagar con ${activeMethod.name} · $${totalAmount.toLocaleString('es-AR')} →`}
                       </button>

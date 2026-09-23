@@ -280,23 +280,17 @@ export default function CatalogPage() {
   const featuredEvent = events[featuredIndex] || events[0];
 
   return (
-    <div className="min-h-screen bg-[#07070a] text-slate-100 flex flex-col font-sans antialiased selection:bg-amber-500 selection:text-black">
-      
-      <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
-        .font-luxury { font-family: 'Cinzel', serif; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
-      `}</style>
+    <div className="min-h-screen bg-[#05070d] text-slate-100 flex flex-col font-sans antialiased selection:bg-blue-500 selection:text-white">
 
       {/* NAVBAR */}
-      <header className="border-b border-white/5 bg-[#07070a] sticky top-0 z-40 px-6 py-4">
+      <header className="border-b border-white/5 bg-[#05070d]/90 backdrop-blur-xl sticky top-0 z-40 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link href="/" onClick={() => setViewMode('catalog')} className="flex items-center gap-3.5 cursor-pointer group">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-600 flex items-center justify-center font-black text-black text-sm shadow-lg shadow-amber-500/20">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-500 via-indigo-400 to-blue-600 flex items-center justify-center font-black text-white text-sm shadow-lg shadow-blue-500/20">
               LE
             </div>
             <div className="flex flex-col">
-              <span className="font-luxury text-lg font-black tracking-[0.1em] uppercase text-white leading-none group-hover:text-amber-400 transition">
+              <span className="font-luxury text-lg font-black tracking-[0.1em] uppercase text-white leading-none group-hover:text-blue-400 transition">
                 LIVE EXPERIENCE
               </span>
             </div>
@@ -305,21 +299,21 @@ export default function CatalogPage() {
           <div className="hidden sm:flex items-center gap-4 font-mono text-xs">
             <button
               onClick={() => { window.location.href = '/club/partidos'; }}
-              className="text-amber-400 hover:text-amber-300 transition font-bold flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 cursor-pointer"
+              className="text-blue-400 hover:text-blue-300 transition font-bold flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/30 cursor-pointer"
             >
               <span>⚽</span> Deporte
             </button>
 
-            <Link href="/resale" className="text-slate-300 hover:text-amber-400 font-bold transition">Resale</Link>
-            <Link href="/bar" className="text-slate-300 hover:text-amber-400 font-bold transition">Barra</Link>
-            <Link href="/my-tickets" className="px-4 py-2 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-400 font-bold transition hover:bg-amber-500/20">
+            <Link href="/resale" className="text-slate-300 hover:text-blue-400 font-bold transition">Resale</Link>
+            <Link href="/bar" className="text-slate-300 hover:text-blue-400 font-bold transition">Barra</Link>
+            <Link href="/my-tickets" className="px-4 py-2 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-400 font-bold transition hover:bg-blue-500/20">
               💳 Billetera
             </Link>
             
             {userProducerName ? (
               <button 
                 onClick={() => router.push('/admin')}
-                className="px-4 py-2 rounded-full bg-amber-500 hover:bg-amber-400 text-black font-black transition cursor-pointer flex items-center gap-1.5 shadow-lg shadow-amber-500/20"
+                className="px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-500 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] duration-200 text-white font-black transition cursor-pointer flex items-center gap-1.5 shadow-lg shadow-blue-500/20"
               >
                 <span>📊</span> Ir a Panel ({userProducerName})
               </button>
@@ -341,7 +335,7 @@ export default function CatalogPage() {
       {viewMode === 'catalog' && (
         <main className="max-w-7xl mx-auto w-full px-6 py-10 space-y-12 flex-1">
           {events.length === 0 ? (
-            <div className="p-16 text-center rounded-3xl bg-[#0c0f17] border border-white/5 space-y-3 my-auto">
+            <div className="p-16 text-center rounded-3xl bg-[#0b1120] border border-white/5 space-y-3 my-auto">
               <span className="text-3xl">🗓️</span>
               <h3 className="font-luxury text-lg font-bold text-white uppercase">No hay eventos activos en la cartelera</h3>
               <p className="text-xs text-slate-400">Creá una productora y publicá tu primer evento para verlo reflejado aquí.</p>
@@ -349,14 +343,14 @@ export default function CatalogPage() {
               {userProducerName ? (
                 <button 
                   onClick={() => router.push('/admin')}
-                  className="mt-2 px-6 py-3 bg-amber-500 text-black font-black text-xs uppercase rounded-xl cursor-pointer shadow-lg"
+                  className="mt-2 px-6 py-3 bg-blue-500 text-white font-black text-xs uppercase rounded-xl cursor-pointer shadow-lg"
                 >
                   Ir al Panel de {userProducerName} 📊
                 </button>
               ) : (
                 <Link
                   href="/auth?redirect=/"
-                  className="mt-2 inline-block px-6 py-3 bg-amber-500 text-black font-black text-xs uppercase rounded-xl cursor-pointer shadow-lg"
+                  className="mt-2 inline-block px-6 py-3 bg-blue-500 text-white font-black text-xs uppercase rounded-xl cursor-pointer shadow-lg"
                 >
                   Registrar Productora
                 </Link>
@@ -367,7 +361,7 @@ export default function CatalogPage() {
               {featuredEvent && (
                 <section 
                   onClick={() => goToDetails(featuredEvent)}
-                  className="relative rounded-3xl overflow-hidden border border-amber-500/30 bg-[#0c0f17] shadow-2xl group cursor-pointer"
+                  className="relative rounded-3xl overflow-hidden border border-blue-500/30 bg-[#0b1120] shadow-2xl group cursor-pointer"
                 >
                   <div className="absolute inset-0 z-0">
                     <img
@@ -375,19 +369,19 @@ export default function CatalogPage() {
                       alt={featuredEvent.name}
                       className="w-full h-full object-cover opacity-40 group-hover:scale-105 transition duration-1000"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#07070a] via-[#07070a]/60 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#05070d] via-[#05070d]/60 to-transparent" />
                   </div>
 
                   <div className="relative z-10 p-8 sm:p-12 flex flex-col justify-end min-h-[380px] space-y-4 max-w-2xl">
                     <div className="flex items-center gap-3 font-mono">
-                      <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-black uppercase tracking-wider backdrop-blur-md">
+                      <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/40 text-[10px] font-black uppercase tracking-wider backdrop-blur-md">
                         ★ Destacado
                       </span>
                       <span className="text-xs text-slate-300 font-semibold">{featuredEvent.venue} · {featuredEvent.city}</span>
                     </div>
 
                     <div className="space-y-2">
-                      <span className="text-xs text-amber-400 font-mono font-bold uppercase tracking-widest block">
+                      <span className="text-xs text-blue-400 font-mono font-bold uppercase tracking-widest block">
                         {featuredEvent.date} — {featuredEvent.startTime} HS
                       </span>
                       <h1 className="font-luxury text-3xl sm:text-4xl font-black uppercase text-white tracking-wide">
@@ -396,7 +390,7 @@ export default function CatalogPage() {
                     </div>
 
                     <div className="pt-2 flex items-center gap-4 font-mono">
-                      <span className="px-8 py-3.5 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 text-black font-black uppercase text-xs rounded-xl transition shadow-lg shadow-amber-500/20 tracking-wider inline-block">
+                      <span className="px-8 py-3.5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white font-black uppercase text-xs rounded-xl transition-all duration-200 shadow-lg shadow-blue-600/25 hover:shadow-blue-500/40 hover:-translate-y-0.5 tracking-wider inline-block">
                         Ver Evento y Tickets →
                       </span>
                     </div>
@@ -406,7 +400,7 @@ export default function CatalogPage() {
 
               <section className="space-y-6">
                 <div className="border-b border-white/5 pb-4">
-                  <span className="text-[10px] text-amber-400 font-mono uppercase font-bold tracking-widest block">● Próximas Fechas</span>
+                  <span className="text-[10px] text-blue-400 font-mono uppercase font-bold tracking-widest block">● Próximas Fechas</span>
                   <h2 className="font-luxury text-2xl font-bold uppercase text-white tracking-wider">Cartelera General</h2>
                 </div>
 
@@ -414,7 +408,7 @@ export default function CatalogPage() {
                   {events.map((ev) => (
                     <div
                       key={ev.id}
-                      className="rounded-2xl bg-[#0c0f17] border border-white/5 hover:border-amber-500/40 transition-all duration-300 flex flex-col overflow-hidden shadow-xl group cursor-pointer"
+                      className="rounded-2xl bg-[#0b1120] border border-white/5 hover:border-blue-500/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 flex flex-col overflow-hidden shadow-xl group cursor-pointer"
                       onClick={() => goToDetails(ev)}
                     >
                       <div className="relative aspect-[16/9] overflow-hidden">
@@ -423,15 +417,15 @@ export default function CatalogPage() {
                           alt={ev.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition duration-500 opacity-85"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#0c0f17] via-transparent to-transparent" />
-                        <span className="absolute top-3 right-3 px-2.5 py-0.5 rounded-full bg-black/70 text-amber-300 border border-amber-500/30 text-[9px] font-mono font-bold uppercase">
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#0b1120] via-transparent to-transparent" />
+                        <span className="absolute top-3 right-3 px-2.5 py-0.5 rounded-full bg-black/70 text-blue-300 border border-blue-500/30 text-[9px] font-mono font-bold uppercase">
                           📍 {ev.city}
                         </span>
                       </div>
 
                       <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
                         <div className="space-y-1">
-                          <span className="text-[9px] text-amber-400 font-mono font-bold uppercase tracking-wider block">
+                          <span className="text-[9px] text-blue-400 font-mono font-bold uppercase tracking-wider block">
                             {ev.date}
                           </span>
                           <h3 className="font-luxury text-base font-bold text-white leading-snug">
@@ -439,7 +433,7 @@ export default function CatalogPage() {
                           </h3>
                         </div>
 
-                        <div className="w-full py-2.5 bg-white/5 group-hover:bg-amber-500 border border-white/10 group-hover:border-amber-500 text-slate-300 group-hover:text-black font-black text-[11px] uppercase rounded-xl transition font-mono tracking-wider text-center">
+                        <div className="w-full py-2.5 bg-white/5 group-hover:bg-blue-500 border border-white/10 group-hover:border-blue-500 text-slate-300 group-hover:text-white font-black text-[11px] uppercase rounded-xl transition font-mono tracking-wider text-center">
                           Ver Información & Tickets →
                         </div>
                       </div>
@@ -457,7 +451,7 @@ export default function CatalogPage() {
         <main className="max-w-6xl mx-auto w-full px-6 py-8 flex-1 animate-fade-in font-mono">
           <button 
             onClick={() => setViewMode('catalog')} 
-            className="text-xs text-slate-400 hover:text-amber-400 transition mb-6 block cursor-pointer font-bold"
+            className="text-xs text-slate-400 hover:text-blue-400 transition mb-6 block cursor-pointer font-bold"
           >
             ← Volver a la Cartelera
           </button>
@@ -467,7 +461,7 @@ export default function CatalogPage() {
               <div className="rounded-3xl overflow-hidden border border-white/10 shadow-2xl">
                 <img src={selectedEvent.imageUrl} alt={selectedEvent.name} className="w-full h-auto object-cover" />
               </div>
-              <div className="p-6 rounded-3xl bg-[#0c0f17] border border-white/5 space-y-3 text-xs">
+              <div className="p-6 rounded-3xl bg-[#0b1120] border border-white/5 space-y-3 text-xs">
                 <div>
                   <span className="text-[10px] uppercase text-slate-500 font-bold block">Horario</span>
                   <p className="text-white font-bold">{selectedEvent.date} · Desde {selectedEvent.startTime} HS</p>
@@ -490,7 +484,7 @@ export default function CatalogPage() {
               </div>
 
               <div className="space-y-4">
-                <span className="text-xs uppercase font-bold text-amber-400 block tracking-widest">Seleccioná tus Tickets</span>
+                <span className="text-xs uppercase font-bold text-blue-400 block tracking-widest">Seleccioná tus Tickets</span>
                 
                 <div className="space-y-3">
                   {selectedEvent.tiers.map((tier, idx) => {
@@ -507,7 +501,7 @@ export default function CatalogPage() {
                         <div className="flex items-center justify-between w-full sm:w-auto gap-6 sm:pl-4 sm:border-l border-white/10">
                           <span className="text-xl font-black text-white">${tier.price.toLocaleString('es-AR')}</span>
                           
-                          <div className="flex items-center gap-3 bg-[#07070a] border border-white/10 rounded-full px-2 py-1">
+                          <div className="flex items-center gap-3 bg-[#05070d] border border-white/10 rounded-full px-2 py-1">
                             <button onClick={() => updateCart(tier.name, -1)} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/10 text-white font-black transition cursor-pointer">
                               −
                             </button>
@@ -526,7 +520,7 @@ export default function CatalogPage() {
                   <div className="pt-6 flex justify-end">
                     <button
                       onClick={() => handleProceedFromTickets()}
-                      className="px-8 py-4 bg-amber-500 hover:bg-amber-400 text-black font-black uppercase text-xs rounded-xl transition shadow-xl shadow-amber-500/20 cursor-pointer tracking-wider"
+                      className="px-8 py-4 bg-blue-600 hover:bg-blue-500 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] duration-200 text-white font-black uppercase text-xs rounded-xl transition shadow-xl shadow-blue-500/20 cursor-pointer tracking-wider"
                     >
                       Continuar al Pago ({totalTickets} tickets) →
                     </button>
@@ -547,15 +541,15 @@ export default function CatalogPage() {
               <span>TICKETS</span>
             </div>
             <div className="flex-1 h-[1px] mx-4 bg-slate-800" />
-            <div className={`flex items-center gap-2 text-xs font-bold ${isLoggedIn ? 'text-emerald-400' : 'text-amber-400'}`}>
-              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${isLoggedIn ? 'bg-emerald-500/25 border border-emerald-500' : 'bg-amber-500/25 border border-amber-500'}`}>
+            <div className={`flex items-center gap-2 text-xs font-bold ${isLoggedIn ? 'text-emerald-400' : 'text-blue-400'}`}>
+              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${isLoggedIn ? 'bg-emerald-500/25 border border-emerald-500' : 'bg-blue-500/25 border border-blue-500'}`}>
                 {isLoggedIn ? '✓' : '●'}
               </span>
               <span>TUS DATOS {isLoggedIn ? '(REGISTRADO)' : ''}</span>
             </div>
             <div className="flex-1 h-[1px] mx-4 bg-slate-800" />
-            <div className="flex items-center gap-2 text-amber-400 text-xs font-bold">
-              <span className="w-5 h-5 rounded-full bg-amber-500/25 border border-amber-500 flex items-center justify-center text-[10px]">03</span>
+            <div className="flex items-center gap-2 text-blue-400 text-xs font-bold">
+              <span className="w-5 h-5 rounded-full bg-blue-500/25 border border-blue-500 flex items-center justify-center text-[10px]">03</span>
               <span>PAGO</span>
             </div>
           </div>
@@ -572,24 +566,24 @@ export default function CatalogPage() {
                   <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Nombre y Apellido</label>
                   <input
                     type="text" required value={holderName} onChange={(e) => setHolderName(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#07070a] border border-white/10 rounded-xl text-white font-bold text-xs"
+                    className="w-full px-4 py-3 bg-[#05070d] border border-white/10 rounded-xl text-white font-bold text-xs"
                   />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">DNI</label>
                   <input
                     type="text" required value={holderDni} onChange={(e) => setHolderDni(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#07070a] border border-white/10 rounded-xl text-white font-bold text-xs"
+                    className="w-full px-4 py-3 bg-[#05070d] border border-white/10 rounded-xl text-white font-bold text-xs"
                   />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Correo Electrónico (Billetera)</label>
                   <input
                     type="email" required value={holderEmail} onChange={(e) => setHolderEmail(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#07070a] border border-white/10 rounded-xl text-white font-bold text-xs"
+                    className="w-full px-4 py-3 bg-[#05070d] border border-white/10 rounded-xl text-white font-bold text-xs"
                   />
                 </div>
-                <button type="submit" className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-black uppercase text-xs rounded-xl transition cursor-pointer tracking-wider mt-4">
+                <button type="submit" className="w-full py-4 bg-blue-600 hover:bg-blue-500 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] duration-200 text-white font-black uppercase text-xs rounded-xl transition cursor-pointer tracking-wider mt-4">
                   Continuar al Pago →
                 </button>
               </form>
@@ -600,16 +594,16 @@ export default function CatalogPage() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start max-w-5xl mx-auto">
               <div className="lg:col-span-7 space-y-6">
                 <div className="bg-[#0c0f16] border border-white/10 rounded-3xl p-6 space-y-4">
-                  <div className="flex items-center gap-2 text-amber-400 text-xs font-bold uppercase tracking-wider">
+                  <div className="flex items-center gap-2 text-blue-400 text-xs font-bold uppercase tracking-wider">
                     <span>🏷️</span>
                     <span>¿Tienes un cupón?</span>
                   </div>
                   <div className="flex gap-2">
                     <input
                       type="text" placeholder="INGRESA EL CÓDIGO" value={promoCode} onChange={(e) => setPromoCode(e.target.value)}
-                      className="flex-1 px-4 py-3.5 bg-[#07070a] border border-white/10 rounded-xl text-amber-400 font-black uppercase text-xs focus:outline-none"
+                      className="flex-1 px-4 py-3.5 bg-[#05070d] border border-white/10 rounded-xl text-blue-400 font-black uppercase text-xs focus:outline-none"
                     />
-                    <button type="button" onClick={handleApplyCoupon} className="px-6 py-3.5 bg-slate-300 hover:bg-white text-black font-black text-xs uppercase rounded-xl transition cursor-pointer">
+                    <button type="button" onClick={handleApplyCoupon} className="px-6 py-3.5 bg-white/10 hover:bg-white/20 border border-white/10 text-white font-black text-xs uppercase rounded-xl transition-all duration-200 cursor-pointer">
                       Aplicar
                     </button>
                   </div>
@@ -619,15 +613,15 @@ export default function CatalogPage() {
                 <div className="bg-[#0c0f16] border border-white/10 rounded-3xl p-6 space-y-6">
                   <div className="space-y-1">
                     <h3 className="text-white font-bold text-base">¿Cómo quieres pagar?</h3>
-                    <p className="text-xs text-slate-400">Pagas directo al organizador en la nube. <strong className="text-amber-400">Sin cargos extra.</strong></p>
+                    <p className="text-xs text-slate-400">Pagas directo al organizador en la nube. <strong className="text-blue-400">Sin cargos extra.</strong></p>
                   </div>
 
                   <div className="space-y-3">
                     <label 
                       onClick={() => setPaymentMethod('mercado_pago')}
-                      className={`flex items-start gap-4 p-4 rounded-2xl border cursor-pointer transition ${paymentMethod === 'mercado_pago' ? 'bg-amber-500/10 border-amber-500/50' : 'bg-[#07070a] border-white/5 hover:border-white/20'}`}
+                      className={`flex items-start gap-4 p-4 rounded-2xl border cursor-pointer transition ${paymentMethod === 'mercado_pago' ? 'bg-blue-500/10 border-blue-500/50' : 'bg-[#05070d] border-white/5 hover:border-white/20'}`}
                     >
-                      <input type="radio" name="payment" checked={paymentMethod === 'mercado_pago'} onChange={() => setPaymentMethod('mercado_pago')} className="mt-1 accent-amber-500" />
+                      <input type="radio" name="payment" checked={paymentMethod === 'mercado_pago'} onChange={() => setPaymentMethod('mercado_pago')} className="mt-1 accent-blue-500" />
                       <div className="space-y-0.5">
                         <span className="text-white font-bold text-sm block">MercadoPago</span>
                         <span className="text-[10px] text-slate-400 block uppercase">Tarjeta de débito, crédito o dinero en cuenta.</span>
@@ -636,9 +630,9 @@ export default function CatalogPage() {
 
                     <label 
                       onClick={() => setPaymentMethod('transfer')}
-                      className={`flex items-start gap-4 p-4 rounded-2xl border cursor-pointer transition ${paymentMethod === 'transfer' ? 'bg-amber-500/10 border-amber-500/50' : 'bg-[#07070a] border-white/5 hover:border-white/20'}`}
+                      className={`flex items-start gap-4 p-4 rounded-2xl border cursor-pointer transition ${paymentMethod === 'transfer' ? 'bg-blue-500/10 border-blue-500/50' : 'bg-[#05070d] border-white/5 hover:border-white/20'}`}
                     >
-                      <input type="radio" name="payment" checked={paymentMethod === 'transfer'} onChange={() => setPaymentMethod('transfer')} className="mt-1 accent-amber-500" />
+                      <input type="radio" name="payment" checked={paymentMethod === 'transfer'} onChange={() => setPaymentMethod('transfer')} className="mt-1 accent-blue-500" />
                       <div className="space-y-0.5">
                         <span className="text-white font-bold text-sm block">Transferencia bancaria</span>
                         <span className="text-[10px] text-slate-400 block uppercase">Subir comprobante.</span>
@@ -649,17 +643,17 @@ export default function CatalogPage() {
                   <div className="flex items-center gap-3 pt-2">
                     <input 
                       type="checkbox" id="terms" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)}
-                      className="w-4 h-4 rounded accent-amber-500 cursor-pointer"
+                      className="w-4 h-4 rounded accent-blue-500 cursor-pointer"
                     />
                     <label htmlFor="terms" className="text-xs text-slate-300 cursor-pointer">
-                      Acepto las <span className="text-amber-400 underline">condiciones generales de compra</span>
+                      Acepto las <span className="text-blue-400 underline">condiciones generales de compra</span>
                     </label>
                   </div>
 
                   <button
                     onClick={handleConfirmPurchase}
                     disabled={isProcessing}
-                    className="w-full py-5 bg-amber-500 hover:bg-amber-400 text-black font-black uppercase text-xs rounded-2xl transition cursor-pointer shadow-xl shadow-amber-500/20 tracking-wider disabled:opacity-50"
+                    className="w-full py-5 bg-blue-600 hover:bg-blue-500 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] duration-200 text-white font-black uppercase text-xs rounded-2xl transition cursor-pointer shadow-xl shadow-blue-500/20 tracking-wider disabled:opacity-50"
                   >
                     {isProcessing ? 'Procesando...' : '🔒 Confirmar Orden'}
                   </button>
@@ -669,14 +663,14 @@ export default function CatalogPage() {
               <div className="lg:col-span-5 bg-[#0c0f16] border border-white/10 rounded-3xl p-6 space-y-6 sticky top-24">
                 <div className="flex justify-between items-center border-b border-white/10 pb-4">
                   <span className="text-white font-bold text-sm">Tu compra</span>
-                  <button onClick={() => setViewMode('details')} className="text-xs text-amber-400 hover:underline">CAMBIAR</button>
+                  <button onClick={() => setViewMode('details')} className="text-xs text-blue-400 hover:underline">CAMBIAR</button>
                 </div>
 
                 <div className="flex gap-4 items-center">
                   <img src={selectedEvent.imageUrl} alt="" className="w-16 h-16 rounded-xl object-cover border border-white/10" />
                   <div className="space-y-0.5">
                     <h4 className="text-white font-bold text-xs line-clamp-1">{selectedEvent.name}</h4>
-                    <p className="text-[10px] text-amber-400 font-bold">{selectedEvent.date} · {selectedEvent.startTime} HS</p>
+                    <p className="text-[10px] text-blue-400 font-bold">{selectedEvent.date} · {selectedEvent.startTime} HS</p>
                     <p className="text-[10px] text-slate-400 line-clamp-1">{selectedEvent.venue}</p>
                   </div>
                 </div>
@@ -687,7 +681,7 @@ export default function CatalogPage() {
                     if (!t) return null;
                     return (
                       <div key={tierName} className="flex justify-between items-center">
-                        <span className="text-slate-300"><span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold mr-1.5 text-[10px]">x{qty}</span> {tierName}</span>
+                        <span className="text-slate-300"><span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-bold mr-1.5 text-[10px]">x{qty}</span> {tierName}</span>
                         <span className="font-bold text-white">${(t.price * qty).toLocaleString('es-AR')}</span>
                       </div>
                     );
@@ -702,7 +696,7 @@ export default function CatalogPage() {
                 <div className="pt-4 border-t border-white/10 flex justify-between items-end">
                   <span className="text-sm font-bold text-white">Total a pagar</span>
                   <div className="text-right">
-                    <span className="text-2xl font-black text-amber-400">${finalTotal.toLocaleString('es-AR')}</span>
+                    <span className="text-2xl font-black text-blue-400">${finalTotal.toLocaleString('es-AR')}</span>
                     <span className="text-[9px] text-slate-500 block uppercase">ARS</span>
                   </div>
                 </div>
@@ -714,7 +708,7 @@ export default function CatalogPage() {
 
       {/* FOOTER */}
       <footer className="border-t border-white/5 bg-[#050507] py-6 text-xs font-mono text-slate-500 text-center space-y-1 mt-auto">
-        <p className="font-luxury text-amber-400 tracking-widest text-xs font-bold">LIVE EXPERIENCE</p>
+        <p className="font-luxury text-blue-400 tracking-widest text-xs font-bold">LIVE EXPERIENCE</p>
       </footer>
     </div>
   );

@@ -116,7 +116,7 @@ export default function BuyTicketsPage() {
               key={pack.id}
               onClick={() => setSelectedPack(pack.id)}
               className={`p-5 rounded-2xl border text-left transition cursor-pointer ${
-                selectedPack === pack.id ? 'bg-amber-500/10 border-amber-500' : 'bg-[#0c0f16] border-white/10 hover:border-white/20'
+                selectedPack === pack.id ? 'bg-blue-500/10 border-blue-500' : 'bg-[#0c0f16] border-white/10 hover:border-white/20'
               }`}
             >
               <span className="text-2xl font-black text-white block">{pack.quantity.toLocaleString('es-AR')}</span>
@@ -131,7 +131,7 @@ export default function BuyTicketsPage() {
           <button
             onClick={() => setSelectedPack('custom')}
             className={`p-5 rounded-2xl border text-left transition cursor-pointer ${
-              selectedPack === 'custom' ? 'bg-amber-500/10 border-amber-500' : 'bg-[#0c0f16] border-white/10 hover:border-white/20'
+              selectedPack === 'custom' ? 'bg-blue-500/10 border-blue-500' : 'bg-[#0c0f16] border-white/10 hover:border-white/20'
             }`}
           >
             <span className="text-2xl font-black text-white block">✏️</span>
@@ -151,7 +151,7 @@ export default function BuyTicketsPage() {
               max={MAX_CUSTOM_QUANTITY}
               value={customQuantity}
               onChange={(e) => setCustomQuantity(e.target.value)}
-              className="w-full px-4 py-3 bg-black/60 border border-white/10 rounded-xl text-white text-sm outline-none focus:border-amber-500"
+              className="w-full px-4 py-3 bg-black/60 border border-white/10 rounded-xl text-white text-sm outline-none focus:border-blue-500"
             />
             {customPricing && (
               <div className="flex justify-between items-center pt-2 border-t border-white/10 text-xs">
@@ -163,8 +163,8 @@ export default function BuyTicketsPage() {
         )}
 
         {selectedPack && (
-          <div className="bg-[#0c0f16] border border-amber-500/40 rounded-2xl p-6 space-y-4">
-            <h2 className="text-xs font-bold uppercase text-amber-400">Transferí a Live Experience</h2>
+          <div className="bg-[#0c0f16] border border-blue-500/40 rounded-2xl p-6 space-y-4">
+            <h2 className="text-xs font-bold uppercase text-blue-400">Transferí a Live Experience</h2>
             <div className="text-xs space-y-1 text-neutral-300">
               <p>Alias: <span className="text-white font-bold select-all">{PLATFORM_BANK_INFO.alias}</span></p>
               <p>CBU/CVU: <span className="text-white font-bold select-all">{PLATFORM_BANK_INFO.cbu}</span></p>
@@ -184,7 +184,7 @@ export default function BuyTicketsPage() {
             <button
               onClick={handleBuy}
               disabled={submitting}
-              className="w-full py-3.5 bg-amber-500 hover:bg-amber-400 text-black font-black text-xs uppercase rounded-xl transition disabled:opacity-50 cursor-pointer"
+              className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs uppercase rounded-xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 cursor-pointer"
             >
               {submitting ? 'Enviando...' : 'Ya transferí, registrar pedido →'}
             </button>

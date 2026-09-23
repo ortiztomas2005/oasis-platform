@@ -61,7 +61,7 @@ export default function AdminGate({ children }: { children: React.ReactNode }) {
           className="w-full max-w-sm bg-[#090d16] border border-neutral-800 rounded-3xl p-8 shadow-2xl space-y-5 font-mono"
         >
           <div className="text-center space-y-1">
-            <span className="text-[10px] tracking-widest text-amber-400 uppercase font-bold">
+            <span className="text-[10px] tracking-widest text-blue-400 uppercase font-bold">
               Acceso Restringido
             </span>
             <h1 className="text-xl font-black uppercase text-white">Panel de Administración</h1>

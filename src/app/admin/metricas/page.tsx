@@ -56,7 +56,7 @@ export default function ProducerMetricsPage() {
       <div className="max-w-4xl mx-auto space-y-8">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <span className="text-[10px] text-amber-400 uppercase font-bold tracking-widest block">Dashboard & Métricas</span>
+            <span className="text-[10px] text-blue-400 uppercase font-bold tracking-widest block">Dashboard & Métricas</span>
             <h1 className="text-2xl font-black uppercase text-white">Reportes y actividad en vivo</h1>
           </div>
           <Link href="/admin" className="text-xs text-neutral-400 hover:text-white">
@@ -95,7 +95,7 @@ export default function ProducerMetricsPage() {
               </div>
               <div className="p-4 rounded-2xl bg-[#0c0f16] border border-white/10">
                 <span className="text-[10px] text-neutral-500 uppercase block">Ganancia neta</span>
-                <p className={`text-xl font-black ${totals.netProfit >= 0 ? 'text-amber-300' : 'text-rose-400'}`}>
+                <p className={`text-xl font-black ${totals.netProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                   ${totals.netProfit.toLocaleString('es-AR')}
                 </p>
               </div>

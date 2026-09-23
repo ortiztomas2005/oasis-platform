@@ -35,10 +35,10 @@ export default function EventsPage() {
   });
 
   return (
-    <main className="min-h-screen bg-[#050811] text-white selection:bg-blue-600 selection:text-white font-sans antialiased">
+    <main className="min-h-screen bg-[#05070d] text-white selection:bg-blue-600 selection:text-white font-sans antialiased">
       
       {/* NAVBAR CON TODOS LOS LINKS INCLUIDO BACKSTAGE */}
-      <header className="border-b border-blue-950/60 bg-[#050811]/90 backdrop-blur-xl sticky top-0 z-50">
+      <header className="border-b border-blue-950/60 bg-[#05070d]/90 backdrop-blur-xl sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-8 h-20 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <span className="text-2xl font-black italic tracking-tighter text-white font-serif">LIVE EXPERIENCE</span>
@@ -82,7 +82,7 @@ export default function EventsPage() {
             placeholder="Buscar evento o locación..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full sm:w-72 bg-[#0A0F1D] border border-blue-950 rounded-xl px-4 py-2.5 text-xs text-white outline-none focus:border-blue-500 font-mono"
+            className="w-full sm:w-72 bg-[#0b1120] border border-blue-950 rounded-xl px-4 py-2.5 text-xs text-white outline-none focus:border-blue-500 font-mono"
           />
         </div>
 
@@ -97,7 +97,7 @@ export default function EventsPage() {
             {filteredEvents.map((evt) => (
               <div
                 key={evt.id}
-                className="bg-[#0A0F1D] border border-blue-950 hover:border-blue-700/60 rounded-2xl overflow-hidden flex flex-col justify-between transition-all"
+                className="bg-[#0b1120] border border-blue-950 hover:border-blue-500/50 rounded-2xl overflow-hidden flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 group"
               >
                 <div className="relative aspect-[16/10] bg-neutral-900 overflow-hidden">
                   <img
@@ -120,7 +120,7 @@ export default function EventsPage() {
                     <span className="text-xs font-bold text-blue-400">Pase Oficial</span>
                     <Link
                       href={`/events/${evt.slug || evt.id}`}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold uppercase text-xs rounded-xl transition-all"
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold uppercase text-xs rounded-xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 shadow-md shadow-blue-600/20 hover:shadow-blue-500/30"
                     >
                       Comprar Pase →
                     </Link>

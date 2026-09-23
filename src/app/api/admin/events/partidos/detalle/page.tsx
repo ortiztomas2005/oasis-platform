@@ -61,12 +61,6 @@ function MatchDetailContent() {
   return (
     <div className="min-h-screen bg-[#07070a] text-slate-100 flex flex-col font-sans antialiased selection:bg-amber-500 selection:text-black font-mono">
       
-      <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
-        .font-luxury { font-family: 'Cinzel', serif; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
-      `}</style>
-
       {/* HEADER PÚBLICO */}
       <header className="h-16 border-b border-white/5 bg-[#07070a] px-6 flex items-center justify-between shrink-0 z-30">
         <div className="flex items-center gap-4">

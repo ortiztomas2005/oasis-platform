@@ -129,7 +129,7 @@ export default function BarraPage() {
       <div className="max-w-5xl mx-auto space-y-8">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <span className="text-[10px] text-amber-400 uppercase font-bold tracking-widest block">Escáner de Barra</span>
+            <span className="text-[10px] text-blue-400 uppercase font-bold tracking-widest block">Escáner de Barra</span>
             <h1 className="text-2xl font-black uppercase text-white">Carta y ventas de barra</h1>
           </div>
           <Link href="/admin" className="text-xs text-neutral-400 hover:text-white">
@@ -171,7 +171,7 @@ export default function BarraPage() {
                   <button
                     type="submit"
                     disabled={busy || !saleForm.bar_menu_id}
-                    className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-black uppercase transition disabled:opacity-50 cursor-pointer"
+                    className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black uppercase transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 cursor-pointer"
                   >
                     Cobrar 🍸
                   </button>

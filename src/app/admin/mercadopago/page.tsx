@@ -67,7 +67,7 @@ function MercadoPagoConnectContent() {
       <div className="max-w-2xl mx-auto space-y-8">
         <div className="flex items-center justify-between">
           <div>
-            <span className="text-[10px] text-amber-400 uppercase font-bold tracking-widest block">
+            <span className="text-[10px] text-blue-400 uppercase font-bold tracking-widest block">
               Cobros de tu Productora
             </span>
             <h1 className="text-2xl font-black uppercase text-white">Mercado Pago</h1>

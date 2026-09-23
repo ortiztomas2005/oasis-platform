@@ -101,9 +101,6 @@ export default function PurchaseMatchPage() {
     <div className="min-h-screen bg-[#07070a] text-slate-100 flex flex-col font-sans antialiased selection:bg-amber-500 selection:text-black font-mono">
       
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
-        .font-luxury { font-family: 'Cinzel', serif; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
         @media print {
           body { background: white !important; color: black !important; }
           .no-print { display: none !important; }

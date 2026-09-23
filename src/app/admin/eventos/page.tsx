@@ -214,7 +214,7 @@ export default function ProducerEventsPage() {
       <div className="max-w-4xl mx-auto space-y-8">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <span className="text-[10px] text-amber-400 uppercase font-bold tracking-widest block">
+            <span className="text-[10px] text-blue-400 uppercase font-bold tracking-widest block">
               {producerName || 'Tu Productora'}
             </span>
             <h1 className="text-2xl font-black uppercase text-white">Mis Eventos</h1>
@@ -222,7 +222,7 @@ export default function ProducerEventsPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowForm((v) => !v)}
-              className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-black font-black text-xs uppercase rounded-xl transition cursor-pointer"
+              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 text-white font-black text-xs uppercase rounded-xl transition cursor-pointer"
             >
               {showForm ? 'Cancelar' : '+ Crear Evento'}
             </button>
@@ -243,12 +243,12 @@ export default function ProducerEventsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="sm:col-span-2">
                 <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">Nombre del evento *</label>
-                <input required value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-amber-500" />
+                <input required value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
               </div>
 
               <div className="sm:col-span-2">
                 <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">Descripción</label>
-                <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-amber-500" />
+                <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
               </div>
 
               <div>
@@ -260,55 +260,55 @@ export default function ProducerEventsPage() {
                   onChange={(e) => setDate(e.target.value)}
                   min={`${new Date().getFullYear() - 1}-01-01T00:00`}
                   max={`${new Date().getFullYear() + 10}-12-31T23:59`}
-                  className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-amber-500"
+                  className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500"
                 />
               </div>
               <div>
                 <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">Hora límite de ingreso</label>
-                <input type="time" value={doorTime} onChange={(e) => setDoorTime(e.target.value)} className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-amber-500" />
+                <input type="time" value={doorTime} onChange={(e) => setDoorTime(e.target.value)} className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
               </div>
 
               <div>
                 <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">Venue *</label>
-                <input required value={venue} onChange={(e) => setVenue(e.target.value)} className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-amber-500" />
+                <input required value={venue} onChange={(e) => setVenue(e.target.value)} className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
               </div>
               <div>
                 <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">Ciudad</label>
-                <input value={city} onChange={(e) => setCity(e.target.value)} className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-amber-500" />
+                <input value={city} onChange={(e) => setCity(e.target.value)} className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
               </div>
 
               <div className="sm:col-span-2">
                 <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">Dirección</label>
-                <input value={address} onChange={(e) => setAddress(e.target.value)} className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-amber-500" />
+                <input value={address} onChange={(e) => setAddress(e.target.value)} className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
               </div>
 
               <div className="sm:col-span-2">
                 <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">Imagen (URL)</label>
-                <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://..." className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-amber-500" />
+                <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://..." className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
               </div>
 
               <div>
                 <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">Capacidad total</label>
-                <input type="number" min={1} value={capacity} onChange={(e) => setCapacity(e.target.value)} className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-amber-500" />
+                <input type="number" min={1} value={capacity} onChange={(e) => setCapacity(e.target.value)} className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
               </div>
             </div>
 
             <div className="space-y-2 pt-2 border-t border-white/10">
-              <span className="text-[10px] text-amber-400 uppercase font-bold block">Datos para pago por transferencia</span>
+              <span className="text-[10px] text-blue-400 uppercase font-bold block">Datos para pago por transferencia</span>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <input value={bankAlias} onChange={(e) => setBankAlias(e.target.value)} placeholder="Alias" className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-amber-500" />
-                <input value={bankCbu} onChange={(e) => setBankCbu(e.target.value)} placeholder="CBU/CVU" className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-amber-500" />
-                <input value={bankHolderName} onChange={(e) => setBankHolderName(e.target.value)} placeholder="Titular" className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-amber-500" />
+                <input value={bankAlias} onChange={(e) => setBankAlias(e.target.value)} placeholder="Alias" className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
+                <input value={bankCbu} onChange={(e) => setBankCbu(e.target.value)} placeholder="CBU/CVU" className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
+                <input value={bankHolderName} onChange={(e) => setBankHolderName(e.target.value)} placeholder="Titular" className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
               </div>
             </div>
 
             <div className="space-y-2 pt-2 border-t border-white/10">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] text-amber-400 uppercase font-bold block">Tandas de entradas *</span>
+                <span className="text-[10px] text-blue-400 uppercase font-bold block">Tandas de entradas *</span>
                 <button
                   type="button"
                   onClick={() => setTiers((prev) => [...prev, { ...EMPTY_TIER }])}
-                  className="text-[10px] text-amber-400 underline cursor-pointer"
+                  className="text-[10px] text-blue-400 underline cursor-pointer"
                 >
                   + Agregar tanda
                 </button>
@@ -320,7 +320,7 @@ export default function ProducerEventsPage() {
                     placeholder="Nombre (ej: General T1)"
                     value={t.name}
                     onChange={(e) => handleTierChange(idx, 'name', e.target.value)}
-                    className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-amber-500"
+                    className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500"
                   />
                   <input
                     type="number"
@@ -328,7 +328,7 @@ export default function ProducerEventsPage() {
                     placeholder="Precio"
                     value={t.price}
                     onChange={(e) => handleTierChange(idx, 'price', e.target.value)}
-                    className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-amber-500"
+                    className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500"
                   />
                   <input
                     type="number"
@@ -336,7 +336,7 @@ export default function ProducerEventsPage() {
                     placeholder="Capacidad"
                     value={t.capacity}
                     onChange={(e) => handleTierChange(idx, 'capacity', e.target.value)}
-                    className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-amber-500"
+                    className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500"
                   />
                   {tiers.length > 1 && (
                     <button
@@ -353,7 +353,7 @@ export default function ProducerEventsPage() {
                       placeholder="Descripción breve (ej: incluye acceso a pista y guardarropa)"
                       value={t.description}
                       onChange={(e) => handleTierChange(idx, 'description', e.target.value)}
-                      className="px-3.5 py-2 bg-black/60 border border-white/10 rounded-xl text-[11px] text-neutral-300 outline-none focus:border-amber-500"
+                      className="px-3.5 py-2 bg-black/60 border border-white/10 rounded-xl text-[11px] text-neutral-300 outline-none focus:border-blue-500"
                     />
                     <div className="flex items-center gap-1.5">
                       <label className="text-[10px] text-neutral-500 whitespace-nowrap">Hora límite:</label>
@@ -361,7 +361,7 @@ export default function ProducerEventsPage() {
                         type="time"
                         value={t.entryCutoffTime}
                         onChange={(e) => handleTierChange(idx, 'entryCutoffTime', e.target.value)}
-                        className="flex-1 px-2 py-2 bg-black/60 border border-white/10 rounded-xl text-[11px] text-white outline-none focus:border-amber-500"
+                        className="flex-1 px-2 py-2 bg-black/60 border border-white/10 rounded-xl text-[11px] text-white outline-none focus:border-blue-500"
                       />
                     </div>
                   </div>
@@ -401,7 +401,7 @@ export default function ProducerEventsPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full py-3.5 bg-amber-500 hover:bg-amber-400 text-black font-black text-xs uppercase rounded-xl transition disabled:opacity-50 cursor-pointer"
+              className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 text-white font-black text-xs uppercase rounded-xl transition disabled:opacity-50 cursor-pointer"
             >
               {submitting ? 'Creando...' : 'Crear Evento →'}
             </button>
@@ -411,7 +411,7 @@ export default function ProducerEventsPage() {
         {loading ? (
           <p className="text-xs text-neutral-500">Cargando...</p>
         ) : error ? (
-          <p className="text-xs text-amber-400">{error}</p>
+          <p className="text-xs text-blue-400">{error}</p>
         ) : events.length === 0 ? (
           <div className="py-16 text-center border border-dashed border-white/10 rounded-3xl text-xs text-neutral-500">
             Todavía no creaste ningún evento.
@@ -442,7 +442,7 @@ export default function ProducerEventsPage() {
                       >
                         {ev.status === 'CANCELLED' ? 'SUSPENDIDO' : ev.status}
                       </span>
-                      <Link href={`/events/${ev.slug}`} target="_blank" className="text-[11px] text-amber-400 underline">
+                      <Link href={`/events/${ev.slug}`} target="_blank" className="text-[11px] text-blue-400 underline">
                         Ver página →
                       </Link>
                       {ev.status === 'CANCELLED' ? (
@@ -470,7 +470,7 @@ export default function ProducerEventsPage() {
                       )}
                       <button
                         onClick={() => setExpandedEventId(isExpanded ? null : ev.id)}
-                        className="text-[11px] px-3 py-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 transition cursor-pointer"
+                        className="text-[11px] px-3 py-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20 transition cursor-pointer"
                       >
                         {isExpanded ? 'Cerrar tandas ▲' : 'Gestionar tandas ▾'}
                       </button>
@@ -502,7 +502,7 @@ export default function ProducerEventsPage() {
                                   placeholder="Descripción breve..."
                                   disabled={busy}
                                   onBlur={(e) => updateTierConfig(ev.id, t.id, { description: e.target.value })}
-                                  className="px-3 py-2 bg-black/60 border border-white/10 rounded-lg text-[11px] text-neutral-300 outline-none focus:border-amber-500"
+                                  className="px-3 py-2 bg-black/60 border border-white/10 rounded-lg text-[11px] text-neutral-300 outline-none focus:border-blue-500"
                                 />
                                 <div className="flex items-center gap-1.5">
                                   <label className="text-[10px] text-neutral-500 whitespace-nowrap">Hora límite:</label>
@@ -511,7 +511,7 @@ export default function ProducerEventsPage() {
                                     defaultValue={t.entry_cutoff_time || ''}
                                     disabled={busy}
                                     onBlur={(e) => updateTierConfig(ev.id, t.id, { entryCutoffTime: e.target.value })}
-                                    className="flex-1 px-2 py-2 bg-black/60 border border-white/10 rounded-lg text-[11px] text-white outline-none focus:border-amber-500"
+                                    className="flex-1 px-2 py-2 bg-black/60 border border-white/10 rounded-lg text-[11px] text-white outline-none focus:border-blue-500"
                                   />
                                 </div>
                               </div>

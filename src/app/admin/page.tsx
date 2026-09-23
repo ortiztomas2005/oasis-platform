@@ -210,21 +210,19 @@ export default function LiveExperienceAdmin() {
   // BLOQUEO ABSOLUTO SI NO HAY SESIÓN ACTIVA
   if (!currentUserEmail) {
     return (
-      <div className="min-h-screen bg-[#07070a] text-slate-100 flex flex-col items-center justify-center p-6 font-mono selection:bg-amber-500 selection:text-black">
-        <style jsx global>{`
-          @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
-          .font-luxury { font-family: 'Cinzel', serif; }
-          body { font-family: 'Plus Jakarta Sans', sans-serif; }
-        `}</style>
-        <div className="max-w-md w-full rounded-3xl bg-[#0c0f17] border border-amber-500/30 p-8 space-y-6 text-center shadow-2xl">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center font-black mx-auto">
+      <div className="min-h-screen bg-[#05070d] text-slate-100 flex flex-col items-center justify-center p-6 font-mono selection:bg-blue-500 selection:text-white">
+        <div className="max-w-md w-full rounded-3xl bg-[#0b1120] border border-blue-500/30 p-8 space-y-6 text-center shadow-2xl">
+          <div className="w-12 h-12 rounded-2xl bg-blue-500/15 border border-blue-500/30 text-blue-400 flex items-center justify-center font-black mx-auto">
             🔒
           </div>
           <div className="space-y-2">
             <h1 className="font-luxury text-xl font-black text-white uppercase">Iniciá Sesión</h1>
             <p className="text-xs text-slate-400">No hay ninguna cuenta logueada. Para administrar productoras debés iniciar sesión.</p>
           </div>
-          <Link href="/" className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-black uppercase text-xs rounded-xl transition block shadow-lg cursor-pointer">
+          <Link
+            href="/"
+            className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-black uppercase text-xs rounded-xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 block shadow-lg shadow-blue-600/20 cursor-pointer"
+          >
             Ir a la Cartelera / Iniciar Sesión 🔑
           </Link>
         </div>
@@ -233,18 +231,11 @@ export default function LiveExperienceAdmin() {
   }
 
   return (
-    <div className="min-h-screen bg-[#07070a] text-slate-100 flex flex-col font-sans antialiased selection:bg-amber-500 selection:text-black">
-      
-      <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
-        .font-luxury { font-family: 'Cinzel', serif; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
-      `}</style>
-
+    <div className="min-h-screen bg-[#05070d] text-slate-100 flex flex-col font-sans antialiased selection:bg-blue-500 selection:text-white">
       {/* HEADER SUPERIOR */}
-      <header className="h-16 border-b border-white/5 bg-[#07070a] px-6 flex items-center justify-between shrink-0 z-30 font-mono">
+      <header className="h-16 border-b border-white/5 bg-[#05070d] px-6 flex items-center justify-between shrink-0 z-30 font-mono">
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-600 flex items-center justify-center font-black text-black text-sm shadow-lg shadow-amber-500/20">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-500 via-indigo-400 to-blue-600 flex items-center justify-center font-black text-white text-sm shadow-lg shadow-blue-500/20">
             {activeProducer ? activeProducer.substring(0, 2).toUpperCase() : 'LE'}
           </div>
           <div className="flex flex-col gap-0.5">
@@ -262,21 +253,21 @@ export default function LiveExperienceAdmin() {
                 className="bg-transparent text-white font-luxury text-sm font-black tracking-widest uppercase focus:outline-none cursor-pointer appearance-none pr-1"
               >
                 {uniqueProducers.length === 0 && (
-                  <option value="" disabled className="bg-[#0c0f17] text-slate-400">Sin productoras para este mail</option>
+                  <option value="" disabled className="bg-[#0b1120] text-slate-400">Sin productoras para este mail</option>
                 )}
                 {uniqueProducers.map((prod) => (
-                  <option key={prod} value={prod} className="bg-[#0c0f17] text-white">🏢 {prod}</option>
+                  <option key={prod} value={prod} className="bg-[#0b1120] text-white">🏢 {prod}</option>
                 ))}
-                <option disabled value="" className="bg-[#0c0f17] text-slate-600">────────────────────</option>
-                <option value="NEW" className="bg-[#0c0f17] text-amber-400 font-bold">+ Crear productora para {currentUserEmail}</option>
+                <option disabled value="" className="bg-[#0b1120] text-slate-600">────────────────────</option>
+                <option value="NEW" className="bg-[#0b1120] text-blue-400 font-bold">+ Crear productora para {currentUserEmail}</option>
               </select>
-              <span className="text-slate-500 group-hover:text-amber-400 transition text-[10px] pointer-events-none">▾</span>
+              <span className="text-slate-500 group-hover:text-blue-400 transition text-[10px] pointer-events-none">▾</span>
             </div>
-            <span className="text-[10px] text-amber-400/80 uppercase tracking-wider">{currentUserEmail}</span>
+            <span className="text-[10px] text-blue-400/80 uppercase tracking-wider">{currentUserEmail}</span>
           </div>
 
           {activeProducer && (
-            <div className="ml-2 px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-2 shadow-inner">
+            <div className="ml-2 px-4 py-2 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-300 text-xs font-bold flex items-center gap-2 shadow-inner">
               <span>🎟️ Disponibles:</span>
               <span className="text-white font-black text-sm">{currentPrepaidCount}</span>
             </div>
@@ -284,7 +275,7 @@ export default function LiveExperienceAdmin() {
         </div>
 
         <div className="flex items-center gap-4 text-xs font-bold font-mono">
-          <Link href="/admin/club" className="px-4 py-2 rounded-2xl bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/25 transition flex items-center gap-2 shadow-md">
+          <Link href="/admin/club" className="px-4 py-2 rounded-2xl bg-blue-500/15 text-blue-300 border border-blue-500/30 hover:bg-blue-500/25 transition flex items-center gap-2 shadow-md">
             <span>⚽</span>
             <span>Ir a Módulo Clubes / Deportes</span>
           </Link>
@@ -296,7 +287,7 @@ export default function LiveExperienceAdmin() {
       {/* CUERPO PRINCIPAL CON SIDEBAR */}
       <div className="flex flex-1 overflow-hidden font-mono">
         
-        <aside className="w-64 border-r border-white/5 bg-[#050507] flex flex-col justify-between p-4 shrink-0 select-none overflow-y-auto">
+        <aside className="w-64 border-r border-white/5 bg-[#070a12] flex flex-col justify-between p-4 shrink-0 select-none overflow-y-auto">
           <nav className="space-y-1 text-xs font-medium">
 
             {/* Todo lo que se gestiona desde acá ya vive en Supabase, no en
@@ -373,16 +364,16 @@ export default function LiveExperienceAdmin() {
         </aside>
 
         {/* CONTENIDO PRINCIPAL */}
-        <main className="flex-1 overflow-y-auto p-8 space-y-8 bg-[#07070a]">
+        <main className="flex-1 overflow-y-auto p-8 space-y-8 bg-[#05070d]">
 
           {!activeProducer ? (
-            <div className="p-16 text-center rounded-3xl bg-[#0c0f17] border border-amber-500/30 space-y-4 max-w-lg mx-auto my-12 shadow-2xl">
+            <div className="p-16 text-center rounded-3xl bg-[#0b1120] border border-blue-500/30 space-y-4 max-w-lg mx-auto my-12 shadow-2xl">
               <span className="text-4xl">🏢</span>
               <h2 className="font-luxury text-xl font-bold text-white uppercase">No tenés ninguna productora para este correo</h2>
-              <p className="text-xs text-slate-400">Estás conectado con <strong className="text-amber-400">{currentUserEmail}</strong>. Registrá tu productora exclusiva para este mail.</p>
+              <p className="text-xs text-slate-400">Estás conectado con <strong className="text-blue-400">{currentUserEmail}</strong>. Registrá tu productora exclusiva para este mail.</p>
               <button
                 onClick={() => setNewProducerModal(true)}
-                className="w-full py-4 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 text-black font-black uppercase text-xs rounded-xl shadow-lg cursor-pointer"
+                className="w-full py-4 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white font-black uppercase text-xs rounded-xl shadow-lg shadow-blue-600/20 hover:shadow-blue-500/30 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
               >
                 + Crear Productora para este Mail 🚀
               </button>
@@ -412,14 +403,14 @@ export default function LiveExperienceAdmin() {
       {/* MODAL CREAR NUEVA PRODUCTORA */}
       {newProducerModal && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 font-mono text-xs">
-          <div className="max-w-md w-full rounded-3xl bg-[#0c0f17] border border-amber-500/40 p-6 space-y-4 shadow-2xl">
+          <div className="max-w-md w-full rounded-3xl bg-[#0b1120] border border-blue-500/40 p-6 space-y-4 shadow-2xl">
             <h3 className="font-luxury text-base font-black text-white uppercase">✨ Registrar Nueva Productora / Entidad</h3>
             <form onSubmit={handleRegisterProducer} className="space-y-3">
-              <input type="text" required placeholder="Nombre Comercial" value={producerForm.producerName} onChange={e => setProducerForm({...producerForm, producerName: e.target.value})} className="w-full px-4 py-3 bg-[#07070a] border border-white/10 rounded-xl text-white font-bold" />
+              <input type="text" required placeholder="Nombre Comercial" value={producerForm.producerName} onChange={e => setProducerForm({...producerForm, producerName: e.target.value})} className="w-full px-4 py-3 bg-[#05070d] border border-white/10 rounded-xl text-white font-bold" />
               
               <div className="space-y-1">
                 <label className="text-slate-400 uppercase font-bold text-[10px]">Tipo de Entidad / Rubro</label>
-                <select value={producerForm.producerType} onChange={e => setProducerForm({...producerForm, producerType: e.target.value as any})} className="w-full px-4 py-3 bg-[#07070a] border border-white/10 rounded-xl text-amber-400 font-bold">
+                <select value={producerForm.producerType} onChange={e => setProducerForm({...producerForm, producerType: e.target.value as any})} className="w-full px-4 py-3 bg-[#05070d] border border-white/10 rounded-xl text-blue-400 font-bold">
                   <option value="ENTERTAINMENT">🎉 Entretenimiento / Fiestas / Festivales</option>
                   <option value="CLUB">⚽ Club / Institución / Deportes</option>
                   <option value="CORPORATE">💼 Corporativo / Congresos</option>
@@ -428,16 +419,16 @@ export default function LiveExperienceAdmin() {
               </div>
 
               <div className="grid grid-cols-2 gap-2">
-                <input type="text" required placeholder="Nombre" value={producerForm.firstName} onChange={e => setProducerForm({...producerForm, firstName: e.target.value})} className="px-3.5 py-3 bg-[#07070a] border border-white/10 rounded-xl text-white" />
-                <input type="text" required placeholder="Apellido" value={producerForm.lastName} onChange={e => setProducerForm({...producerForm, lastName: e.target.value})} className="px-3.5 py-3 bg-[#07070a] border border-white/10 rounded-xl text-white" />
+                <input type="text" required placeholder="Nombre" value={producerForm.firstName} onChange={e => setProducerForm({...producerForm, firstName: e.target.value})} className="px-3.5 py-3 bg-[#05070d] border border-white/10 rounded-xl text-white" />
+                <input type="text" required placeholder="Apellido" value={producerForm.lastName} onChange={e => setProducerForm({...producerForm, lastName: e.target.value})} className="px-3.5 py-3 bg-[#05070d] border border-white/10 rounded-xl text-white" />
               </div>
-              <input type="text" required placeholder="DNI" value={producerForm.dni} onChange={e => setProducerForm({...producerForm, dni: e.target.value})} className="w-full px-4 py-3 bg-[#07070a] border border-white/10 rounded-xl text-white" />
-              <input type="email" required disabled value={currentUserEmail} className="w-full px-4 py-3 bg-[#07070a] border border-white/10 rounded-xl text-emerald-400 font-bold opacity-80" />
-              <input type="text" required placeholder="Teléfono" value={producerForm.phone} onChange={e => setProducerForm({...producerForm, phone: e.target.value})} className="w-full px-4 py-3 bg-[#07070a] border border-white/10 rounded-xl text-white" />
+              <input type="text" required placeholder="DNI" value={producerForm.dni} onChange={e => setProducerForm({...producerForm, dni: e.target.value})} className="w-full px-4 py-3 bg-[#05070d] border border-white/10 rounded-xl text-white" />
+              <input type="email" required disabled value={currentUserEmail} className="w-full px-4 py-3 bg-[#05070d] border border-white/10 rounded-xl text-emerald-400 font-bold opacity-80" />
+              <input type="text" required placeholder="Teléfono" value={producerForm.phone} onChange={e => setProducerForm({...producerForm, phone: e.target.value})} className="w-full px-4 py-3 bg-[#05070d] border border-white/10 rounded-xl text-white" />
               
               <div className="flex gap-2 pt-2">
                 <button type="button" onClick={() => setNewProducerModal(false)} className="flex-1 py-3 bg-white/5 text-white rounded-xl border border-white/10">Cancelar</button>
-                <button type="submit" className="flex-1 py-3 bg-amber-500 text-black font-bold rounded-xl">Registrar</button>
+                <button type="submit" className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer">Registrar</button>
               </div>
             </form>
           </div>

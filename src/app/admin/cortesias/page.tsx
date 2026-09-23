@@ -82,7 +82,7 @@ export default function ProducerCourtesyPage() {
       <div className="max-w-2xl mx-auto space-y-8">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <span className="text-[10px] text-amber-400 uppercase font-bold tracking-widest block">Guestlist & Cortesías</span>
+            <span className="text-[10px] text-blue-400 uppercase font-bold tracking-widest block">Guestlist & Cortesías</span>
             <h1 className="text-2xl font-black uppercase text-white">Enviar entrada de cortesía</h1>
           </div>
           <Link href="/admin" className="text-xs text-neutral-400 hover:text-white">
@@ -170,7 +170,7 @@ export default function ProducerCourtesyPage() {
             <button
               type="submit"
               disabled={submitting || (producer !== null && producer.prepaid_balance <= 0)}
-              className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-black uppercase transition disabled:opacity-50 cursor-pointer"
+              className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black uppercase transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 cursor-pointer"
             >
               {submitting ? 'Emitiendo...' : '🎟️ Emitir cortesía'}
             </button>

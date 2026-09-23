@@ -87,7 +87,7 @@ export default function ProducerOrdersPage() {
       <div className="max-w-4xl mx-auto space-y-8">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <span className="text-[10px] text-amber-400 uppercase font-bold tracking-widest block">
+            <span className="text-[10px] text-blue-400 uppercase font-bold tracking-widest block">
               {producerName || 'Tu Productora'}
             </span>
             <h1 className="text-2xl font-black uppercase text-white">Confirmar Ventas</h1>
@@ -96,13 +96,13 @@ export default function ProducerOrdersPage() {
             {balance !== null && (
               <Link
                 href="/admin/comprar-tickets"
-                className="px-4 py-2 rounded-xl bg-[#0c0f16] border border-white/10 text-xs hover:border-amber-500/50 transition"
+                className="px-4 py-2 rounded-xl bg-[#0c0f16] border border-white/10 text-xs hover:border-blue-500/50 transition"
               >
                 <span className="text-neutral-500 uppercase">Saldo: </span>
                 <span className={`font-black ${balance > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                   {balance} tickets
                 </span>
-                <span className="text-amber-400 ml-1.5">· Comprar más →</span>
+                <span className="text-blue-400 ml-1.5">· Comprar más →</span>
               </Link>
             )}
             <Link href="/admin" className="text-xs text-neutral-400 hover:text-white">
@@ -123,7 +123,7 @@ export default function ProducerOrdersPage() {
               key={f}
               onClick={() => setFilter(f)}
               className={`px-4 py-2 rounded-xl border uppercase font-bold transition cursor-pointer ${
-                filter === f ? 'bg-amber-500/15 border-amber-500 text-amber-400' : 'bg-[#0c0f16] border-white/10 text-neutral-400 hover:text-white'
+                filter === f ? 'bg-blue-500/15 border-blue-500 text-blue-400' : 'bg-[#0c0f16] border-white/10 text-neutral-400 hover:text-white'
               }`}
             >
               {f === 'PENDING' ? `Pendientes (${orders.filter((o) => o.status === 'PENDING').length})` : `Todas (${orders.length})`}

@@ -75,7 +75,7 @@ export default function BroadcastPage() {
       <div className="max-w-3xl mx-auto space-y-8">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <span className="text-[10px] text-amber-400 uppercase font-bold tracking-widest block">Broadcast & Alertas</span>
+            <span className="text-[10px] text-blue-400 uppercase font-bold tracking-widest block">Broadcast & Alertas</span>
             <h1 className="text-2xl font-black uppercase text-white">Avisos a tus compradores</h1>
           </div>
           <Link href="/admin" className="text-xs text-neutral-400 hover:text-white">
@@ -115,7 +115,7 @@ export default function BroadcastPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-black uppercase transition disabled:opacity-50 cursor-pointer"
+            className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black uppercase transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 cursor-pointer"
           >
             {submitting ? 'Enviando...' : 'Enviar aviso 📢'}
           </button>
@@ -138,7 +138,7 @@ export default function BroadcastPage() {
                   <span className="text-[10px] text-neutral-500 shrink-0">{new Date(a.created_at).toLocaleString('es-AR')}</span>
                 </div>
                 <p className="text-xs text-neutral-400 mt-1">{a.message}</p>
-                <span className="text-[10px] text-amber-400 uppercase font-bold mt-2 block">
+                <span className="text-[10px] text-blue-400 uppercase font-bold mt-2 block">
                   {a.events?.name || a.events?.title || 'Todos los eventos'}
                 </span>
               </div>
