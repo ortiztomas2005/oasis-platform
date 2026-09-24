@@ -57,6 +57,7 @@ export async function PATCH(req: Request, context: { params: Promise<{ id: strin
     if (body.status !== undefined && ['DRAFT', 'PUBLISHED', 'FINISHED', 'CANCELLED'].includes(body.status)) {
       update.status = body.status;
     }
+    if (body.hasBar !== undefined) update.has_bar = !!body.hasBar;
 
     if (Object.keys(update).length === 0) {
       return NextResponse.json({ error: 'Nada para actualizar' }, { status: 400 });

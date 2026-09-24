@@ -60,6 +60,8 @@ export async function POST(req: Request) {
       bankHolderName,
       tiers,
       publish,
+      hasBar,
+      barItems,
     } = body;
 
     const cleanTitle = String(title || '').trim();
@@ -130,6 +132,7 @@ export async function POST(req: Request) {
         cbu_alias: bankAlias || null,
         status,
         producer_name: producerName,
+        has_bar: !!hasBar,
       })
       .select()
       .single();
@@ -156,6 +159,25 @@ export async function POST(req: Request) {
       // No dejamos un evento sin tandas colgado a medias
       await supabaseAdmin.from('events').delete().eq('id', event.id);
       return NextResponse.json({ error: `Error al crear las tandas: ${tiersErr.message}` }, { status: 500 });
+    }
+
+    // Carta de barra inicial, solo si la productora activó "barra en vivo"
+    // para este evento (ver migración 009). Se puede seguir editando
+    // después desde Escáner de Barra.
+    if (hasBar && Array.isArray(barItems) && barItems.length > 0) {
+      const barRows = barItems
+        .filter((b: any) => String(b?.name || '').trim())
+        .map((b: any) => ({
+          event_id: event.id,
+          name: String(b.name).trim(),
+          price: Number(b.price) || 0,
+          stock: Number(b.stock) || 0,
+        }));
+
+      if (barRows.length > 0) {
+        const { error: barErr } = await supabaseAdmin.from('bar_menu').insert(barRows);
+        if (barErr) console.error('Error al crear la carta de barra inicial:', barErr);
+      }
     }
 
     return NextResponse.json({ success: true, event });

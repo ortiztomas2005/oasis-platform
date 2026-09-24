@@ -36,6 +36,7 @@ interface EventRow {
   date?: string;
   status: string;
   image_url?: string;
+  has_bar?: boolean;
   ticket_tiers?: ExistingTier[];
 }
 
@@ -57,6 +58,7 @@ export default function ProducerEventsPage() {
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -72,6 +74,19 @@ export default function ProducerEventsPage() {
   const [bankHolderName, setBankHolderName] = useState('');
   const [publish, setPublish] = useState(true);
   const [tiers, setTiers] = useState<Tier[]>([{ ...EMPTY_TIER }]);
+
+  // Paso 3: barra en vivo. Es opt-in — si la productora dice que no,
+  // el evento no lleva ninguna carta y listo (nada más que preguntar).
+  const [hasBar, setHasBar] = useState(false);
+  const [barItems, setBarItems] = useState<{ name: string; price: string; stock: string }[]>([]);
+  const [newBarItem, setNewBarItem] = useState({ name: '', price: '', stock: '' });
+
+  const addBarItem = () => {
+    if (!newBarItem.name.trim()) return;
+    setBarItems((prev) => [...prev, { ...newBarItem }]);
+    setNewBarItem({ name: '', price: '', stock: '' });
+  };
+  const removeBarItem = (idx: number) => setBarItems((prev) => prev.filter((_, i) => i !== idx));
 
   const load = async () => {
     setLoading(true);
@@ -108,7 +123,26 @@ export default function ProducerEventsPage() {
     setBankHolderName('');
     setPublish(true);
     setTiers([{ ...EMPTY_TIER }]);
+    setHasBar(false);
+    setBarItems([]);
+    setNewBarItem({ name: '', price: '', stock: '' });
+    setWizardStep(1);
     setFormError(null);
+  };
+
+  const goToStep = (next: 1 | 2 | 3) => {
+    setFormError(null);
+    if (next === 2) {
+      if (!title.trim()) return setFormError('Falta el nombre del evento.');
+      if (!date) return setFormError('Falta la fecha del evento.');
+      if (!venue.trim()) return setFormError('Falta el venue.');
+    }
+    if (next === 3) {
+      if (tiers.some((t) => !t.name.trim() || t.price < 0 || t.capacity <= 0)) {
+        return setFormError('Revisá las tandas: todas necesitan nombre, precio válido y capacidad mayor a 0.');
+      }
+    }
+    setWizardStep(next);
   };
 
   const handleTierToggle = (idx: number, field: 'showStockToClients') => {
@@ -152,6 +186,8 @@ export default function ProducerEventsPage() {
           bankHolderName,
           publish,
           tiers,
+          hasBar,
+          barItems,
         }),
       });
       const data = await res.json();
@@ -209,6 +245,21 @@ export default function ProducerEventsPage() {
   const toggleStatus = (ev: EventRow) =>
     setEventStatus(ev, ev.status === 'PUBLISHED' || ev.status === 'ACTIVE' ? 'DRAFT' : 'PUBLISHED');
 
+  const toggleHasBar = async (ev: EventRow) => {
+    try {
+      const res = await fetch(`/api/producers/events/${ev.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hasBar: !ev.has_bar }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      await load();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#05070d] text-white p-6 sm:p-10 font-mono">
       <div className="max-w-4xl mx-auto space-y-8">
@@ -221,7 +272,10 @@ export default function ProducerEventsPage() {
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setShowForm((v) => !v)}
+              onClick={() => {
+                if (showForm) resetForm();
+                setShowForm((v) => !v);
+              }}
               className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 text-white font-black text-xs uppercase rounded-xl transition cursor-pointer"
             >
               {showForm ? 'Cancelar' : '+ Crear Evento'}
@@ -234,177 +288,310 @@ export default function ProducerEventsPage() {
 
         {showForm && (
           <form onSubmit={handleSubmit} className="bg-[#0c0f16] border border-white/10 rounded-2xl p-6 space-y-5">
+            {/* INDICADOR DE PASOS */}
+            <div className="flex items-center gap-2">
+              {([
+                { n: 1, label: 'Datos del evento' },
+                { n: 2, label: 'Tandas y pagos' },
+                { n: 3, label: 'Barra' },
+              ] as const).map((s, i) => (
+                <React.Fragment key={s.n}>
+                  <div className={`flex items-center gap-2 text-[10px] font-bold uppercase shrink-0 ${
+                    wizardStep === s.n ? 'text-blue-400' : wizardStep > s.n ? 'text-emerald-400' : 'text-neutral-600'
+                  }`}>
+                    <span className={`w-5 h-5 rounded-full flex items-center justify-center border shrink-0 ${
+                      wizardStep === s.n ? 'border-blue-400 bg-blue-500/10' : wizardStep > s.n ? 'border-emerald-400 bg-emerald-500/10' : 'border-neutral-700'
+                    }`}>
+                      {wizardStep > s.n ? '✓' : s.n}
+                    </span>
+                    <span className="hidden sm:inline">{s.label}</span>
+                  </div>
+                  {i < 2 && <div className={`flex-1 h-px ${wizardStep > s.n ? 'bg-emerald-400/40' : 'bg-neutral-800'}`} />}
+                </React.Fragment>
+              ))}
+            </div>
+
             {formError && (
               <div className="p-3 bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs rounded-xl">
                 ⚠️ {formError}
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="sm:col-span-2">
-                <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">Nombre del evento *</label>
-                <input required value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
-              </div>
+            {/* PASO 1: DATOS DEL EVENTO */}
+            {wizardStep === 1 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">Nombre del evento *</label>
+                  <input required value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
+                </div>
 
-              <div className="sm:col-span-2">
-                <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">Descripción</label>
-                <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
-              </div>
+                <div className="sm:col-span-2">
+                  <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">Descripción</label>
+                  <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
+                </div>
 
-              <div>
-                <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">Fecha y hora *</label>
-                <input
-                  required
-                  type="datetime-local"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  min={`${new Date().getFullYear() - 1}-01-01T00:00`}
-                  max={`${new Date().getFullYear() + 10}-12-31T23:59`}
-                  className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500"
-                />
-              </div>
-              <div>
-                <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">Hora límite de ingreso</label>
-                <input type="time" value={doorTime} onChange={(e) => setDoorTime(e.target.value)} className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
-              </div>
-
-              <div>
-                <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">Venue *</label>
-                <input required value={venue} onChange={(e) => setVenue(e.target.value)} className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
-              </div>
-              <div>
-                <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">Ciudad</label>
-                <input value={city} onChange={(e) => setCity(e.target.value)} className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
-              </div>
-
-              <div className="sm:col-span-2">
-                <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">Dirección</label>
-                <input value={address} onChange={(e) => setAddress(e.target.value)} className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
-              </div>
-
-              <div className="sm:col-span-2">
-                <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">Imagen (URL)</label>
-                <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://..." className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
-              </div>
-
-              <div>
-                <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">Capacidad total</label>
-                <input type="number" min={1} value={capacity} onChange={(e) => setCapacity(e.target.value)} className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
-              </div>
-            </div>
-
-            <div className="space-y-2 pt-2 border-t border-white/10">
-              <span className="text-[10px] text-blue-400 uppercase font-bold block">Datos para pago por transferencia</span>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <input value={bankAlias} onChange={(e) => setBankAlias(e.target.value)} placeholder="Alias" className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
-                <input value={bankCbu} onChange={(e) => setBankCbu(e.target.value)} placeholder="CBU/CVU" className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
-                <input value={bankHolderName} onChange={(e) => setBankHolderName(e.target.value)} placeholder="Titular" className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
-              </div>
-            </div>
-
-            <div className="space-y-2 pt-2 border-t border-white/10">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-blue-400 uppercase font-bold block">Tandas de entradas *</span>
-                <button
-                  type="button"
-                  onClick={() => setTiers((prev) => [...prev, { ...EMPTY_TIER }])}
-                  className="text-[10px] text-blue-400 underline cursor-pointer"
-                >
-                  + Agregar tanda
-                </button>
-              </div>
-
-              {tiers.map((t, idx) => (
-                <div key={idx} className="grid grid-cols-1 sm:grid-cols-[1fr_120px_120px_auto] gap-2 items-center">
+                <div>
+                  <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">Fecha y hora *</label>
                   <input
-                    placeholder="Nombre (ej: General T1)"
-                    value={t.name}
-                    onChange={(e) => handleTierChange(idx, 'name', e.target.value)}
-                    className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500"
+                    required
+                    type="datetime-local"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    min={`${new Date().getFullYear() - 1}-01-01T00:00`}
+                    max={`${new Date().getFullYear() + 10}-12-31T23:59`}
+                    className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500"
                   />
-                  <input
-                    type="number"
-                    min={0}
-                    placeholder="Precio"
-                    value={t.price}
-                    onChange={(e) => handleTierChange(idx, 'price', e.target.value)}
-                    className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500"
-                  />
-                  <input
-                    type="number"
-                    min={1}
-                    placeholder="Capacidad"
-                    value={t.capacity}
-                    onChange={(e) => handleTierChange(idx, 'capacity', e.target.value)}
-                    className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500"
-                  />
-                  {tiers.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => setTiers((prev) => prev.filter((_, i) => i !== idx))}
-                      className="text-rose-400 text-xs cursor-pointer"
-                    >
-                      Quitar
-                    </button>
-                  )}
+                </div>
+                <div>
+                  <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">Hora límite de ingreso</label>
+                  <input type="time" value={doorTime} onChange={(e) => setDoorTime(e.target.value)} className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
+                </div>
 
-                  <div className="sm:col-span-4 grid grid-cols-1 sm:grid-cols-[1fr_120px] gap-2">
-                    <input
-                      placeholder="Descripción breve (ej: incluye acceso a pista y guardarropa)"
-                      value={t.description}
-                      onChange={(e) => handleTierChange(idx, 'description', e.target.value)}
-                      className="px-3.5 py-2 bg-black/60 border border-white/10 rounded-xl text-[11px] text-neutral-300 outline-none focus:border-blue-500"
-                    />
-                    <div className="flex items-center gap-1.5">
-                      <label className="text-[10px] text-neutral-500 whitespace-nowrap">Hora límite:</label>
-                      <input
-                        type="time"
-                        value={t.entryCutoffTime}
-                        onChange={(e) => handleTierChange(idx, 'entryCutoffTime', e.target.value)}
-                        className="flex-1 px-2 py-2 bg-black/60 border border-white/10 rounded-xl text-[11px] text-white outline-none focus:border-blue-500"
-                      />
-                    </div>
-                  </div>
+                <div>
+                  <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">Venue *</label>
+                  <input required value={venue} onChange={(e) => setVenue(e.target.value)} className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
+                </div>
+                <div>
+                  <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">Ciudad</label>
+                  <input value={city} onChange={(e) => setCity(e.target.value)} className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
+                </div>
 
-                  <div className="sm:col-span-4 flex items-center gap-4 pl-1 pb-1">
-                    <label className="flex items-center gap-1.5 text-[10px] text-neutral-400 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={t.showStockToClients}
-                        onChange={() => handleTierToggle(idx, 'showStockToClients')}
-                      />
-                      Avisar stock bajo al público
-                    </label>
-                    {t.showStockToClients && (
-                      <label className="flex items-center gap-1.5 text-[10px] text-neutral-400">
-                        Avisar cuando queden
-                        <input
-                          type="number"
-                          min={0}
-                          value={t.lowStockThreshold}
-                          onChange={(e) => handleTierChange(idx, 'lowStockThreshold', e.target.value)}
-                          className="w-14 px-2 py-1 bg-black/60 border border-white/10 rounded-lg text-white text-center"
-                        />
-                        o menos
-                      </label>
-                    )}
+                <div className="sm:col-span-2">
+                  <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">Dirección</label>
+                  <input value={address} onChange={(e) => setAddress(e.target.value)} className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">Imagen (URL)</label>
+                  <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://..." className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">Capacidad total</label>
+                  <input type="number" min={1} value={capacity} onChange={(e) => setCapacity(e.target.value)} className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
+                </div>
+              </div>
+            )}
+
+            {/* PASO 2: TANDAS Y MÉTODOS DE PAGO */}
+            {wizardStep === 2 && (
+              <>
+                <div className="space-y-2">
+                  <span className="text-[10px] text-blue-400 uppercase font-bold block">Datos para pago por transferencia</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <input value={bankAlias} onChange={(e) => setBankAlias(e.target.value)} placeholder="Alias" className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
+                    <input value={bankCbu} onChange={(e) => setBankCbu(e.target.value)} placeholder="CBU/CVU" className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
+                    <input value={bankHolderName} onChange={(e) => setBankHolderName(e.target.value)} placeholder="Titular" className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
                   </div>
                 </div>
-              ))}
+
+                <div className="space-y-2 pt-2 border-t border-white/10">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-blue-400 uppercase font-bold block">Tandas de entradas *</span>
+                    <button
+                      type="button"
+                      onClick={() => setTiers((prev) => [...prev, { ...EMPTY_TIER }])}
+                      className="text-[10px] text-blue-400 underline cursor-pointer"
+                    >
+                      + Agregar tanda
+                    </button>
+                  </div>
+
+                  {tiers.map((t, idx) => (
+                    <div key={idx} className="grid grid-cols-1 sm:grid-cols-[1fr_120px_120px_auto] gap-2 items-center">
+                      <input
+                        placeholder="Nombre (ej: General T1)"
+                        value={t.name}
+                        onChange={(e) => handleTierChange(idx, 'name', e.target.value)}
+                        className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500"
+                      />
+                      <input
+                        type="number"
+                        min={0}
+                        placeholder="Precio"
+                        value={t.price}
+                        onChange={(e) => handleTierChange(idx, 'price', e.target.value)}
+                        className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500"
+                      />
+                      <input
+                        type="number"
+                        min={1}
+                        placeholder="Capacidad"
+                        value={t.capacity}
+                        onChange={(e) => handleTierChange(idx, 'capacity', e.target.value)}
+                        className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500"
+                      />
+                      {tiers.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => setTiers((prev) => prev.filter((_, i) => i !== idx))}
+                          className="text-rose-400 text-xs cursor-pointer"
+                        >
+                          Quitar
+                        </button>
+                      )}
+
+                      <div className="sm:col-span-4 grid grid-cols-1 sm:grid-cols-[1fr_120px] gap-2">
+                        <input
+                          placeholder="Descripción breve (ej: incluye acceso a pista y guardarropa)"
+                          value={t.description}
+                          onChange={(e) => handleTierChange(idx, 'description', e.target.value)}
+                          className="px-3.5 py-2 bg-black/60 border border-white/10 rounded-xl text-[11px] text-neutral-300 outline-none focus:border-blue-500"
+                        />
+                        <div className="flex items-center gap-1.5">
+                          <label className="text-[10px] text-neutral-500 whitespace-nowrap">Hora límite:</label>
+                          <input
+                            type="time"
+                            value={t.entryCutoffTime}
+                            onChange={(e) => handleTierChange(idx, 'entryCutoffTime', e.target.value)}
+                            className="flex-1 px-2 py-2 bg-black/60 border border-white/10 rounded-xl text-[11px] text-white outline-none focus:border-blue-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="sm:col-span-4 flex items-center gap-4 pl-1 pb-1">
+                        <label className="flex items-center gap-1.5 text-[10px] text-neutral-400 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={t.showStockToClients}
+                            onChange={() => handleTierToggle(idx, 'showStockToClients')}
+                          />
+                          Avisar stock bajo al público
+                        </label>
+                        {t.showStockToClients && (
+                          <label className="flex items-center gap-1.5 text-[10px] text-neutral-400">
+                            Avisar cuando queden
+                            <input
+                              type="number"
+                              min={0}
+                              value={t.lowStockThreshold}
+                              onChange={(e) => handleTierChange(idx, 'lowStockThreshold', e.target.value)}
+                              className="w-14 px-2 py-1 bg-black/60 border border-white/10 rounded-lg text-white text-center"
+                            />
+                            o menos
+                          </label>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* PASO 3: BARRA */}
+            {wizardStep === 3 && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <span className="text-[10px] text-blue-400 uppercase font-bold block">¿Querés barra en vivo en tu evento?</span>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setHasBar(true)}
+                      className={`flex-1 py-3 rounded-xl border text-xs font-bold uppercase transition cursor-pointer ${
+                        hasBar ? 'bg-blue-500/15 border-blue-500 text-blue-300' : 'bg-black/40 border-white/10 text-neutral-400 hover:border-white/20'
+                      }`}
+                    >
+                      🍸 Sí, quiero barra
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setHasBar(false)}
+                      className={`flex-1 py-3 rounded-xl border text-xs font-bold uppercase transition cursor-pointer ${
+                        !hasBar ? 'bg-white/10 border-white/30 text-white' : 'bg-black/40 border-white/10 text-neutral-400 hover:border-white/20'
+                      }`}
+                    >
+                      No, sin barra
+                    </button>
+                  </div>
+                </div>
+
+                {hasBar && (
+                  <div className="space-y-3 pt-2 border-t border-white/10">
+                    <span className="text-[10px] text-neutral-400 uppercase font-bold block">Carta inicial (podés seguir editándola después desde Escáner de Barra)</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-[1fr_110px_90px_auto] gap-2">
+                      <input
+                        placeholder="Bebida (ej: Gin Tonic)"
+                        value={newBarItem.name}
+                        onChange={(e) => setNewBarItem({ ...newBarItem, name: e.target.value })}
+                        className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500"
+                      />
+                      <input
+                        type="number"
+                        placeholder="Precio"
+                        value={newBarItem.price}
+                        onChange={(e) => setNewBarItem({ ...newBarItem, price: e.target.value })}
+                        className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500"
+                      />
+                      <input
+                        type="number"
+                        placeholder="Stock"
+                        value={newBarItem.stock}
+                        onChange={(e) => setNewBarItem({ ...newBarItem, stock: e.target.value })}
+                        className="px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={addBarItem}
+                        className="px-4 py-2.5 rounded-xl border border-white/10 text-white text-xs font-bold hover:bg-white/5 transition cursor-pointer"
+                      >
+                        + Agregar
+                      </button>
+                    </div>
+
+                    {barItems.length > 0 && (
+                      <div className="space-y-1.5">
+                        {barItems.map((b, idx) => (
+                          <div key={idx} className="flex items-center justify-between px-3.5 py-2 rounded-lg bg-black/40 border border-white/10 text-xs">
+                            <span className="text-white font-bold">{b.name}</span>
+                            <div className="flex items-center gap-3">
+                              <span className="text-neutral-400">${Number(b.price || 0).toLocaleString('es-AR')} · Stock: {b.stock || 0}</span>
+                              <button type="button" onClick={() => removeBarItem(idx)} className="text-rose-400 hover:text-rose-300 cursor-pointer">✕</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* NAVEGACIÓN DEL WIZARD */}
+            <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/10">
+              {wizardStep > 1 ? (
+                <button
+                  type="button"
+                  onClick={() => { setFormError(null); setWizardStep((wizardStep - 1) as 1 | 2); }}
+                  className="px-4 py-2.5 rounded-xl border border-white/10 text-neutral-300 text-xs font-bold hover:bg-white/5 transition cursor-pointer"
+                >
+                  ← Atrás
+                </button>
+              ) : <span />}
+
+              {wizardStep < 3 ? (
+                <button
+                  type="button"
+                  onClick={() => goToStep((wizardStep + 1) as 2 | 3)}
+                  className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black uppercase transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+                >
+                  Siguiente →
+                </button>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 text-xs text-neutral-300 cursor-pointer">
+                    <input type="checkbox" checked={publish} onChange={(e) => setPublish(e.target.checked)} />
+                    Publicar ahora
+                  </label>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white font-black text-xs uppercase rounded-xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 shadow-lg shadow-blue-600/20 disabled:opacity-50 cursor-pointer"
+                  >
+                    {submitting ? 'Publicando...' : 'Publicar Evento 🚀'}
+                  </button>
+                </div>
+              )}
             </div>
-
-            <label className="flex items-center gap-2 text-xs text-neutral-300 cursor-pointer">
-              <input type="checkbox" checked={publish} onChange={(e) => setPublish(e.target.checked)} />
-              Publicar ahora (si lo desmarcás, queda en borrador)
-            </label>
-
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 text-white font-black text-xs uppercase rounded-xl transition disabled:opacity-50 cursor-pointer"
-            >
-              {submitting ? 'Creando...' : 'Crear Evento →'}
-            </button>
           </form>
         )}
 
@@ -445,6 +632,21 @@ export default function ProducerEventsPage() {
                       <Link href={`/events/${ev.slug}`} target="_blank" className="text-[11px] text-blue-400 underline">
                         Ver página →
                       </Link>
+                      <button
+                        onClick={() => toggleHasBar(ev)}
+                        className={`text-[11px] px-3 py-1.5 rounded-lg border transition cursor-pointer ${
+                          ev.has_bar
+                            ? 'border-blue-500/30 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20'
+                            : 'border-white/10 text-neutral-400 hover:text-white'
+                        }`}
+                      >
+                        {ev.has_bar ? '🍸 Con barra' : '🍸 Sin barra'}
+                      </button>
+                      {ev.has_bar && (
+                        <Link href="/admin/barra" className="text-[11px] text-blue-400 underline">
+                          Editar carta →
+                        </Link>
+                      )}
                       {ev.status === 'CANCELLED' ? (
                         <button
                           onClick={() => setEventStatus(ev, 'DRAFT')}

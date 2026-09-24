@@ -38,7 +38,17 @@ export async function GET(req: Request, context: { params: Promise<{ slug: strin
       .eq('event_id', event.id)
       .order('price', { ascending: true });
 
-    return NextResponse.json({ event, tiers: tiers || [] });
+    let barMenu: any[] = [];
+    if (event.has_bar) {
+      const { data: menu } = await supabaseAdmin
+        .from('bar_menu')
+        .select('id, name, price, stock')
+        .eq('event_id', event.id)
+        .order('name', { ascending: true });
+      barMenu = menu || [];
+    }
+
+    return NextResponse.json({ event, tiers: tiers || [], barMenu });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

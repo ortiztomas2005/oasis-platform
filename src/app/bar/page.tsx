@@ -277,17 +277,17 @@ export default function BarCustomerPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#07070a] text-slate-100 flex flex-col justify-between font-sans antialiased selection:bg-amber-500 selection:text-black">
+    <div className="min-h-screen bg-[#05070d] text-slate-100 flex flex-col justify-between font-sans antialiased selection:bg-blue-500 selection:text-white">
       
       {/* NAVBAR */}
-      <header className="border-b border-white/5 bg-[#07070a] sticky top-0 z-40 px-6 py-4">
+      <header className="border-b border-white/5 bg-[#05070d] sticky top-0 z-40 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3.5 cursor-pointer group">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-600 flex items-center justify-center font-black text-black text-sm shadow-lg shadow-amber-500/20">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-500 via-indigo-400 to-blue-600 flex items-center justify-center font-black text-white text-sm shadow-lg shadow-blue-500/20">
               LE
             </div>
             <div className="flex flex-col">
-              <span className="font-luxury text-lg font-black tracking-[0.1em] uppercase text-white leading-none group-hover:text-amber-400 transition">
+              <span className="font-luxury text-lg font-black tracking-[0.1em] uppercase text-white leading-none group-hover:text-blue-400 transition">
                 LIVE EXPERIENCE
               </span>
             </div>
@@ -303,7 +303,7 @@ export default function BarCustomerPage() {
             </Link>
             <Link
               href="/my-tickets"
-              className="px-4 py-2.5 rounded-xl border border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/15 text-amber-300 font-bold transition flex items-center gap-2"
+              className="px-4 py-2.5 rounded-xl border border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/15 text-blue-300 font-bold transition flex items-center gap-2"
             >
               <span>💳</span>
               <span className="hidden sm:inline">Billetera</span>
@@ -321,28 +321,28 @@ export default function BarCustomerPage() {
         {/* MODAL ORDEN CONFIRMADA */}
         {createdOrder && (
           <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-            <div className="max-w-md w-full rounded-3xl bg-[#0c0f17] border border-amber-500/40 p-6 sm:p-8 text-center space-y-6 shadow-2xl">
-              <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-3xl">
+            <div className="max-w-md w-full rounded-3xl bg-[#0b1120] border border-blue-500/40 p-6 sm:p-8 text-center space-y-6 shadow-2xl">
+              <div className="w-16 h-16 mx-auto rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-3xl">
                 🍸
               </div>
 
               <div className="space-y-1.5 font-mono">
-                <span className="px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 text-[10px] font-bold uppercase tracking-wider">
+                <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/30 text-[10px] font-bold uppercase tracking-wider">
                   Consumición Habilitada
                 </span>
                 <h2 className="font-luxury text-2xl font-black uppercase text-white pt-2">
                   ¡Pedido Realizado con Éxito!
                 </h2>
                 <p className="text-xs text-slate-300 font-sans">
-                  Tu token y QR de barra ya se encuentran guardados en tu <strong className="text-amber-400">Billetera</strong> para el retiro rápido en ventanilla.
+                  Tu token y QR de barra ya se encuentran guardados en tu <strong className="text-blue-400">Billetera</strong> para el retiro rápido en ventanilla.
                 </p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-black/50 border border-amber-500/30 font-mono space-y-2">
+              <div className="p-4 rounded-2xl bg-black/50 border border-blue-500/30 font-mono space-y-2">
                 <span className="text-[10px] text-slate-500 uppercase block font-bold">
                   Token de Canje Inmediato
                 </span>
-                <span className="text-3xl font-black text-amber-400 tracking-widest block">
+                <span className="text-3xl font-black text-blue-400 tracking-widest block">
                   {createdOrder.token}
                 </span>
                 <span className="text-[11px] text-slate-400 block pt-1 border-t border-white/5">
@@ -364,7 +364,7 @@ export default function BarCustomerPage() {
               <div className="flex gap-3 font-mono">
                 <Link
                   href="/my-tickets"
-                  className="flex-1 py-4 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 text-black font-black text-xs uppercase rounded-xl transition shadow-lg shadow-amber-500/20 text-center block"
+                  className="flex-1 py-4 bg-gradient-to-r from-blue-400 via-blue-500 to-indigo-500 text-white font-black text-xs uppercase rounded-xl transition shadow-lg shadow-blue-500/20 text-center block"
                 >
                   Ir a mi Billetera →
                 </Link>
@@ -384,7 +384,7 @@ export default function BarCustomerPage() {
                 Seleccioná el evento para retirar en barra sin filas.
               </p>
             </div>
-            <span className="text-[11px] font-mono text-amber-400 bg-amber-500/10 px-3.5 py-1.5 rounded-full border border-amber-500/30 font-bold uppercase self-start sm:self-auto">
+            <span className="text-[11px] font-mono text-blue-400 bg-blue-500/10 px-3.5 py-1.5 rounded-full border border-blue-500/30 font-bold uppercase self-start sm:self-auto">
               ⚡ Fast Lane QR
             </span>
           </div>
@@ -403,8 +403,8 @@ export default function BarCustomerPage() {
                   }}
                   className={`p-4 rounded-2xl border text-left transition relative flex flex-col justify-between space-y-3 cursor-pointer ${
                     isSelected
-                      ? 'bg-amber-500/10 border-amber-500 shadow-md shadow-amber-500/10 text-white'
-                      : 'bg-[#0c0f17] border-white/5 text-slate-300 hover:border-white/20'
+                      ? 'bg-blue-500/10 border-blue-500 shadow-md shadow-blue-500/10 text-white'
+                      : 'bg-[#0b1120] border-white/5 text-slate-300 hover:border-white/20'
                   }`}
                 >
                   <div className="space-y-1">
@@ -448,16 +448,16 @@ export default function BarCustomerPage() {
                 return (
                   <div
                     key={item.id}
-                    className="p-5 rounded-3xl bg-[#0c0f17] border border-white/5 flex flex-col justify-between space-y-4 hover:border-amber-500/30 transition shadow-xl"
+                    className="p-5 rounded-3xl bg-[#0b1120] border border-white/5 flex flex-col justify-between space-y-4 hover:border-blue-500/30 transition shadow-xl"
                   >
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono font-bold text-amber-400 uppercase">
+                        <span className="text-[10px] font-mono font-bold text-blue-400 uppercase">
                           {item.category}
                         </span>
                         <div className="flex items-center gap-1.5">
                           {item.badge && (
-                            <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-bold">
+                            <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20 font-bold">
                               {item.badge}
                             </span>
                           )}
@@ -482,7 +482,7 @@ export default function BarCustomerPage() {
                           <>
                             <button
                               onClick={() => updateQuantity(item.id, -1)}
-                              className="w-7 h-7 rounded-lg border border-white/10 bg-[#07070a] text-white hover:bg-white/10 font-bold flex items-center justify-center transition text-xs cursor-pointer"
+                              className="w-7 h-7 rounded-lg border border-white/10 bg-[#05070d] text-white hover:bg-white/10 font-bold flex items-center justify-center transition text-xs cursor-pointer"
                             >
                               −
                             </button>
@@ -497,7 +497,7 @@ export default function BarCustomerPage() {
                           className={`px-3.5 py-2 font-black text-xs uppercase rounded-xl transition cursor-pointer ${
                             isOutOfStock 
                               ? 'bg-white/5 text-slate-600 cursor-not-allowed' 
-                              : 'bg-amber-500 hover:bg-amber-400 text-black shadow-md shadow-amber-500/20'
+                              : 'bg-blue-500 hover:bg-blue-400 text-white shadow-md shadow-blue-500/20'
                           }`}
                         >
                           {isOutOfStock ? 'Agotado' : qty > 0 ? '+' : 'Agregar +'}
@@ -512,7 +512,7 @@ export default function BarCustomerPage() {
 
           {/* CHECKOUT DEL CARRITO DE BARRA */}
           <div className="lg:col-span-4">
-            <div className="sticky top-24 rounded-3xl bg-[#0c0f17] border border-amber-500/30 p-6 space-y-6 shadow-2xl">
+            <div className="sticky top-24 rounded-3xl bg-[#0b1120] border border-blue-500/30 p-6 space-y-6 shadow-2xl">
               <div>
                 <h2 className="font-luxury text-lg font-black uppercase text-white tracking-wide">
                   Tu Consumición
@@ -557,8 +557,8 @@ export default function BarCustomerPage() {
                           onClick={() => setSelectedPayment(m.id)}
                           className={`w-full p-3 rounded-2xl border text-left flex items-center justify-between text-xs transition cursor-pointer ${
                             selectedPayment === m.id
-                              ? 'bg-amber-500/15 border-amber-500 text-white'
-                              : 'bg-[#07070a] border-white/5 text-slate-400 hover:border-white/20'
+                              ? 'bg-blue-500/15 border-blue-500 text-white'
+                              : 'bg-[#05070d] border-white/5 text-slate-400 hover:border-white/20'
                           }`}
                         >
                           <div className="flex items-center gap-2">
@@ -568,7 +568,7 @@ export default function BarCustomerPage() {
                           <div
                             className={`w-4 h-4 rounded-full border flex items-center justify-center ${
                               selectedPayment === m.id
-                                ? 'border-amber-500 bg-amber-500'
+                                ? 'border-blue-500 bg-blue-500'
                                 : 'border-slate-600'
                             }`}
                           >
@@ -584,7 +584,7 @@ export default function BarCustomerPage() {
                   <div className="pt-2 border-t border-white/10 space-y-3">
                     <div className="flex justify-between items-center">
                       <span className="text-xs text-slate-400">Total:</span>
-                      <span className="text-2xl font-black text-amber-400">
+                      <span className="text-2xl font-black text-blue-400">
                         ${cartTotal.toLocaleString('es-AR')}
                       </span>
                     </div>
@@ -592,7 +592,7 @@ export default function BarCustomerPage() {
                     <button
                       onClick={handleCheckout}
                       disabled={isOrdering}
-                      className="w-full py-4 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 text-black font-black text-xs uppercase rounded-2xl transition shadow-xl shadow-amber-500/20 disabled:opacity-50 cursor-pointer tracking-wider"
+                      className="w-full py-4 bg-gradient-to-r from-blue-400 via-blue-500 to-indigo-500 hover:from-blue-300 text-white font-black text-xs uppercase rounded-2xl transition shadow-xl shadow-blue-500/20 disabled:opacity-50 cursor-pointer tracking-wider"
                     >
                       {isOrdering
                         ? 'Procesando pedido...'
@@ -609,7 +609,7 @@ export default function BarCustomerPage() {
 
       {/* FOOTER */}
       <footer className="border-t border-white/5 bg-[#050507] py-6 text-xs font-mono text-slate-500 text-center space-y-1 mt-auto">
-        <p className="font-luxury text-amber-400 tracking-widest text-xs font-bold">LIVE EXPERIENCE</p>
+        <p className="font-luxury text-blue-400 tracking-widest text-xs font-bold">LIVE EXPERIENCE</p>
       </footer>
     </div>
   );

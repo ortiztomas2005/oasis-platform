@@ -29,6 +29,14 @@ interface EventData {
   venue_name?: string;
   image_url?: string;
   description?: string;
+  has_bar?: boolean;
+}
+
+interface BarItem {
+  id: string;
+  name: string;
+  price: number;
+  stock: number;
 }
 
 type PaymentMethodId = 'mp' | 'transfer' | 'card';
@@ -51,6 +59,7 @@ export default function EventDetailPage() {
 
   const [event, setEvent] = useState<EventData | null>(null);
   const [tiers, setTiers] = useState<Tier[]>([]);
+  const [barMenu, setBarMenu] = useState<BarItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -77,6 +86,7 @@ export default function EventDetailPage() {
         }
         setEvent(data.event);
         setTiers(data.tiers || []);
+        setBarMenu(data.barMenu || []);
       })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
@@ -283,6 +293,35 @@ export default function EventDetailPage() {
                   {event.description || 'Sin descripción disponible.'}
                 </p>
               </div>
+
+              {event.has_bar && (
+                <div className="rounded-3xl bg-[#131722] border border-slate-800/80 p-6 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">🍸</span>
+                    <h2 className="text-sm font-black uppercase text-white tracking-wide">Barra en vivo</h2>
+                  </div>
+                  {barMenu.length === 0 ? (
+                    <p className="text-xs text-slate-500">La productora todavía no cargó la carta.</p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {barMenu.map((b) => (
+                        <div
+                          key={b.id}
+                          className={`flex items-center justify-between px-4 py-2.5 rounded-xl border text-xs ${
+                            b.stock <= 0 ? 'border-slate-800 bg-black/20 opacity-50' : 'border-slate-800 bg-[#181d2a]'
+                          }`}
+                        >
+                          <span className="text-slate-200 font-bold">{b.name}</span>
+                          <span className={b.stock <= 0 ? 'text-slate-500' : 'text-blue-400 font-black'}>
+                            {b.stock <= 0 ? 'Agotado' : `$${Number(b.price).toLocaleString('es-AR')}`}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-[10px] text-slate-500">Se compra directo en la barra del evento con tu entrada.</p>
+                </div>
+              )}
             </div>
 
             {/* SELECCIÓN Y PAGO */}

@@ -168,7 +168,7 @@ export default function BarCounterValidationPage() {
   const delivered = orders.filter((o) => o.status === 'delivered');
 
   return (
-    <div className="min-h-screen bg-[#0b0e14] text-slate-100 flex flex-col justify-between font-sans antialiased selection:bg-amber-500 selection:text-black">
+    <div className="min-h-screen bg-[#05070d] text-slate-100 flex flex-col justify-between font-sans antialiased selection:bg-blue-500 selection:text-white">
       {/* HEADER: SIEMPRE REGRESA A /admin */}
       <header className="border-b border-slate-800/80 bg-[#0f131c]/95 backdrop-blur-md sticky top-0 z-40 px-6 py-3.5 flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -180,7 +180,7 @@ export default function BarCounterValidationPage() {
             <span>Volver a Productora</span>
           </Link>
           <div className="hidden sm:flex items-center gap-2 pl-3 border-l border-slate-800 text-xs font-mono text-slate-400">
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
             <span>Puesto de Barra & Despacho</span>
           </div>
         </div>
@@ -191,7 +191,7 @@ export default function BarCounterValidationPage() {
             className={`px-4 py-2 rounded-xl font-bold uppercase transition flex items-center gap-2 shadow-lg ${
               isCameraActive
                 ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/30'
-                : 'bg-amber-500 hover:bg-amber-400 text-black shadow-amber-500/30 font-black'
+                : 'bg-blue-500 hover:bg-blue-400 text-white shadow-blue-500/30 font-black'
             }`}
           >
             <span>📷</span>
@@ -205,7 +205,7 @@ export default function BarCounterValidationPage() {
         {/* TITULAR Y MÉTRICAS */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-800/80 pb-6">
           <div className="space-y-1.5">
-            <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-[10px] font-mono text-amber-400 font-bold uppercase tracking-wider">
+            <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-[10px] font-mono text-blue-400 font-bold uppercase tracking-wider">
               <span>●</span> Fast Despatch Counter
             </div>
             <h1 className="text-3xl font-black uppercase tracking-tight text-white">
@@ -218,7 +218,7 @@ export default function BarCounterValidationPage() {
 
           <div className="flex items-center gap-3 font-mono text-xs">
             <div className="px-5 py-3 rounded-2xl bg-[#131722] border border-slate-800 text-center min-w-[120px]">
-              <span className="text-[10px] text-amber-400 uppercase font-bold block">Por Entregar</span>
+              <span className="text-[10px] text-blue-400 uppercase font-bold block">Por Entregar</span>
               <span className="text-2xl font-black text-white">{pending.length}</span>
             </div>
             <div className="px-5 py-3 rounded-2xl bg-[#131722] border border-slate-800 text-center min-w-[120px]">
@@ -248,9 +248,9 @@ export default function BarCounterValidationPage() {
 
         {/* VISOR DE CÁMARA */}
         {isCameraActive && (
-          <section className="bg-[#131722] border border-amber-500/40 rounded-3xl p-6 shadow-2xl space-y-4 max-w-lg mx-auto">
+          <section className="bg-[#131722] border border-blue-500/40 rounded-3xl p-6 shadow-2xl space-y-4 max-w-lg mx-auto">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3 font-mono">
-              <span className="text-xs font-bold text-amber-400 uppercase">
+              <span className="text-xs font-bold text-blue-400 uppercase">
                 Visor de Escaneo en Vivo
               </span>
               <button onClick={stopCamera} className="text-xs text-slate-400 hover:text-white">
@@ -268,12 +268,12 @@ export default function BarCounterValidationPage() {
                 <>
                   <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
                   <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                    <div className="w-56 h-56 border-2 border-amber-400/70 rounded-2xl relative shadow-[0_0_20px_rgba(251,191,36,0.3)]">
-                      <div className="absolute -top-1 -left-1 w-4 h-4 border-t-2 border-l-2 border-amber-300" />
-                      <div className="absolute -top-1 -right-1 w-4 h-4 border-t-2 border-r-2 border-amber-300" />
-                      <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b-2 border-l-2 border-amber-300" />
-                      <div className="absolute -bottom-1 -right-1 w-4 h-4 border-b-2 border-r-2 border-amber-300" />
-                      <div className="w-full h-0.5 bg-amber-400/90 animate-pulse mt-28 shadow-[0_0_8px_#fbbf24]" />
+                    <div className="w-56 h-56 border-2 border-blue-400/70 rounded-2xl relative shadow-[0_0_20px_rgba(251,191,36,0.3)]">
+                      <div className="absolute -top-1 -left-1 w-4 h-4 border-t-2 border-l-2 border-blue-300" />
+                      <div className="absolute -top-1 -right-1 w-4 h-4 border-t-2 border-r-2 border-blue-300" />
+                      <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b-2 border-l-2 border-blue-300" />
+                      <div className="absolute -bottom-1 -right-1 w-4 h-4 border-b-2 border-r-2 border-blue-300" />
+                      <div className="w-full h-0.5 bg-blue-400/90 animate-pulse mt-28 shadow-[0_0_8px_#fbbf24]" />
                     </div>
                   </div>
                 </>
@@ -293,11 +293,11 @@ export default function BarCounterValidationPage() {
               value={manualCode}
               onChange={(e) => setManualCode(e.target.value)}
               placeholder="Ej: BR-8821"
-              className="bg-[#181d2a] border border-slate-800 rounded-xl px-4 py-2 text-xs text-white uppercase outline-none focus:border-amber-500 w-full sm:w-60"
+              className="bg-[#181d2a] border border-slate-800 rounded-xl px-4 py-2 text-xs text-white uppercase outline-none focus:border-blue-500 w-full sm:w-60"
             />
             <button
               onClick={() => handleValidate(manualCode)}
-              className="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-black font-black text-xs uppercase rounded-xl transition shadow-md"
+              className="px-5 py-2 bg-blue-500 hover:bg-blue-400 text-white font-black text-xs uppercase rounded-xl transition shadow-md"
             >
               Validar
             </button>
@@ -322,13 +322,13 @@ export default function BarCounterValidationPage() {
               {pending.map((o) => (
                 <div
                   key={o.id}
-                  className="bg-[#131722] border border-amber-500/30 rounded-2xl p-5 space-y-4 shadow-xl flex flex-col justify-between"
+                  className="bg-[#131722] border border-blue-500/30 rounded-2xl p-5 space-y-4 shadow-xl flex flex-col justify-between"
                 >
                   <div className="space-y-3 font-mono">
                     <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                       <div>
                         <span className="text-[10px] text-slate-500 uppercase block font-bold">Código</span>
-                        <span className="text-xl font-black text-amber-400 tracking-wider">
+                        <span className="text-xl font-black text-blue-400 tracking-wider">
                           {o.token}
                         </span>
                       </div>
