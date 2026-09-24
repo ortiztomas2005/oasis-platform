@@ -153,6 +153,38 @@ export default function LiveExperienceAdmin() {
     loadRealIdentity();
   }, [sessionLoading, sessionUser]);
 
+  // El saldo de "Disponibles" del header solo se pedía una vez al entrar a
+  // /admin — si la productora vendía una entrada (o mandaba una cortesía)
+  // desde alguna de las pestañas de acá adentro, el número quedaba viejo
+  // hasta recargar la página entera. Ahora se vuelve a pedir cada vez que
+  // se cambia de pestaña (después de confirmar una venta, por ejemplo) y
+  // cada 20s mientras el panel sigue abierto, para que el descuento real
+  // se refleje sin tener que recargar a mano.
+  const refreshBalance = async () => {
+    if (!activeProducer) return;
+    try {
+      const res = await fetch('/api/producers/me');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.producer) {
+          setPrepaidBalances((prev) => ({ ...prev, [data.producer.name]: data.producer.prepaid_balance }));
+        }
+      }
+    } catch (e) {
+      console.error('Error actualizando el saldo:', e);
+    }
+  };
+
+  useEffect(() => {
+    refreshBalance();
+  }, [activeRealTab, activeProducer]);
+
+  useEffect(() => {
+    if (!activeProducer) return;
+    const interval = setInterval(refreshBalance, 20000);
+    return () => clearInterval(interval);
+  }, [activeProducer]);
+
   // Antes esto creaba la productora solo en localStorage (le_team_members),
   // sin que el servidor se enterara — cualquiera que la creara desde acá
   // (el botón "Crear Productora" de este mismo panel) terminaba con una
