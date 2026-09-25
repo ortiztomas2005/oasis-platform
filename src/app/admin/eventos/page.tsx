@@ -262,7 +262,7 @@ export default function ProducerEventsPage() {
 
   return (
     <div className="min-h-screen bg-[#05070d] text-white p-6 sm:p-10 font-mono">
-      <div className="max-w-4xl mx-auto space-y-8">
+      <div className="max-w-5xl mx-auto space-y-8">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <span className="text-[10px] text-blue-400 uppercase font-bold tracking-widest block">
@@ -608,75 +608,94 @@ export default function ProducerEventsPage() {
             {events.map((ev) => {
               const isExpanded = expandedEventId === ev.id;
               return (
-                <div key={ev.id} className="bg-[#0c0f16] border border-white/10 rounded-2xl overflow-hidden">
-                  <div className="p-5 flex items-center justify-between gap-4 flex-wrap">
-                    <div>
-                      <span className="text-sm font-bold text-white block">{ev.name || ev.title}</span>
-                      <span className="text-[11px] text-neutral-400">
-                        {ev.venue} · {ev.date ? new Date(ev.date).toLocaleString('es-AR') : ''} ·{' '}
-                        {(ev.ticket_tiers || []).length} tanda(s)
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span
-                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border ${
-                          ev.status === 'PUBLISHED' || ev.status === 'ACTIVE'
-                            ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
-                            : ev.status === 'CANCELLED'
-                            ? 'bg-rose-500/10 text-rose-300 border-rose-500/30'
-                            : 'bg-neutral-800 text-neutral-400 border-neutral-700'
-                        }`}
-                      >
-                        {ev.status === 'CANCELLED' ? 'SUSPENDIDO' : ev.status}
-                      </span>
-                      <Link href={`/events/${ev.slug}`} target="_blank" className="text-[11px] text-blue-400 underline">
-                        Ver página →
-                      </Link>
-                      <button
-                        onClick={() => toggleHasBar(ev)}
-                        className={`text-[11px] px-3 py-1.5 rounded-lg border transition cursor-pointer ${
-                          ev.has_bar
-                            ? 'border-blue-500/30 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20'
-                            : 'border-white/10 text-neutral-400 hover:text-white'
-                        }`}
-                      >
-                        {ev.has_bar ? '🍸 Con barra' : '🍸 Sin barra'}
-                      </button>
-                      {ev.has_bar && (
-                        <Link href="/admin/barra" className="text-[11px] text-blue-400 underline">
-                          Editar carta →
-                        </Link>
-                      )}
-                      {ev.status === 'CANCELLED' ? (
-                        <button
-                          onClick={() => setEventStatus(ev, 'DRAFT')}
-                          className="text-[11px] px-3 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 transition cursor-pointer"
+                <div key={ev.id} className="bg-[#0b1120] border border-white/10 hover:border-white/20 rounded-2xl overflow-hidden transition-colors">
+                  {/* CABECERA: estado, nombre y datos clave */}
+                  <div className="p-5 flex items-start justify-between gap-4 flex-wrap">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${
+                            ev.status === 'PUBLISHED' || ev.status === 'ACTIVE'
+                              ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                              : ev.status === 'CANCELLED'
+                              ? 'bg-rose-500/10 text-rose-300 border-rose-500/30'
+                              : 'bg-neutral-800 text-neutral-400 border-neutral-700'
+                          }`}
                         >
-                          Reactivar (a borrador)
-                        </button>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => toggleStatus(ev)}
-                            className="text-[11px] px-3 py-1.5 rounded-lg border border-white/10 text-neutral-300 hover:text-white transition cursor-pointer"
-                          >
-                            {ev.status === 'PUBLISHED' || ev.status === 'ACTIVE' ? 'Pasar a borrador' : 'Publicar'}
-                          </button>
-                          <button
-                            onClick={() => setEventStatus(ev, 'CANCELLED')}
-                            className="text-[11px] px-3 py-1.5 rounded-lg border border-rose-800/60 bg-rose-950/30 text-rose-300 hover:bg-rose-950/50 transition cursor-pointer"
-                          >
-                            Suspender
-                          </button>
-                        </>
-                      )}
-                      <button
-                        onClick={() => setExpandedEventId(isExpanded ? null : ev.id)}
-                        className="text-[11px] px-3 py-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20 transition cursor-pointer"
-                      >
-                        {isExpanded ? 'Cerrar tandas ▲' : 'Gestionar tandas ▾'}
-                      </button>
+                          {ev.status === 'CANCELLED' ? 'Suspendido' : ev.status === 'PUBLISHED' || ev.status === 'ACTIVE' ? 'Publicado' : 'Borrador'}
+                        </span>
+                        {ev.has_bar && (
+                          <span className="px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border border-blue-500/30 bg-blue-500/10 text-blue-300">
+                            🍸 Con barra
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="text-base font-bold text-white leading-tight">{ev.name || ev.title}</h3>
+                      <div className="flex items-center gap-3 text-[11px] text-neutral-500 flex-wrap">
+                        <span>📍 {ev.venue}</span>
+                        <span>📅 {ev.date ? new Date(ev.date).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}</span>
+                        <span>🎟️ {(ev.ticket_tiers || []).length} tanda{(ev.ticket_tiers || []).length === 1 ? '' : 's'}</span>
+                      </div>
                     </div>
+                    <Link
+                      href={`/events/${ev.slug}`}
+                      target="_blank"
+                      className="shrink-0 text-[11px] px-3.5 py-2 rounded-lg border border-white/10 text-neutral-300 hover:text-white hover:border-white/20 transition"
+                    >
+                      Ver página ↗
+                    </Link>
+                  </div>
+
+                  {/* BARRA DE ACCIONES */}
+                  <div className="px-5 py-3 border-t border-white/5 bg-black/20 flex items-center gap-2 flex-wrap">
+                    <button
+                      onClick={() => toggleHasBar(ev)}
+                      className={`text-[11px] px-3 py-1.5 rounded-lg border transition cursor-pointer ${
+                        ev.has_bar
+                          ? 'border-blue-500/30 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20'
+                          : 'border-white/10 text-neutral-400 hover:text-white'
+                      }`}
+                    >
+                      🍸 {ev.has_bar ? 'Con barra' : 'Sin barra'}
+                    </button>
+                    {ev.has_bar && (
+                      <Link href="/admin/barra" className="text-[11px] px-3 py-1.5 rounded-lg border border-white/10 text-neutral-400 hover:text-white hover:border-white/20 transition">
+                        Editar carta
+                      </Link>
+                    )}
+
+                    <div className="w-px h-4 bg-white/10 mx-1" />
+
+                    {ev.status === 'CANCELLED' ? (
+                      <button
+                        onClick={() => setEventStatus(ev, 'DRAFT')}
+                        className="text-[11px] px-3 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 transition cursor-pointer"
+                      >
+                        Reactivar (a borrador)
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => toggleStatus(ev)}
+                          className="text-[11px] px-3 py-1.5 rounded-lg border border-white/10 text-neutral-300 hover:text-white hover:border-white/20 transition cursor-pointer"
+                        >
+                          {ev.status === 'PUBLISHED' || ev.status === 'ACTIVE' ? 'Pasar a borrador' : 'Publicar'}
+                        </button>
+                        <button
+                          onClick={() => setEventStatus(ev, 'CANCELLED')}
+                          className="text-[11px] px-3 py-1.5 rounded-lg border border-rose-800/60 bg-rose-950/30 text-rose-300 hover:bg-rose-950/50 transition cursor-pointer"
+                        >
+                          Suspender
+                        </button>
+                      </>
+                    )}
+
+                    <button
+                      onClick={() => setExpandedEventId(isExpanded ? null : ev.id)}
+                      className="ml-auto text-[11px] px-3.5 py-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20 transition cursor-pointer font-bold"
+                    >
+                      {isExpanded ? 'Cerrar tandas ▲' : 'Gestionar tandas ▾'}
+                    </button>
                   </div>
 
                   {isExpanded && (
