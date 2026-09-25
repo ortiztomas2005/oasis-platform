@@ -31,7 +31,7 @@ export default function ClubWalletPage() {
   const [announcements, setAnnouncements] = useState<ClubAnnouncement[]>([]);
   const [dismissedAnnouncements, setDismissedAnnouncements] = useState<string[]>([]);
   const [clubName, setClubName] = useState('CLUB ATLÉTICO');
-  const [primaryColor, setPrimaryColor] = useState('#f59e0b');
+  const [primaryColor, setPrimaryColor] = useState('#2563eb');
   const [accentColor, setAccentColor] = useState('#fbbf24');
   
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
@@ -104,10 +104,10 @@ export default function ClubWalletPage() {
   const activeAnnouncements = announcements.filter(ann => !dismissedAnnouncements.includes(ann.id));
 
   return (
-    <div className="min-h-screen bg-[#07070a] text-slate-100 flex flex-col font-sans antialiased selection:bg-amber-500 selection:text-black font-mono">
+    <div className="min-h-screen bg-[#05070d] text-slate-100 flex flex-col font-sans antialiased selection:bg-blue-500 selection:text-white font-mono">
       
       {/* HEADER DE LA BILLETERA */}
-      <header className="h-20 border-b border-white/10 bg-[#07070a] px-8 flex items-center justify-between shrink-0 z-30">
+      <header className="h-20 border-b border-white/10 bg-[#05070d] px-8 flex items-center justify-between shrink-0 z-30">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl flex items-center justify-center font-black text-black text-sm shadow-lg font-luxury" style={{ backgroundColor: primaryColor }}>
             ⚽
@@ -178,14 +178,14 @@ export default function ClubWalletPage() {
             <h1 className="font-luxury text-2xl font-black text-white uppercase tracking-wider">Mis Pases Deportivos & Entradas</h1>
             <p className="text-xs text-slate-400">Organizados por carpetas de cada club o productora emisora.</p>
           </div>
-          <span className="text-xs font-bold px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-amber-400">
+          <span className="text-xs font-bold px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-blue-400">
             {tickets.length} Pase{tickets.length === 1 ? '' : 's'} deportivos
           </span>
         </div>
 
         {/* LISTADO AGRUPADO */}
         {tickets.length === 0 ? (
-          <div className="p-12 rounded-3xl bg-[#0c0f17] border border-white/5 text-center space-y-4">
+          <div className="p-12 rounded-3xl bg-[#0b1120] border border-white/5 text-center space-y-4">
             <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mx-auto text-2xl">
               ⚽
             </div>
@@ -207,7 +207,7 @@ export default function ClubWalletPage() {
               const isExpanded = expandedFolders[orgNameKey] ?? true;
 
               return (
-                <div key={orgNameKey} className="rounded-3xl bg-[#0c0f17] border border-white/10 overflow-hidden shadow-2xl transition-all">
+                <div key={orgNameKey} className="rounded-3xl bg-[#0b1120] border border-white/10 overflow-hidden shadow-2xl transition-all">
                   
                   <div 
                     onClick={() => toggleFolder(orgNameKey)}
@@ -226,7 +226,7 @@ export default function ClubWalletPage() {
                     </div>
 
                     <div className="flex items-center gap-4">
-                      <span className="px-3 py-1 rounded-full text-xs font-black uppercase bg-white/5 border border-white/10 text-amber-400">
+                      <span className="px-3 py-1 rounded-full text-xs font-black uppercase bg-white/5 border border-white/10 text-blue-400">
                         {orgTickets.length} {orgTickets.length === 1 ? 'Pase' : 'Pases'}
                       </span>
                       <span className={`transform transition-transform duration-300 text-slate-400 text-sm ${isExpanded ? 'rotate-180' : ''}`}>
@@ -236,7 +236,7 @@ export default function ClubWalletPage() {
                   </div>
 
                   {isExpanded && (
-                    <div className="p-6 pt-0 border-t border-white/5 grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center bg-[#07070a]/50">
+                    <div className="p-6 pt-0 border-t border-white/5 grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center bg-[#05070d]/50">
                       {orgTickets.map((ticket) => (
                         <div key={ticket.id} className="w-full flex justify-center pt-6">
                           <TicketQrCard ticket={ticket} />

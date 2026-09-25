@@ -102,17 +102,17 @@ export default function DigitalSocioCardPage() {
   const activeCard = memberships.find(m => m.clubId === selectedCardId) || memberships[0];
 
   return (
-    <div className="min-h-screen bg-[#07070a] text-slate-100 flex flex-col justify-between font-sans antialiased selection:bg-amber-500 selection:text-black">
+    <div className="min-h-screen bg-[#05070d] text-slate-100 flex flex-col justify-between font-sans antialiased selection:bg-blue-500 selection:text-white">
       
       {/* NAVBAR */}
-      <header className="border-b border-white/5 bg-[#07070a] sticky top-0 z-40 px-6 py-4">
+      <header className="border-b border-white/5 bg-[#05070d] sticky top-0 z-40 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link href="/club/partidos" className="flex items-center gap-3.5 cursor-pointer group">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-600 flex items-center justify-center font-black text-black text-sm shadow-lg shadow-amber-500/20">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-500 via-indigo-400 to-blue-600 flex items-center justify-center font-black text-white text-sm shadow-lg shadow-blue-500/20">
               LE
             </div>
             <div className="flex flex-col">
-              <span className="font-luxury text-lg font-black tracking-[0.1em] uppercase text-white leading-none group-hover:text-amber-400 transition">
+              <span className="font-luxury text-lg font-black tracking-[0.1em] uppercase text-white leading-none group-hover:text-blue-400 transition">
                 LIVE EXPERIENCE
               </span>
             </div>
@@ -138,7 +138,7 @@ export default function DigitalSocioCardPage() {
         <div className="w-full space-y-6">
           
           <div className="text-center space-y-2">
-            <span className="text-[10px] text-amber-400 uppercase font-bold tracking-widest block">
+            <span className="text-[10px] text-blue-400 uppercase font-bold tracking-widest block">
               ● Padrón Automático Verificado
             </span>
             <h1 className="font-luxury text-3xl font-black uppercase text-white tracking-tight">
@@ -158,8 +158,8 @@ export default function DigitalSocioCardPage() {
                   onClick={() => setSelectedCardId(m.clubId)}
                   className={`px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition cursor-pointer whitespace-nowrap border ${
                     selectedCardId === m.clubId
-                      ? 'bg-amber-500 text-black border-amber-400 shadow-md shadow-amber-500/20'
-                      : 'bg-[#0c0f17] text-slate-400 border-white/10 hover:text-white'
+                      ? 'bg-blue-500 text-white border-blue-400 shadow-md shadow-blue-500/20'
+                      : 'bg-[#0b1120] text-slate-400 border-white/10 hover:text-white'
                   }`}
                 >
                   {m.isDependent ? '👶' : '👤'} {m.holderName} ({m.clubName})
@@ -170,13 +170,13 @@ export default function DigitalSocioCardPage() {
 
           {/* TARJETA DE CREDENCIAL DIGITAL */}
           {activeCard && (
-            <div className="w-full bg-[#0c0f17] border-2 border-amber-500 rounded-3xl p-7 shadow-2xl space-y-6 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-40 h-40 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="w-full bg-[#0b1120] border-2 border-blue-500 rounded-3xl p-7 shadow-2xl space-y-6 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
 
               {/* ENCABEZADO CREDENCIAL */}
               <div className="flex justify-between items-start border-b border-white/10 pb-4">
                 <div>
-                  <span className="text-[10px] text-amber-400 font-bold uppercase tracking-widest block">
+                  <span className="text-[10px] text-blue-400 font-bold uppercase tracking-widest block">
                     {activeCard.clubName}
                   </span>
                   <h3 className="font-luxury text-lg font-black text-white uppercase tracking-wider mt-1">
@@ -204,7 +204,7 @@ export default function DigitalSocioCardPage() {
                 </div>
                 <div>
                   <span className="text-slate-500 block uppercase text-[10px]">Gestión Autorizada</span>
-                  <strong className="text-amber-400">{activeCard.isDependent ? `Titular: ${session?.name}` : 'Personal'}</strong>
+                  <strong className="text-blue-400">{activeCard.isDependent ? `Titular: ${session?.name}` : 'Personal'}</strong>
                 </div>
               </div>
 
@@ -212,7 +212,7 @@ export default function DigitalSocioCardPage() {
               <div className="p-5 rounded-2xl bg-white text-slate-900 text-center space-y-3 shadow-inner">
                 <div className="flex justify-between items-center text-[10px] font-bold text-slate-500 uppercase px-2">
                   <span>Token Dinámico Molinete</span>
-                  <span className="text-amber-600 font-black">Actualiza en {timeLeft}s</span>
+                  <span className="text-blue-400 font-black">Actualiza en {timeLeft}s</span>
                 </div>
                 
                 <img 
@@ -238,7 +238,7 @@ export default function DigitalSocioCardPage() {
 
       {/* FOOTER */}
       <footer className="border-t border-white/5 bg-[#050507] py-6 text-xs font-mono text-slate-500 text-center space-y-1 mt-auto">
-        <p className="font-luxury text-amber-400 tracking-widest text-xs font-bold">LIVE EXPERIENCE DEPORTES</p>
+        <p className="font-luxury text-blue-400 tracking-widest text-xs font-bold">LIVE EXPERIENCE DEPORTES</p>
       </footer>
     </div>
   );

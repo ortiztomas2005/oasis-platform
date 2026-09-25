@@ -20,8 +20,8 @@ function ClubCheckoutContent() {
 
   // Colores institucionales del club
   const [clubColors, setClubColors] = useState({
-    primary: '#f59e0b',
-    accent: '#fbbf24'
+    primary: '#2563eb',
+    accent: '#3b82f6'
   });
 
   useEffect(() => {
@@ -70,7 +70,7 @@ function ClubCheckoutContent() {
 
   if (!match) {
     return (
-      <div className="min-h-screen bg-[#07070a] text-white flex items-center justify-center font-mono">
+      <div className="min-h-screen bg-[#05070d] text-white flex items-center justify-center font-mono">
         <p className="text-sm">Cargando encuentro...</p>
       </div>
     );
@@ -193,10 +193,10 @@ function ClubCheckoutContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#07070a] text-slate-100 flex flex-col font-sans antialiased selection:bg-amber-500 selection:text-black font-mono">
+    <div className="min-h-screen bg-[#05070d] text-slate-100 flex flex-col font-sans antialiased selection:bg-blue-500 selection:text-white font-mono">
       
       {/* HEADER */}
-      <header className="h-20 border-b border-white/10 bg-[#07070a] px-8 flex items-center justify-between shrink-0 z-30">
+      <header className="h-20 border-b border-white/10 bg-[#05070d] px-8 flex items-center justify-between shrink-0 z-30">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl flex items-center justify-center font-black text-black text-sm shadow-lg font-luxury" style={{ backgroundColor: clubColors.primary }}>
             ⚽
@@ -221,7 +221,7 @@ function ClubCheckoutContent() {
         <form onSubmit={handleProcessPayment} className="lg:col-span-7 space-y-8">
           
           {/* 1. SELECCIONAR SECTOR */}
-          <div className="p-6 rounded-3xl bg-[#0c0f17] border border-white/10 space-y-4 shadow-xl">
+          <div className="p-6 rounded-3xl bg-[#0b1120] border border-white/10 space-y-4 shadow-xl">
             <h2 className="text-xs font-black uppercase tracking-widest" style={{ color: clubColors.accent }}>
               1. Seleccioná el Sector
             </h2>
@@ -232,7 +232,7 @@ function ClubCheckoutContent() {
                   <div
                     key={idx}
                     onClick={() => setSelectedSector(sec)}
-                    className={`p-4 rounded-2xl border transition cursor-pointer space-y-1 ${isSelected ? 'bg-white/5' : 'bg-[#07070a] border-white/5 opacity-60'}`}
+                    className={`p-4 rounded-2xl border transition cursor-pointer space-y-1 ${isSelected ? 'bg-white/5' : 'bg-[#05070d] border-white/5 opacity-60'}`}
                     style={{ borderColor: isSelected ? clubColors.accent : 'rgba(255,255,255,0.08)' }}
                   >
                     <h3 className="font-bold text-white text-sm">{sec.name}</h3>
@@ -244,18 +244,18 @@ function ClubCheckoutContent() {
           </div>
 
           {/* 2. CATEGORÍA DE ACCESO */}
-          <div className="p-6 rounded-3xl bg-[#0c0f17] border border-white/10 space-y-4 shadow-xl">
+          <div className="p-6 rounded-3xl bg-[#0b1120] border border-white/10 space-y-4 shadow-xl">
             <h2 className="text-xs font-black uppercase tracking-widest" style={{ color: clubColors.accent }}>
               2. Categoría de Acceso
             </h2>
             <div className="space-y-3">
               <label 
-                className={`flex items-center justify-between p-4 rounded-2xl border transition cursor-pointer ${accessType === 'member' ? 'bg-white/5' : 'bg-[#0c0f17] border-white/5 opacity-60'}`}
+                className={`flex items-center justify-between p-4 rounded-2xl border transition cursor-pointer ${accessType === 'member' ? 'bg-white/5' : 'bg-[#0b1120] border-white/5 opacity-60'}`}
                 style={{ borderColor: accessType === 'member' ? clubColors.accent : 'rgba(255,255,255,0.08)' }}
                 onClick={() => setAccessType('member')}
               >
                 <div className="flex items-center gap-3">
-                  <input type="radio" checked={accessType === 'member'} onChange={() => setAccessType('member')} className="accent-amber-500" />
+                  <input type="radio" checked={accessType === 'member'} onChange={() => setAccessType('member')} className="accent-blue-500" />
                   <div>
                     <span className="font-bold text-white text-xs block">Canje de Socio (Verificación estricta en Padrón)</span>
                     <span className="text-[10px] text-slate-400">Exclusivo socios activos registrados en base</span>
@@ -265,12 +265,12 @@ function ClubCheckoutContent() {
               </label>
 
               <label 
-                className={`flex items-center justify-between p-4 rounded-2xl border transition cursor-pointer ${accessType === 'general' ? 'bg-white/5' : 'bg-[#0c0f17] border-white/5 opacity-60'}`}
+                className={`flex items-center justify-between p-4 rounded-2xl border transition cursor-pointer ${accessType === 'general' ? 'bg-white/5' : 'bg-[#0b1120] border-white/5 opacity-60'}`}
                 style={{ borderColor: accessType === 'general' ? clubColors.accent : 'rgba(255,255,255,0.08)' }}
                 onClick={() => setAccessType('general')}
               >
                 <div className="flex items-center gap-3">
-                  <input type="radio" checked={accessType === 'general'} onChange={() => setAccessType('general')} className="accent-amber-500" />
+                  <input type="radio" checked={accessType === 'general'} onChange={() => setAccessType('general')} className="accent-blue-500" />
                   <div>
                     <span className="font-bold text-white text-xs block">Entrada General</span>
                     <span className="text-[10px] text-slate-400">Público general / Compras libres</span>
@@ -282,34 +282,34 @@ function ClubCheckoutContent() {
           </div>
 
           {/* 3. DATOS DEL ASISTENTE */}
-          <div className="p-6 rounded-3xl bg-[#0c0f17] border border-white/10 space-y-4 shadow-xl text-xs">
+          <div className="p-6 rounded-3xl bg-[#0b1120] border border-white/10 space-y-4 shadow-xl text-xs">
             <h2 className="text-xs font-black uppercase tracking-widest" style={{ color: clubColors.accent }}>
               3. Datos del Asistente
             </h2>
             <div className="space-y-3">
               <div>
                 <label className="text-slate-400 uppercase font-bold text-[10px] block mb-1">Nombre y Apellido</label>
-                <input type="text" required value={holderName} onChange={e => setHolderName(e.target.value)} className="w-full p-3 bg-[#07070a] border border-white/10 rounded-xl text-white font-bold" />
+                <input type="text" required value={holderName} onChange={e => setHolderName(e.target.value)} className="w-full p-3 bg-[#05070d] border border-white/10 rounded-xl text-white font-bold" />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-slate-400 uppercase font-bold text-[10px] block mb-1">DNI</label>
-                  <input type="text" required value={holderDni} onChange={e => setHolderDni(e.target.value)} className="w-full p-3 bg-[#07070a] border border-white/10 rounded-xl text-white font-bold" />
+                  <input type="text" required value={holderDni} onChange={e => setHolderDni(e.target.value)} className="w-full p-3 bg-[#05070d] border border-white/10 rounded-xl text-white font-bold" />
                 </div>
 
                 {/* CAMPO CONDICIONAL DE NÚMERO DE SOCIO */}
                 {accessType === 'member' && (
                   <div>
                     <label className="text-emerald-400 uppercase font-bold text-[10px] block mb-1">Número de Socio *</label>
-                    <input type="text" required placeholder="Ej: 10023" value={holderMemberNumber} onChange={e => setHolderMemberNumber(e.target.value)} className="w-full p-3 bg-[#07070a] border border-emerald-500/50 rounded-xl text-emerald-400 font-bold" />
+                    <input type="text" required placeholder="Ej: 10023" value={holderMemberNumber} onChange={e => setHolderMemberNumber(e.target.value)} className="w-full p-3 bg-[#05070d] border border-emerald-500/50 rounded-xl text-emerald-400 font-bold" />
                   </div>
                 )}
               </div>
 
               <div>
                 <label className="text-slate-400 uppercase font-bold text-[10px] block mb-1">Email (Billetera)</label>
-                <input type="email" required value={holderEmail} onChange={e => setHolderEmail(e.target.value)} className="w-full p-3 bg-[#07070a] border border-white/10 rounded-xl text-white font-bold" />
+                <input type="email" required value={holderEmail} onChange={e => setHolderEmail(e.target.value)} className="w-full p-3 bg-[#05070d] border border-white/10 rounded-xl text-white font-bold" />
               </div>
             </div>
           </div>
@@ -326,7 +326,7 @@ function ClubCheckoutContent() {
 
         {/* COLUMNA DERECHA: RESUMEN Y PAGO */}
         <div className="lg:col-span-5 space-y-6 sticky top-24">
-          <div className="p-6 rounded-3xl bg-[#0c0f17] border space-y-6 shadow-2xl" style={{ borderColor: `${clubColors.accent}50` }}>
+          <div className="p-6 rounded-3xl bg-[#0b1120] border space-y-6 shadow-2xl" style={{ borderColor: `${clubColors.accent}50` }}>
             <div className="border-b border-white/10 pb-4 space-y-1">
               <span className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">Resumen del Encuentro</span>
               <h3 className="font-luxury text-base font-black text-white uppercase">{match.name}</h3>
@@ -360,7 +360,7 @@ function ClubCheckoutContent() {
             </div>
 
             <label className="flex items-center gap-2.5 text-[11px] text-slate-300 cursor-pointer pt-2">
-              <input type="checkbox" checked={acceptedTerms} onChange={e => setAcceptedTerms(e.target.checked)} className="accent-amber-500 rounded" />
+              <input type="checkbox" checked={acceptedTerms} onChange={e => setAcceptedTerms(e.target.checked)} className="accent-blue-500 rounded" />
               <span>Acepto las <strong className="underline">condiciones generales de acceso al estadio</strong></span>
             </label>
 
@@ -384,7 +384,7 @@ export default function ClubCheckoutPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#07070a] text-white flex items-center justify-center font-mono">
+        <div className="min-h-screen bg-[#05070d] text-white flex items-center justify-center font-mono">
           <p className="text-sm">Cargando encuentro...</p>
         </div>
       }

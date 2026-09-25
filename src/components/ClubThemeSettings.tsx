@@ -10,7 +10,7 @@ const COLOR_THEMES = [
 ];
 
 export default function ClubThemeSettings() {
-  const [selectedTheme, setSelectedTheme] = useState('amber');
+  const [selectedTheme, setSelectedTheme] = useState('blue');
 
   useEffect(() => {
     const saved = localStorage.getItem('oasis_club_qr_theme');
@@ -26,9 +26,9 @@ export default function ClubThemeSettings() {
   };
 
   return (
-    <div className="p-6 rounded-3xl bg-[#0c0f16] border border-white/10 space-y-6 font-mono">
+    <div className="p-6 rounded-3xl bg-[#0b1120] border border-white/10 space-y-6 font-mono">
       <div className="space-y-1">
-        <span className="text-[10px] text-amber-400 uppercase font-bold tracking-widest block">
+        <span className="text-[10px] text-blue-400 uppercase font-bold tracking-widest block">
           ● Configuración de Identidad
         </span>
         <h3 className="text-xl font-black uppercase text-white font-luxury">
@@ -49,7 +49,7 @@ export default function ClubThemeSettings() {
               className={`p-4 rounded-2xl border text-left transition flex items-center justify-between cursor-pointer ${
                 isSelected
                   ? `${theme.border} ${theme.bg} shadow-lg`
-                  : 'border-white/5 bg-[#07070a] hover:bg-white/5 text-slate-400'
+                  : 'border-white/5 bg-[#05070d] hover:bg-white/5 text-slate-400'
               }`}
             >
               <div className="flex items-center gap-3">
@@ -63,7 +63,7 @@ export default function ClubThemeSettings() {
                   </div>
                 </div>
               </div>
-              {isSelected && <span className="text-amber-400 font-bold text-sm">✓</span>}
+              {isSelected && <span className={`${theme.text} font-bold text-sm`}>✓</span>}
             </button>
           );
         })}

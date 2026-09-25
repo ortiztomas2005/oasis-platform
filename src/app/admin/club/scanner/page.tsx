@@ -236,7 +236,7 @@ export default function GateScannerPage() {
 
   if (authorized === false) {
     return (
-      <div className="min-h-screen bg-[#07070a] text-slate-100 flex flex-col items-center justify-center font-mono p-6">
+      <div className="min-h-screen bg-[#05070d] text-slate-100 flex flex-col items-center justify-center font-mono p-6">
         <div className="max-w-md w-full bg-[#0c0f16] border border-rose-500/30 rounded-3xl p-8 text-center space-y-6 shadow-2xl">
           <div className="w-16 h-16 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto text-2xl font-black">
             🔒
@@ -244,7 +244,7 @@ export default function GateScannerPage() {
           <div className="space-y-2">
             <h1 className="font-luxury text-xl font-black text-white uppercase">Acceso Restringido</h1>
             <p className="text-xs text-slate-400">
-              Tu rol actual (<strong className="text-amber-400 uppercase">{userRoleInfo}</strong>) no cuenta con permisos de seguridad para operar el escáner.
+              Tu rol actual (<strong className="text-blue-400 uppercase">{userRoleInfo}</strong>) no cuenta con permisos de seguridad para operar el escáner.
             </p>
           </div>
           <Link href="/admin/club" className="block w-full py-3.5 bg-white/10 hover:bg-white/15 text-white font-bold rounded-xl text-xs uppercase transition">
@@ -256,10 +256,10 @@ export default function GateScannerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#07070a] text-slate-100 flex flex-col font-sans antialiased font-mono p-8">
+    <div className="min-h-screen bg-[#05070d] text-slate-100 flex flex-col font-sans antialiased font-mono p-8">
       <header className="max-w-4xl w-full mx-auto flex items-center justify-between pb-6 border-b border-white/10 mb-8">
         <div>
-          <span className="text-[10px] text-amber-400 font-bold uppercase tracking-widest block">CONTROL DE ACCESO ESTADIO (ROL: {userRoleInfo})</span>
+          <span className="text-[10px] text-blue-400 font-bold uppercase tracking-widest block">CONTROL DE ACCESO ESTADIO (ROL: {userRoleInfo})</span>
           <h1 className="font-luxury text-2xl font-black text-white uppercase">Escáner de Carnets & Entradas</h1>
         </div>
         <button onClick={() => { stopCamera(); window.location.href = '/admin/club'; }} className="px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-300 rounded-xl text-xs font-bold transition cursor-pointer">
@@ -318,11 +318,11 @@ export default function GateScannerPage() {
               value={qrInput}
               onChange={(e) => setQrInput(e.target.value)}
               placeholder="Token de Carnet, Entrada o DNI..."
-              className="w-full px-5 py-4 bg-[#07070a] border border-amber-500/40 rounded-2xl text-amber-400 font-black text-center text-sm uppercase tracking-widest focus:outline-none focus:border-amber-400"
+              className="w-full px-5 py-4 bg-[#05070d] border border-blue-500/40 rounded-2xl text-blue-400 font-black text-center text-sm uppercase tracking-widest focus:outline-none focus:border-blue-400"
             />
             <button
               type="submit"
-              className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-black uppercase text-xs rounded-2xl transition shadow-xl shadow-amber-500/20 tracking-wider cursor-pointer"
+              className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-black uppercase text-xs rounded-2xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 shadow-xl shadow-blue-600/20 tracking-wider cursor-pointer"
             >
               🔍 Verificar Acceso en Molinete
             </button>
@@ -335,7 +335,7 @@ export default function GateScannerPage() {
           )}
 
           {errorMsg && alertType === 'warning' && (
-            <div className="p-5 rounded-2xl bg-amber-500/20 border-2 border-amber-500 text-amber-300 text-sm font-black text-center animate-pulse">
+            <div className="p-5 rounded-2xl bg-blue-500/20 border-2 border-blue-500 text-blue-300 text-sm font-black text-center animate-pulse">
               {errorMsg}
             </div>
           )}
@@ -362,7 +362,7 @@ export default function GateScannerPage() {
 
             <div className="space-y-3 text-xs">
               <div><span className="text-slate-500 block uppercase text-[10px]">Titular / Asistente</span><strong className="text-white text-sm">{scanResult.holderName} (DNI: {scanResult.holderDni})</strong></div>
-              <div><span className="text-slate-500 block uppercase text-[10px]">Número de Socio / Carnet</span><strong className="text-amber-400">#{scanResult.memberNumber}</strong></div>
+              <div><span className="text-slate-500 block uppercase text-[10px]">Número de Socio / Carnet</span><strong className="text-blue-400">#{scanResult.memberNumber}</strong></div>
               <div><span className="text-slate-500 block uppercase text-[10px]">Categoría / Sector</span><strong className="text-white">{scanResult.tierName}</strong></div>
             </div>
           </div>

@@ -47,8 +47,8 @@ export default function ClubAdminPage() {
 
   const [clubName, setClubName] = useState('CLUB ATLÉTICO');
   const [clubLogo, setClubLogo] = useState('');
-  const [primaryColor, setPrimaryColor] = useState('#f59e0b');
-  const [accentColor, setAccentColor] = useState('#fbbf24');
+  const [primaryColor, setPrimaryColor] = useState('#2563eb');
+  const [accentColor, setAccentColor] = useState('#3b82f6');
   const [savedConfig, setSavedConfig] = useState(false);
 
   const [matches, setMatches] = useState<any[]>([]);
@@ -138,12 +138,12 @@ export default function ClubAdminPage() {
       if (config) {
         const parsed = JSON.parse(config);
         setClubLogo(parsed.clubLogo || parsed.logo || '');
-        setPrimaryColor(parsed.primaryColor || '#f59e0b');
-        setAccentColor(parsed.accentColor || '#fbbf24');
+        setPrimaryColor(parsed.primaryColor || '#2563eb');
+        setAccentColor(parsed.accentColor || '#3b82f6');
       } else {
         setClubLogo('');
-        setPrimaryColor('#f59e0b');
-        setAccentColor('#fbbf24');
+        setPrimaryColor('#2563eb');
+        setAccentColor('#3b82f6');
       }
 
       const storedSectors = JSON.parse(localStorage.getItem(`le_club_sectors_${slug}`) || '[]');
@@ -545,11 +545,11 @@ export default function ClubAdminPage() {
   const totalMatchRevenue = totalRevenueGeneral + totalRevenueMember;
 
   return (
-    <div className="min-h-screen bg-[#07070a] text-slate-100 flex flex-col font-sans antialiased font-mono">
+    <div className="min-h-screen bg-[#05070d] text-slate-100 flex flex-col font-sans antialiased font-mono">
       {/* HEADER SUPERIOR */}
-      <header className="h-16 border-b border-white/5 bg-[#07070a] px-6 flex items-center justify-between shrink-0 z-30">
+      <header className="h-16 border-b border-white/5 bg-[#05070d] px-6 flex items-center justify-between shrink-0 z-30">
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-2xl flex items-center justify-center font-black text-black text-sm shadow-lg font-luxury" style={{ backgroundColor: primaryColor }}>
+          <div className="w-10 h-10 rounded-2xl flex items-center justify-center font-black text-white text-sm shadow-lg font-luxury" style={{ backgroundColor: primaryColor }}>
             ⚽
           </div>
           <div className="flex flex-col">
@@ -566,19 +566,19 @@ export default function ClubAdminPage() {
               className="bg-transparent text-white font-luxury text-sm font-black tracking-widest uppercase focus:outline-none cursor-pointer"
             >
               {uniqueClubs.map((club) => (
-                <option key={club} value={club} className="bg-[#0c0f17] text-white">⚽ {club}</option>
+                <option key={club} value={club} className="bg-[#0b1120] text-white">⚽ {club}</option>
               ))}
-              <option disabled value="" className="bg-[#0c0f17] text-slate-600">────────────────────</option>
-              <option value="NEW" className="bg-[#0c0f17] text-amber-400 font-bold">+ Crear nuevo club / entidad</option>
+              <option disabled value="" className="bg-[#0b1120] text-slate-600">────────────────────</option>
+              <option value="NEW" className="bg-[#0b1120] text-blue-400 font-bold">+ Crear nuevo club / entidad</option>
             </select>
-            <span className="text-[10px] text-amber-400 uppercase tracking-wider font-bold">Módulo Institucional & Partidos (Privado)</span>
+            <span className="text-[10px] text-blue-400 uppercase tracking-wider font-bold">Módulo Institucional & Partidos (Privado)</span>
           </div>
         </div>
 
         <div className="flex items-center gap-4 text-xs font-bold">
           <Link 
             href="/admin" 
-            className="px-4 py-2 rounded-2xl bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/25 transition cursor-pointer flex items-center gap-2 shadow-md text-xs font-bold"
+            className="px-4 py-2 rounded-2xl bg-blue-500/15 text-blue-300 border border-blue-500/30 hover:bg-blue-500/25 transition cursor-pointer flex items-center gap-2 shadow-md text-xs font-bold"
           >
             <span>🎉</span>
             <span>Volver a Módulo Fiestas</span>
@@ -589,7 +589,7 @@ export default function ClubAdminPage() {
 
       {/* CUERPO PRINCIPAL CON SIDEBAR */}
       <div className="flex flex-1 overflow-hidden">
-        <aside className="w-64 border-r border-white/5 bg-[#050507] p-4 space-y-1.5 shrink-0 select-none overflow-y-auto">
+        <aside className="w-64 border-r border-white/5 bg-[#070a12] p-4 space-y-1.5 shrink-0 select-none overflow-y-auto">
           <div>
             <button
               onClick={() => {
@@ -598,7 +598,7 @@ export default function ClubAdminPage() {
                   setCurrentSection('matches_active');
                 }
               }}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl transition cursor-pointer text-xs ${currentSection.startsWith('matches') ? 'text-amber-400 font-bold bg-amber-500/10 border border-amber-500/20' : 'text-slate-300 hover:bg-white/5'}`}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl transition cursor-pointer text-xs ${currentSection.startsWith('matches') ? 'text-blue-400 font-bold bg-blue-500/10 border border-blue-500/20' : 'text-slate-300 hover:bg-white/5'}`}
             >
               <div className="flex items-center gap-2.5">
                 <span>⚽</span>
@@ -611,19 +611,19 @@ export default function ClubAdminPage() {
               <div className="pl-6 pt-1.5 space-y-1 text-xs">
                 <button
                   onClick={() => setCurrentSection('matches_active')}
-                  className={`w-full text-left px-3 py-2 rounded-xl transition cursor-pointer ${currentSection === 'matches_active' ? 'text-amber-300 font-bold bg-amber-500/10' : 'text-slate-400 hover:text-white'}`}
+                  className={`w-full text-left px-3 py-2 rounded-xl transition cursor-pointer ${currentSection === 'matches_active' ? 'text-blue-300 font-bold bg-blue-500/10' : 'text-slate-400 hover:text-white'}`}
                 >
                   ● Activos
                 </button>
                 <button
                   onClick={() => setCurrentSection('matches_finished')}
-                  className={`w-full text-left px-3 py-2 rounded-xl transition ${currentSection === 'matches_finished' ? 'text-amber-300 font-bold bg-amber-500/10' : 'text-slate-400 hover:text-white'}`}
+                  className={`w-full text-left px-3 py-2 rounded-xl transition ${currentSection === 'matches_finished' ? 'text-blue-300 font-bold bg-blue-500/10' : 'text-slate-400 hover:text-white'}`}
                 >
                   Finalizados (Historial)
                 </button>
                 <button
                   onClick={() => setCurrentSection('matches_suspended')}
-                  className={`w-full text-left px-3 py-2 rounded-xl transition ${currentSection === 'matches_suspended' ? 'text-amber-300 font-bold bg-amber-500/10' : 'text-slate-400 hover:text-white'}`}
+                  className={`w-full text-left px-3 py-2 rounded-xl transition ${currentSection === 'matches_suspended' ? 'text-blue-300 font-bold bg-blue-500/10' : 'text-slate-400 hover:text-white'}`}
                 >
                   🚫 Suspendidos
                 </button>
@@ -633,7 +633,7 @@ export default function ClubAdminPage() {
 
           <button
             onClick={() => setCurrentSection('config')}
-            className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl transition cursor-pointer text-xs ${currentSection === 'config' ? 'text-amber-400 font-bold bg-amber-500/10 border border-amber-500/20' : 'text-slate-300 hover:bg-white/5'}`}
+            className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl transition cursor-pointer text-xs ${currentSection === 'config' ? 'text-blue-400 font-bold bg-blue-500/10 border border-blue-500/20' : 'text-slate-300 hover:bg-white/5'}`}
           >
             <span>🛡️</span>
             <span>Identidad & Colores</span>
@@ -641,7 +641,7 @@ export default function ClubAdminPage() {
 
           <button
             onClick={() => setCurrentSection('sectors_prices')}
-            className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl transition cursor-pointer text-xs ${currentSection === 'sectors_prices' ? 'text-amber-400 font-bold bg-amber-500/10 border border-amber-500/20' : 'text-slate-300 hover:bg-white/5'}`}
+            className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl transition cursor-pointer text-xs ${currentSection === 'sectors_prices' ? 'text-blue-400 font-bold bg-blue-500/10 border border-blue-500/20' : 'text-slate-300 hover:bg-white/5'}`}
           >
             <span>🏷️</span>
             <span>Sectores y Precios</span>
@@ -649,7 +649,7 @@ export default function ClubAdminPage() {
 
           <button
             onClick={() => setCurrentSection('announcements')}
-            className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl transition cursor-pointer text-xs ${currentSection === 'announcements' ? 'text-amber-400 font-bold bg-amber-500/10 border border-amber-500/20' : 'text-slate-300 hover:bg-white/5'}`}
+            className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl transition cursor-pointer text-xs ${currentSection === 'announcements' ? 'text-blue-400 font-bold bg-blue-500/10 border border-blue-500/20' : 'text-slate-300 hover:bg-white/5'}`}
           >
             <span>📢</span>
             <span>Comunicados / Anuncios</span>
@@ -657,7 +657,7 @@ export default function ClubAdminPage() {
 
           <button
             onClick={() => setCurrentSection('members_db')}
-            className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl transition cursor-pointer text-xs ${currentSection === 'members_db' ? 'text-amber-400 font-bold bg-amber-500/10 border border-amber-500/20' : 'text-slate-300 hover:bg-white/5'}`}
+            className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl transition cursor-pointer text-xs ${currentSection === 'members_db' ? 'text-blue-400 font-bold bg-blue-500/10 border border-blue-500/20' : 'text-slate-300 hover:bg-white/5'}`}
           >
             <span>👥</span>
             <span>Padrón Privado de Socios</span>
@@ -665,7 +665,7 @@ export default function ClubAdminPage() {
 
           <button
             onClick={() => setCurrentSection('staff_roles')}
-            className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl transition cursor-pointer text-xs ${currentSection === 'staff_roles' ? 'text-amber-400 font-bold bg-amber-500/10 border border-amber-500/20' : 'text-slate-300 hover:bg-white/5'}`}
+            className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl transition cursor-pointer text-xs ${currentSection === 'staff_roles' ? 'text-blue-400 font-bold bg-blue-500/10 border border-blue-500/20' : 'text-slate-300 hover:bg-white/5'}`}
           >
             <span>🔐</span>
             <span>Roles & Personal</span>
@@ -673,7 +673,7 @@ export default function ClubAdminPage() {
 
           <button
             onClick={() => setCurrentSection('cash_emission')}
-            className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl transition cursor-pointer text-xs ${currentSection === 'cash_emission' ? 'text-amber-400 font-bold bg-amber-500/10 border border-amber-500/20' : 'text-slate-300 hover:bg-white/5'}`}
+            className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl transition cursor-pointer text-xs ${currentSection === 'cash_emission' ? 'text-blue-400 font-bold bg-blue-500/10 border border-blue-500/20' : 'text-slate-300 hover:bg-white/5'}`}
           >
             <span>💵</span>
             <span>Venta en Efectivo</span>
@@ -681,7 +681,7 @@ export default function ClubAdminPage() {
 
           <button
             onClick={() => setCurrentSection('audit_logs')}
-            className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl transition cursor-pointer text-xs ${currentSection === 'audit_logs' ? 'text-amber-400 font-bold bg-amber-500/10 border border-amber-500/20' : 'text-slate-300 hover:bg-white/5'}`}
+            className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl transition cursor-pointer text-xs ${currentSection === 'audit_logs' ? 'text-blue-400 font-bold bg-blue-500/10 border border-blue-500/20' : 'text-slate-300 hover:bg-white/5'}`}
           >
             <span>📋</span>
             <span>Historial de Accesos</span>
@@ -689,7 +689,7 @@ export default function ClubAdminPage() {
 
           <button
             onClick={() => setCurrentSection('metrics')}
-            className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl transition cursor-pointer text-xs ${currentSection === 'metrics' ? 'text-amber-400 font-bold bg-amber-500/10 border border-amber-500/20' : 'text-slate-300 hover:bg-white/5'}`}
+            className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl transition cursor-pointer text-xs ${currentSection === 'metrics' ? 'text-blue-400 font-bold bg-blue-500/10 border border-blue-500/20' : 'text-slate-300 hover:bg-white/5'}`}
           >
             <span>📊</span>
             <span>Métricas & Ocupación</span>
@@ -697,7 +697,7 @@ export default function ClubAdminPage() {
 
           <Link
             href="/admin/club/scanner"
-            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl text-xs text-amber-400 hover:bg-amber-500/15 border border-amber-500/30 transition cursor-pointer font-bold block"
+            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl text-xs text-blue-400 hover:bg-blue-500/15 border border-blue-500/30 transition cursor-pointer font-bold block"
           >
             <span>📷</span>
             <span>Escáner de Puerta</span>
@@ -705,7 +705,7 @@ export default function ClubAdminPage() {
         </aside>
 
         {/* CONTENIDO PRINCIPAL */}
-        <main className="flex-1 overflow-y-auto p-8 space-y-8 bg-[#07070a]">
+        <main className="flex-1 overflow-y-auto p-8 space-y-8 bg-[#05070d]">
           
           {currentSection === 'sectors_prices' && (
             <form onSubmit={handleSaveSectors} className="space-y-8 max-w-4xl mx-auto font-mono">
@@ -714,16 +714,16 @@ export default function ClubAdminPage() {
                   <h1 className="font-luxury text-2xl font-black text-white uppercase">🏷️ Sectores y Precios ({clubName})</h1>
                   <p className="text-xs text-slate-400 mt-1">Configuración general de aforos y tarifas institucionales.</p>
                 </div>
-                <button type="button" onClick={() => setSectors([...sectors, { name: `Sector ${sectors.length + 1}`, generalPrice: 15000, memberPrice: 0, capacity: 5000 }])} className="px-4 py-2 bg-amber-500 text-black text-xs font-black uppercase rounded-2xl cursor-pointer shadow-md">
+                <button type="button" onClick={() => setSectors([...sectors, { name: `Sector ${sectors.length + 1}`, generalPrice: 15000, memberPrice: 0, capacity: 5000 }])} className="px-4 py-2 bg-blue-500 text-white text-xs font-black uppercase rounded-2xl cursor-pointer shadow-md">
                   + Agregar Sector
                 </button>
               </div>
 
               <div className="space-y-4">
                 {sectors.map((sec, idx) => (
-                  <div key={idx} className="p-5 rounded-3xl bg-[#0c0f17] border border-white/5 space-y-3 text-xs shadow-xl">
+                  <div key={idx} className="p-5 rounded-3xl bg-[#0b1120] border border-white/5 space-y-3 text-xs shadow-xl">
                     <div className="flex justify-between items-center">
-                      <span className="font-bold text-amber-400 uppercase">Sector #{idx + 1}</span>
+                      <span className="font-bold text-blue-400 uppercase">Sector #{idx + 1}</span>
                       {sectors.length > 1 && (
                         <button type="button" onClick={() => setSectors(sectors.filter((_, i) => i !== idx))} className="text-rose-400 font-bold cursor-pointer">✕ Quitar</button>
                       )}
@@ -731,26 +731,26 @@ export default function ClubAdminPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                       <div className="space-y-1">
                         <label className="text-slate-400 text-[9px] uppercase font-bold">Nombre</label>
-                        <input type="text" placeholder="Ej: Popular" value={sec.name} onChange={e => { const c = [...sectors]; c[idx].name = e.target.value; setSectors(c); }} className="w-full p-3 bg-[#07070a] rounded-2xl border border-white/10 text-white font-bold" />
+                        <input type="text" placeholder="Ej: Popular" value={sec.name} onChange={e => { const c = [...sectors]; c[idx].name = e.target.value; setSectors(c); }} className="w-full p-3 bg-[#05070d] rounded-2xl border border-white/10 text-white font-bold" />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-amber-400 text-[9px] uppercase font-bold">General ($)</label>
-                        <input type="number" min="0" value={sec.generalPrice} onChange={e => { const c = [...sectors]; c[idx].generalPrice = Number(e.target.value); setSectors(c); }} className="w-full p-3 bg-[#07070a] rounded-2xl border border-white/10 text-amber-400 font-black" />
+                        <label className="text-blue-400 text-[9px] uppercase font-bold">General ($)</label>
+                        <input type="number" min="0" value={sec.generalPrice} onChange={e => { const c = [...sectors]; c[idx].generalPrice = Number(e.target.value); setSectors(c); }} className="w-full p-3 bg-[#05070d] rounded-2xl border border-white/10 text-blue-400 font-black" />
                       </div>
                       <div className="space-y-1">
                         <label className="text-emerald-400 text-[9px] uppercase font-bold">Socio ($)</label>
-                        <input type="number" min="0" value={sec.memberPrice} onChange={e => { const c = [...sectors]; c[idx].memberPrice = Number(e.target.value); setSectors(c); }} className="w-full p-3 bg-[#07070a] rounded-2xl border border-white/10 text-emerald-400 font-black" />
+                        <input type="number" min="0" value={sec.memberPrice} onChange={e => { const c = [...sectors]; c[idx].memberPrice = Number(e.target.value); setSectors(c); }} className="w-full p-3 bg-[#05070d] rounded-2xl border border-white/10 text-emerald-400 font-black" />
                       </div>
                       <div className="space-y-1">
                         <label className="text-slate-400 text-[9px] uppercase font-bold">Capacidad</label>
-                        <input type="number" min="1" value={sec.capacity} onChange={e => { const c = [...sectors]; c[idx].capacity = Number(e.target.value); setSectors(c); }} className="w-full p-3 bg-[#07070a] rounded-2xl border border-white/10 text-white font-bold" />
+                        <input type="number" min="1" value={sec.capacity} onChange={e => { const c = [...sectors]; c[idx].capacity = Number(e.target.value); setSectors(c); }} className="w-full p-3 bg-[#05070d] rounded-2xl border border-white/10 text-white font-bold" />
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
 
-              <button type="submit" className="w-full py-4 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 text-black font-black uppercase text-xs rounded-2xl shadow-xl cursor-pointer tracking-wider">
+              <button type="submit" className="w-full py-4 bg-gradient-to-r from-blue-400 via-blue-500 to-indigo-500 text-white font-black uppercase text-xs rounded-2xl shadow-xl cursor-pointer tracking-wider">
                 Guardar Sectores y Precios 💾
               </button>
             </form>
@@ -762,15 +762,15 @@ export default function ClubAdminPage() {
                 <h1 className="font-luxury text-2xl font-black text-white uppercase">📢 Comunicados & Anuncios ({clubName})</h1>
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                <form onSubmit={handleAddAnnouncement} className="lg:col-span-5 p-6 rounded-3xl bg-[#0c0f17] border border-white/5 space-y-4 shadow-xl text-xs">
+                <form onSubmit={handleAddAnnouncement} className="lg:col-span-5 p-6 rounded-3xl bg-[#0b1120] border border-white/5 space-y-4 shadow-xl text-xs">
                   <h3 className="font-luxury text-base font-black text-white uppercase">✨ Nuevo Anuncio</h3>
-                  <input type="text" required placeholder="Título" value={newAnnouncement.title} onChange={e => setNewAnnouncement({...newAnnouncement, title: e.target.value})} className="w-full p-3 bg-[#07070a] border border-white/10 rounded-2xl text-white" />
-                  <textarea rows={4} required placeholder="Mensaje..." value={newAnnouncement.message} onChange={e => setNewAnnouncement({...newAnnouncement, message: e.target.value})} className="w-full p-3 bg-[#07070a] border border-white/10 rounded-2xl text-white" />
-                  <button type="submit" className="w-full py-3.5 bg-amber-500 text-black font-black uppercase text-xs rounded-2xl cursor-pointer">Publicar 📢</button>
+                  <input type="text" required placeholder="Título" value={newAnnouncement.title} onChange={e => setNewAnnouncement({...newAnnouncement, title: e.target.value})} className="w-full p-3 bg-[#05070d] border border-white/10 rounded-2xl text-white" />
+                  <textarea rows={4} required placeholder="Mensaje..." value={newAnnouncement.message} onChange={e => setNewAnnouncement({...newAnnouncement, message: e.target.value})} className="w-full p-3 bg-[#05070d] border border-white/10 rounded-2xl text-white" />
+                  <button type="submit" className="w-full py-3.5 bg-blue-500 text-white font-black uppercase text-xs rounded-2xl cursor-pointer">Publicar 📢</button>
                 </form>
                 <div className="lg:col-span-7 space-y-3">
                   {announcements.map((ann) => (
-                    <div key={ann.id} className="p-4 rounded-2xl bg-[#0c0f17] border border-white/5 flex justify-between items-center text-xs">
+                    <div key={ann.id} className="p-4 rounded-2xl bg-[#0b1120] border border-white/5 flex justify-between items-center text-xs">
                       <div><strong className="text-white text-sm">{ann.title}</strong><p className="text-slate-300">{ann.message}</p></div>
                       <button onClick={() => handleDeleteAnnouncement(ann.id)} className="text-rose-400 font-bold">✕</button>
                     </div>
@@ -786,19 +786,19 @@ export default function ClubAdminPage() {
                 <h1 className="font-luxury text-2xl font-black text-white uppercase">🔐 Personal y Roles ({clubName})</h1>
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                <form onSubmit={handleAddStaff} className="lg:col-span-5 p-6 rounded-3xl bg-[#0c0f17] border border-white/5 space-y-4 text-xs">
-                  <input type="text" required placeholder="Nombre" value={newStaff.name} onChange={e => setNewStaff({...newStaff, name: e.target.value})} className="w-full p-3 bg-[#07070a] border border-white/10 rounded-2xl text-white" />
-                  <input type="email" required placeholder="Email" value={newStaff.email} onChange={e => setNewStaff({...newStaff, email: e.target.value})} className="w-full p-3 bg-[#07070a] border border-white/10 rounded-2xl text-white" />
-                  <select value={newStaff.role} onChange={e => setNewStaff({...newStaff, role: e.target.value as any})} className="w-full p-3 bg-[#07070a] border border-white/10 rounded-2xl text-amber-300 font-bold">
+                <form onSubmit={handleAddStaff} className="lg:col-span-5 p-6 rounded-3xl bg-[#0b1120] border border-white/5 space-y-4 text-xs">
+                  <input type="text" required placeholder="Nombre" value={newStaff.name} onChange={e => setNewStaff({...newStaff, name: e.target.value})} className="w-full p-3 bg-[#05070d] border border-white/10 rounded-2xl text-white" />
+                  <input type="email" required placeholder="Email" value={newStaff.email} onChange={e => setNewStaff({...newStaff, email: e.target.value})} className="w-full p-3 bg-[#05070d] border border-white/10 rounded-2xl text-white" />
+                  <select value={newStaff.role} onChange={e => setNewStaff({...newStaff, role: e.target.value as any})} className="w-full p-3 bg-[#05070d] border border-white/10 rounded-2xl text-blue-300 font-bold">
                     <option value="ADMIN">👑 Administrador</option>
                     <option value="CAJA">💵 Boletería</option>
                     <option value="SEGURIDAD">📷 Seguridad</option>
                   </select>
-                  <button type="submit" className="w-full py-3.5 bg-amber-500 text-black font-black uppercase text-xs rounded-2xl cursor-pointer">Registrar Personal +</button>
+                  <button type="submit" className="w-full py-3.5 bg-blue-500 text-white font-black uppercase text-xs rounded-2xl cursor-pointer">Registrar Personal +</button>
                 </form>
                 <div className="lg:col-span-7 space-y-2">
                   {staffList.map((st) => (
-                    <div key={st.id} className="p-4 rounded-2xl bg-[#0c0f17] border border-white/5 flex justify-between items-center text-xs">
+                    <div key={st.id} className="p-4 rounded-2xl bg-[#0b1120] border border-white/5 flex justify-between items-center text-xs">
                       <div><strong className="text-white">{st.name} ({st.role})</strong><span className="text-slate-400 block">{st.email}</span></div>
                       <button onClick={() => handleDeleteStaff(st.id)} className="text-rose-400 font-bold">✕</button>
                     </div>
@@ -813,17 +813,17 @@ export default function ClubAdminPage() {
               <div className="border-b border-white/5 pb-4">
                 <h1 className="font-luxury text-2xl font-black text-white uppercase">🛡️ Identidad Institucional & Colores</h1>
               </div>
-              <div className="p-8 rounded-3xl bg-[#0c0f17] border border-white/10 space-y-6 text-xs">
-                <input type="text" required value={clubName} onChange={e => setClubName(e.target.value)} className="w-full p-3 bg-[#07070a] border border-white/10 rounded-2xl text-white font-bold" />
-                <div className="flex items-center gap-4 p-4 rounded-2xl bg-[#07070a] border border-white/10">
-                  {clubLogo ? <img src={clubLogo} alt="" className="w-16 h-16 rounded-2xl object-cover" /> : <div className="w-16 h-16 rounded-2xl bg-amber-500/20 flex items-center justify-center">⚽</div>}
+              <div className="p-8 rounded-3xl bg-[#0b1120] border border-white/10 space-y-6 text-xs">
+                <input type="text" required value={clubName} onChange={e => setClubName(e.target.value)} className="w-full p-3 bg-[#05070d] border border-white/10 rounded-2xl text-white font-bold" />
+                <div className="flex items-center gap-4 p-4 rounded-2xl bg-[#05070d] border border-white/10">
+                  {clubLogo ? <img src={clubLogo} alt="" className="w-16 h-16 rounded-2xl object-cover" /> : <div className="w-16 h-16 rounded-2xl bg-blue-500/20 flex items-center justify-center">⚽</div>}
                   <input type="file" accept="image/*" onChange={handleLogoUpload} className="text-slate-400" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <input type="color" value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} className="w-full h-10 bg-transparent rounded-2xl cursor-pointer border border-white/20" />
                   <input type="color" value={accentColor} onChange={e => setAccentColor(e.target.value)} className="w-full h-10 bg-transparent rounded-2xl cursor-pointer border border-white/20" />
                 </div>
-                <button type="submit" className="w-full py-3.5 bg-amber-500 text-black font-black uppercase text-xs rounded-2xl cursor-pointer">Guardar Cambios 💾</button>
+                <button type="submit" className="w-full py-3.5 bg-blue-500 text-white font-black uppercase text-xs rounded-2xl cursor-pointer">Guardar Cambios 💾</button>
               </div>
             </form>
           )}
@@ -833,16 +833,16 @@ export default function ClubAdminPage() {
               <div className="border-b border-white/5 pb-4">
                 <h1 className="font-luxury text-2xl font-black text-white uppercase">💵 Venta en Efectivo (Boletería)</h1>
               </div>
-              <form onSubmit={handleIssueCashTicket} className="max-w-md p-6 rounded-3xl bg-[#0c0f17] border border-emerald-500/30 space-y-4 text-xs">
-                <select value={cashForm.matchId} onChange={e => handleMatchChangeForCash(e.target.value)} className="w-full p-3 bg-[#07070a] border border-white/10 rounded-2xl text-white font-bold">
+              <form onSubmit={handleIssueCashTicket} className="max-w-md p-6 rounded-3xl bg-[#0b1120] border border-emerald-500/30 space-y-4 text-xs">
+                <select value={cashForm.matchId} onChange={e => handleMatchChangeForCash(e.target.value)} className="w-full p-3 bg-[#05070d] border border-white/10 rounded-2xl text-white font-bold">
                   {matches.map(m => (<option key={m.id} value={m.id}>⚽ {m.name}</option>))}
                 </select>
-                <select value={cashForm.selectedSectorName} onChange={e => handleSectorChangeForCash(e.target.value)} className="w-full p-3 bg-[#07070a] border border-white/10 rounded-2xl text-amber-300 font-bold">
+                <select value={cashForm.selectedSectorName} onChange={e => handleSectorChangeForCash(e.target.value)} className="w-full p-3 bg-[#05070d] border border-white/10 rounded-2xl text-blue-300 font-bold">
                   {(selectedMatchForCash?.sectors || []).map((sec: any, idx: number) => (<option key={idx} value={sec.name}>{sec.name} — ${sec.generalPrice}</option>))}
                 </select>
-                <input type="text" required placeholder="Nombre del Asistente" value={cashForm.holderName} onChange={e => setCashForm({...cashForm, holderName: e.target.value})} className="w-full p-3 bg-[#07070a] border border-white/10 rounded-2xl text-white" />
-                <input type="number" required value={cashForm.cashAmount} onChange={e => setCashForm({...cashForm, cashAmount: Number(e.target.value)})} className="w-full p-3 bg-[#07070a] border border-emerald-500/40 rounded-2xl text-emerald-400 font-black text-base" />
-                <button type="submit" className="w-full py-4 bg-emerald-500 text-black font-black uppercase text-xs rounded-2xl cursor-pointer">Cobrar y Emitir Pase 🚀</button>
+                <input type="text" required placeholder="Nombre del Asistente" value={cashForm.holderName} onChange={e => setCashForm({...cashForm, holderName: e.target.value})} className="w-full p-3 bg-[#05070d] border border-white/10 rounded-2xl text-white" />
+                <input type="number" required value={cashForm.cashAmount} onChange={e => setCashForm({...cashForm, cashAmount: Number(e.target.value)})} className="w-full p-3 bg-[#05070d] border border-emerald-500/40 rounded-2xl text-emerald-400 font-black text-base" />
+                <button type="submit" className="w-full py-4 bg-emerald-500 text-white font-black uppercase text-xs rounded-2xl cursor-pointer">Cobrar y Emitir Pase 🚀</button>
               </form>
             </div>
           )}
@@ -850,9 +850,9 @@ export default function ClubAdminPage() {
           {currentSection === 'audit_logs' && (
             <div className="space-y-6 max-w-5xl mx-auto font-mono">
               <h1 className="font-luxury text-2xl font-black text-white uppercase">📋 Historial Privado de Accesos</h1>
-              <div className="p-6 rounded-3xl bg-[#0c0f17] border border-white/5 space-y-2">
+              <div className="p-6 rounded-3xl bg-[#0b1120] border border-white/5 space-y-2">
                 {accessLogs.map((log) => (
-                  <div key={log.id} className="p-3.5 rounded-2xl bg-[#07070a] flex justify-between items-center text-xs">
+                  <div key={log.id} className="p-3.5 rounded-2xl bg-[#05070d] flex justify-between items-center text-xs">
                     <div><strong className="text-white">{log.name}</strong><span className="text-slate-400 block">{log.detail}</span></div>
                     <span className="text-slate-500 text-[10px]">{log.timestamp}</span>
                   </div>
@@ -867,19 +867,19 @@ export default function ClubAdminPage() {
                 <h1 className="font-luxury text-2xl font-black text-white uppercase">👥 Padrón Privado de Socios</h1>
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                <form onSubmit={handleAddMember} className="lg:col-span-5 p-6 rounded-3xl bg-[#0c0f17] border border-white/5 space-y-4 text-xs">
-                  <input type="text" required placeholder="Nombre y Apellido" value={newMember.fullName} onChange={e => setNewMember({...newMember, fullName: e.target.value})} className="w-full p-3 bg-[#07070a] border border-white/10 rounded-2xl text-white" />
-                  <input type="text" required placeholder="DNI" value={newMember.dni} onChange={e => setNewMember({...newMember, dni: e.target.value})} className="w-full p-3 bg-[#07070a] border border-white/10 rounded-2xl text-white" />
-                  <input type="text" required placeholder="Nro de Carnet" value={newMember.memberNumber} onChange={e => setNewMember({...newMember, memberNumber: e.target.value})} className="w-full p-3 bg-[#07070a] border border-white/10 rounded-2xl text-amber-400 font-bold" />
-                  <button type="submit" className="w-full py-3.5 bg-amber-500 text-black font-black uppercase text-xs rounded-2xl cursor-pointer">Guardar en Padrón +</button>
+                <form onSubmit={handleAddMember} className="lg:col-span-5 p-6 rounded-3xl bg-[#0b1120] border border-white/5 space-y-4 text-xs">
+                  <input type="text" required placeholder="Nombre y Apellido" value={newMember.fullName} onChange={e => setNewMember({...newMember, fullName: e.target.value})} className="w-full p-3 bg-[#05070d] border border-white/10 rounded-2xl text-white" />
+                  <input type="text" required placeholder="DNI" value={newMember.dni} onChange={e => setNewMember({...newMember, dni: e.target.value})} className="w-full p-3 bg-[#05070d] border border-white/10 rounded-2xl text-white" />
+                  <input type="text" required placeholder="Nro de Carnet" value={newMember.memberNumber} onChange={e => setNewMember({...newMember, memberNumber: e.target.value})} className="w-full p-3 bg-[#05070d] border border-white/10 rounded-2xl text-blue-400 font-bold" />
+                  <button type="submit" className="w-full py-3.5 bg-blue-500 text-white font-black uppercase text-xs rounded-2xl cursor-pointer">Guardar en Padrón +</button>
                   <div className="pt-4 border-t border-white/5 space-y-2">
-                    <textarea rows={3} placeholder="Nombre,DNI,NroSocio" value={csvInput} onChange={e => setCsvInput(e.target.value)} className="w-full p-3 bg-[#07070a] border border-white/10 rounded-2xl text-xs text-white" />
+                    <textarea rows={3} placeholder="Nombre,DNI,NroSocio" value={csvInput} onChange={e => setCsvInput(e.target.value)} className="w-full p-3 bg-[#05070d] border border-white/10 rounded-2xl text-xs text-white" />
                     <button type="button" onClick={handleImportCsv} className="w-full py-2.5 bg-white/5 text-white font-bold rounded-2xl border border-white/10">Importar CSV 📥</button>
                   </div>
                 </form>
                 <div className="lg:col-span-7 space-y-2 max-h-[500px] overflow-y-auto">
                   {membersDb.map((m) => (
-                    <div key={m.id} className="p-4 rounded-2xl bg-[#0c0f17] border border-white/5 flex justify-between items-center text-xs">
+                    <div key={m.id} className="p-4 rounded-2xl bg-[#0b1120] border border-white/5 flex justify-between items-center text-xs">
                       <div><strong className="text-white">{m.fullName}</strong><span className="text-slate-400 block">DNI: {m.dni} · Carnet: #{m.memberNumber}</span></div>
                       <button onClick={() => handleDeleteMember(m.id)} className="text-rose-400 font-bold">✕</button>
                     </div>
@@ -893,25 +893,25 @@ export default function ClubAdminPage() {
             <div className="space-y-8 max-w-5xl mx-auto font-mono">
               <div className="flex justify-between items-center border-b border-white/5 pb-4">
                 <h1 className="font-luxury text-2xl font-black text-white uppercase">📊 Métricas & Ocupación</h1>
-                <select value={selectedMetricMatchId} onChange={e => setSelectedMetricMatchId(e.target.value)} className="px-4 py-3 rounded-2xl bg-[#0c0f17] border border-amber-500/30 text-xs font-bold text-white cursor-pointer">
+                <select value={selectedMetricMatchId} onChange={e => setSelectedMetricMatchId(e.target.value)} className="px-4 py-3 rounded-2xl bg-[#0b1120] border border-blue-500/30 text-xs font-bold text-white cursor-pointer">
                   {matches.map(m => (<option key={m.id} value={m.id}>⚽ {m.name}</option>))}
                 </select>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="p-5 rounded-3xl bg-[#0c0f17] border border-white/5 space-y-2">
+                <div className="p-5 rounded-3xl bg-[#0b1120] border border-white/5 space-y-2">
                   <span className="text-[10px] text-slate-500 uppercase font-bold block">🏟️ Aforo Ocupado</span>
                   <span className="text-2xl font-black text-emerald-400 block">{overallFillRate}%</span>
                 </div>
-                <div className="p-5 rounded-3xl bg-[#0c0f17] border border-white/5 space-y-2">
+                <div className="p-5 rounded-3xl bg-[#0b1120] border border-white/5 space-y-2">
                   <span className="text-[10px] text-slate-500 uppercase font-bold block">💵 Efectivo</span>
                   <span className="text-2xl font-black text-emerald-400 block">{totalSoldCash}</span>
                 </div>
-                <div className="p-5 rounded-3xl bg-[#0c0f17] border border-white/5 space-y-2">
+                <div className="p-5 rounded-3xl bg-[#0b1120] border border-white/5 space-y-2">
                   <span className="text-[10px] text-slate-500 uppercase font-bold block">⭐ Socios</span>
                   <span className="text-2xl font-black text-white block">{totalSoldMember}</span>
                 </div>
-                <div className="p-5 rounded-3xl bg-[#0c0f17] border border-white/5 space-y-2">
+                <div className="p-5 rounded-3xl bg-[#0b1120] border border-white/5 space-y-2">
                   <span className="text-[10px] text-slate-500 uppercase font-bold block">📈 Recaudación Total</span>
                   <span className="text-2xl font-black text-emerald-400 block">${totalMatchRevenue.toLocaleString('es-AR')}</span>
                 </div>
@@ -925,23 +925,23 @@ export default function ClubAdminPage() {
                 <h1 className="font-luxury text-2xl font-black text-white uppercase">
                   {currentSection === 'matches_active' ? 'Partidos Activos / Próximos' : currentSection === 'matches_finished' ? 'Historial de Partidos' : 'Partidos Suspendidos'}
                 </h1>
-                <button onClick={handleOpenCreate} className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-black font-black text-xs uppercase rounded-2xl shadow-lg cursor-pointer">+ Programar Partido</button>
+                <button onClick={handleOpenCreate} className="px-5 py-2.5 bg-blue-500 hover:bg-blue-400 text-white font-black text-xs uppercase rounded-2xl shadow-lg cursor-pointer">+ Programar Partido</button>
               </div>
               <div className="space-y-3">
                 {filteredMatches.length === 0 ? (
-                  <div className="p-12 text-center rounded-3xl bg-[#0c0f17] border border-white/5 text-slate-500 text-xs">
+                  <div className="p-12 text-center rounded-3xl bg-[#0b1120] border border-white/5 text-slate-500 text-xs">
                     No hay partidos registrados en esta sección.
                   </div>
                 ) : (
                   filteredMatches.map((m) => {
                     const isCancelled = m.status === 'CANCELLED';
                     return (
-                      <div key={m.id} className={`p-6 rounded-3xl bg-[#0c0f17] border flex justify-between items-center shadow-xl ${isCancelled ? 'border-rose-900/50 opacity-75' : 'border-white/5'}`}>
+                      <div key={m.id} className={`p-6 rounded-3xl bg-[#0b1120] border flex justify-between items-center shadow-xl ${isCancelled ? 'border-rose-900/50 opacity-75' : 'border-white/5'}`}>
                         <div className="flex items-center gap-4">
                           <img src={m.imageUrl || DEFAULT_STADIUM_IMAGE} alt="" className="w-16 h-16 rounded-2xl object-cover border border-white/10" />
                           <div>
                             <h3 className="font-luxury text-base font-black text-white">{m.name}</h3>
-                            <p className="text-xs text-slate-400">📅 {m.date} · ⚽ Inicio: <strong className="text-amber-400">{m.startTime} HS</strong></p>
+                            <p className="text-xs text-slate-400">📅 {m.date} · ⚽ Inicio: <strong className="text-blue-400">{m.startTime} HS</strong></p>
                           </div>
                         </div>
                         <div className="flex gap-2 text-xs">
@@ -949,7 +949,7 @@ export default function ClubAdminPage() {
                           <button onClick={() => handleToggleSuspendMatch(m.id, m.status)} className={`px-4 py-2 rounded-2xl font-bold border cursor-pointer transition ${isCancelled ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' : 'bg-rose-500/15 text-rose-300 border-rose-500/30'}`}>
                             {isCancelled ? 'Reactivar' : 'Suspender 🚫'}
                           </button>
-                          <button onClick={() => { setSelectedMetricMatchId(m.id); setCurrentSection('metrics'); }} className="px-4 py-2 bg-amber-500/10 text-amber-300 border border-amber-500/30 rounded-2xl font-bold hover:bg-amber-500/20 cursor-pointer transition">Métricas 📊</button>
+                          <button onClick={() => { setSelectedMetricMatchId(m.id); setCurrentSection('metrics'); }} className="px-4 py-2 bg-blue-500/10 text-blue-300 border border-blue-500/30 rounded-2xl font-bold hover:bg-blue-500/20 cursor-pointer transition">Métricas 📊</button>
                         </div>
                       </div>
                     );
@@ -963,46 +963,46 @@ export default function ClubAdminPage() {
             <form onSubmit={handleSaveMatch} className="space-y-8 max-w-4xl mx-auto font-mono">
               <div className="flex justify-between items-center border-b border-white/5 pb-4">
                 <h2 className="font-luxury text-xl font-black uppercase text-white">{currentSection === 'create' ? 'PROGRAMAR PARTIDO' : 'MODIFICAR PARTIDO'}</h2>
-                <button type="button" onClick={() => setCurrentSection('matches_active')} className="px-4 py-2 rounded-2xl border border-white/10 bg-[#0c0f17] text-slate-300 text-xs font-bold cursor-pointer">← Volver</button>
+                <button type="button" onClick={() => setCurrentSection('matches_active')} className="px-4 py-2 rounded-2xl border border-white/10 bg-[#0b1120] text-slate-300 text-xs font-bold cursor-pointer">← Volver</button>
               </div>
 
               {/* INFORMACIÓN GENERAL DEL PARTIDO */}
-              <div className="rounded-3xl bg-[#0c0f17] border border-white/5 p-6 sm:p-8 space-y-4 text-xs shadow-xl">
+              <div className="rounded-3xl bg-[#0b1120] border border-white/5 p-6 sm:p-8 space-y-4 text-xs shadow-xl">
                 <div className="space-y-1.5">
                   <label className="text-slate-400 uppercase font-bold text-[10px]">Encuentro (Local vs Visitante)</label>
-                  <input type="text" required placeholder="Ej: Club vs Rival" value={matchForm.name} onChange={e => setMatchForm({...matchForm, name: e.target.value})} className="w-full px-4 py-3 bg-[#07070a] border border-white/10 rounded-2xl text-white font-bold" />
+                  <input type="text" required placeholder="Ej: Club vs Rival" value={matchForm.name} onChange={e => setMatchForm({...matchForm, name: e.target.value})} className="w-full px-4 py-3 bg-[#05070d] border border-white/10 rounded-2xl text-white font-bold" />
                 </div>
 
                 <div className="space-y-1.5">
                   <label className="text-slate-400 uppercase font-bold text-[10px]">Fecha del Partido</label>
-                  <input type="date" required value={matchForm.date} onChange={e => setMatchForm({...matchForm, date: e.target.value})} className="w-full px-4 py-3 bg-[#07070a] border border-white/10 rounded-2xl text-white font-bold" />
+                  <input type="date" required value={matchForm.date} onChange={e => setMatchForm({...matchForm, date: e.target.value})} className="w-full px-4 py-3 bg-[#05070d] border border-white/10 rounded-2xl text-white font-bold" />
                 </div>
 
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1.5">
                     <label className="text-slate-400 uppercase font-bold text-[9px]">⚽ Hora de Inicio</label>
-                    <input type="time" required value={matchForm.startTime} onChange={e => setMatchForm({...matchForm, startTime: e.target.value})} className="w-full p-3 bg-[#07070a] border border-white/10 rounded-2xl text-white text-center font-bold" />
+                    <input type="time" required value={matchForm.startTime} onChange={e => setMatchForm({...matchForm, startTime: e.target.value})} className="w-full p-3 bg-[#05070d] border border-white/10 rounded-2xl text-white text-center font-bold" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-slate-400 uppercase font-bold text-[9px]">🚪 Apertura Puertas</label>
-                    <input type="time" required value={matchForm.gateOpenTime} onChange={e => setMatchForm({...matchForm, gateOpenTime: e.target.value})} className="w-full p-3 bg-[#07070a] border border-white/10 rounded-2xl text-white text-center font-bold" />
+                    <input type="time" required value={matchForm.gateOpenTime} onChange={e => setMatchForm({...matchForm, gateOpenTime: e.target.value})} className="w-full p-3 bg-[#05070d] border border-white/10 rounded-2xl text-white text-center font-bold" />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-amber-400 uppercase font-bold text-[9px]">⌛ Cierre de Venta</label>
-                    <input type="time" required value={matchForm.ticketExpiryTime} onChange={e => setMatchForm({...matchForm, ticketExpiryTime: e.target.value})} className="w-full p-3 bg-[#07070a] border border-amber-500/40 rounded-2xl text-amber-400 text-center font-black" />
+                    <label className="text-blue-400 uppercase font-bold text-[9px]">⌛ Cierre de Venta</label>
+                    <input type="time" required value={matchForm.ticketExpiryTime} onChange={e => setMatchForm({...matchForm, ticketExpiryTime: e.target.value})} className="w-full p-3 bg-[#05070d] border border-blue-500/40 rounded-2xl text-blue-400 text-center font-black" />
                   </div>
                 </div>
 
                 <div className="space-y-1.5 pt-2">
                   <label className="text-slate-400 uppercase font-bold text-[10px]">Flyer / Imagen del Partido</label>
-                  <div className="flex items-center gap-4 p-4 rounded-2xl bg-[#07070a] border border-white/10">
+                  <div className="flex items-center gap-4 p-4 rounded-2xl bg-[#05070d] border border-white/10">
                     <img src={matchForm.imageUrl || DEFAULT_STADIUM_IMAGE} alt="" className="w-16 h-16 rounded-2xl object-cover border border-slate-700" />
                     <input type="file" accept="image/*" onChange={handleMatchFileUpload} className="text-xs text-slate-400 cursor-pointer" />
                   </div>
                 </div>
               </div>
 
-              <button type="submit" className="w-full py-4 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 text-black font-black uppercase text-xs rounded-2xl shadow-xl cursor-pointer tracking-wider">
+              <button type="submit" className="w-full py-4 bg-gradient-to-r from-blue-400 via-blue-500 to-indigo-500 text-white font-black uppercase text-xs rounded-2xl shadow-xl cursor-pointer tracking-wider">
                 Guardar Partido ⚽
               </button>
             </form>
@@ -1014,17 +1014,17 @@ export default function ClubAdminPage() {
       {/* MODAL CREAR NUEVO CLUB CON DESPLEGABLE DE TIPO DESTACADO */}
       {newProducerModal && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 font-mono text-xs">
-          <div className="max-w-md w-full rounded-3xl bg-[#0c0f17] border border-amber-500/40 p-6 space-y-4 shadow-2xl">
+          <div className="max-w-md w-full rounded-3xl bg-[#0b1120] border border-blue-500/40 p-6 space-y-4 shadow-2xl">
             <h3 className="font-luxury text-base font-black text-white uppercase">✨ Registrar Nueva Entidad / Club</h3>
             <form onSubmit={handleRegisterProducer} className="space-y-3">
               <div className="space-y-1">
                 <label className="text-slate-400 uppercase font-bold text-[10px]">Nombre del Club / Entidad</label>
-                <input type="text" required placeholder="Ej: Racing Club" value={producerForm.producerName} onChange={e => setProducerForm({...producerForm, producerName: e.target.value})} className="w-full px-4 py-3 bg-[#07070a] border border-white/10 rounded-xl text-white font-bold" />
+                <input type="text" required placeholder="Ej: Racing Club" value={producerForm.producerName} onChange={e => setProducerForm({...producerForm, producerName: e.target.value})} className="w-full px-4 py-3 bg-[#05070d] border border-white/10 rounded-xl text-white font-bold" />
               </div>
 
               <div className="space-y-1">
-                <label className="text-amber-400 uppercase font-bold text-[10px]">Tipo de Entidad / Rubro</label>
-                <select value={producerForm.producerType} onChange={e => setProducerForm({...producerForm, producerType: e.target.value as any})} className="w-full px-4 py-3 bg-[#07070a] border border-amber-500/50 rounded-xl text-amber-300 font-bold cursor-pointer">
+                <label className="text-blue-400 uppercase font-bold text-[10px]">Tipo de Entidad / Rubro</label>
+                <select value={producerForm.producerType} onChange={e => setProducerForm({...producerForm, producerType: e.target.value as any})} className="w-full px-4 py-3 bg-[#05070d] border border-blue-500/50 rounded-xl text-blue-300 font-bold cursor-pointer">
                   <option value="CLUB">⚽ Club / Institución / Deportes</option>
                   <option value="ENTERTAINMENT">🎉 Entretenimiento / Fiestas / Festivales</option>
                   <option value="CORPORATE">💼 Corporativo / Congresos</option>
@@ -1033,16 +1033,16 @@ export default function ClubAdminPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-2">
-                <input type="text" required placeholder="Nombre" value={producerForm.firstName} onChange={e => setProducerForm({...producerForm, firstName: e.target.value})} className="px-3.5 py-3 bg-[#07070a] border border-white/10 rounded-xl text-white" />
-                <input type="text" required placeholder="Apellido" value={producerForm.lastName} onChange={e => setProducerForm({...producerForm, lastName: e.target.value})} className="px-3.5 py-3 bg-[#07070a] border border-white/10 rounded-xl text-white" />
+                <input type="text" required placeholder="Nombre" value={producerForm.firstName} onChange={e => setProducerForm({...producerForm, firstName: e.target.value})} className="px-3.5 py-3 bg-[#05070d] border border-white/10 rounded-xl text-white" />
+                <input type="text" required placeholder="Apellido" value={producerForm.lastName} onChange={e => setProducerForm({...producerForm, lastName: e.target.value})} className="px-3.5 py-3 bg-[#05070d] border border-white/10 rounded-xl text-white" />
               </div>
-              <input type="text" required placeholder="DNI" value={producerForm.dni} onChange={e => setProducerForm({...producerForm, dni: e.target.value})} className="w-full px-4 py-3 bg-[#07070a] border border-white/10 rounded-xl text-white" />
-              <input type="email" required placeholder="Correo" value={producerForm.email} onChange={e => setProducerForm({...producerForm, email: e.target.value})} className="w-full px-4 py-3 bg-[#07070a] border border-white/10 rounded-xl text-white" />
-              <input type="text" required placeholder="Teléfono" value={producerForm.phone} onChange={e => setProducerForm({...producerForm, phone: e.target.value})} className="w-full px-4 py-3 bg-[#07070a] border border-white/10 rounded-xl text-white" />
+              <input type="text" required placeholder="DNI" value={producerForm.dni} onChange={e => setProducerForm({...producerForm, dni: e.target.value})} className="w-full px-4 py-3 bg-[#05070d] border border-white/10 rounded-xl text-white" />
+              <input type="email" required placeholder="Correo" value={producerForm.email} onChange={e => setProducerForm({...producerForm, email: e.target.value})} className="w-full px-4 py-3 bg-[#05070d] border border-white/10 rounded-xl text-white" />
+              <input type="text" required placeholder="Teléfono" value={producerForm.phone} onChange={e => setProducerForm({...producerForm, phone: e.target.value})} className="w-full px-4 py-3 bg-[#05070d] border border-white/10 rounded-xl text-white" />
               
               <div className="flex gap-2 pt-2">
                 <button type="button" onClick={() => setNewProducerModal(false)} className="flex-1 py-3 bg-white/5 text-white rounded-xl border border-white/10">Cancelar</button>
-                <button type="submit" className="flex-1 py-3 bg-amber-500 text-black font-bold rounded-xl cursor-pointer">Registrar</button>
+                <button type="submit" className="flex-1 py-3 bg-blue-500 text-white font-bold rounded-xl cursor-pointer">Registrar</button>
               </div>
             </form>
           </div>
