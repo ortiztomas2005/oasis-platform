@@ -296,28 +296,28 @@ export default function CatalogPage() {
           <div className="hidden sm:flex items-center gap-4 font-mono text-xs">
             <button
               onClick={() => { window.location.href = '/club/partidos'; }}
-              className="text-blue-400 hover:text-blue-300 transition font-bold flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/30 cursor-pointer"
+              className="text-blue-400 hover:text-blue-300 transition-colors duration-150 ease-out-strong active:scale-95 font-bold flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/30 cursor-pointer"
             >
               <span>⚽</span> Deporte
             </button>
 
-            <Link href="/resale" className="text-slate-300 hover:text-blue-400 font-bold transition">Resale</Link>
-            <Link href="/bar" className="text-slate-300 hover:text-blue-400 font-bold transition">Barra</Link>
-            <Link href="/my-tickets" className="px-4 py-2 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-400 font-bold transition hover:bg-blue-500/20">
+            <Link href="/resale" className="text-slate-300 hover:text-blue-400 font-bold transition-colors duration-150 ease-out-strong active:scale-95">Resale</Link>
+            <Link href="/bar" className="text-slate-300 hover:text-blue-400 font-bold transition-colors duration-150 ease-out-strong active:scale-95">Barra</Link>
+            <Link href="/my-tickets" className="px-4 py-2 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-400 font-bold transition-colors duration-150 ease-out-strong hover:bg-blue-500/20 active:scale-95">
               💳 Billetera
             </Link>
-            
+
             {userProducerName ? (
-              <button 
+              <button
                 onClick={() => router.push('/admin')}
-                className="px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-500 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] duration-200 text-white font-black transition cursor-pointer flex items-center gap-1.5 shadow-lg shadow-blue-500/20"
+                className="px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-500 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.97] duration-200 ease-out-strong text-white font-black transition-[transform,background-color,box-shadow] cursor-pointer flex items-center gap-1.5 shadow-lg shadow-blue-500/20"
               >
                 <span>📊</span> Ir a Panel ({userProducerName})
               </button>
             ) : (
               <Link
                 href="/auth?redirect=/"
-                className="px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition cursor-pointer"
+                className="px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-500 active:scale-[0.97] duration-200 ease-out-strong text-white font-bold transition-[transform,background-color] cursor-pointer"
               >
                 🏢 Crear / Iniciar Productora
               </Link>
@@ -332,7 +332,7 @@ export default function CatalogPage() {
       {viewMode === 'catalog' && (
         <main className="max-w-7xl mx-auto w-full px-6 py-10 space-y-12 flex-1">
           {events.length === 0 ? (
-            <div className="p-16 text-center rounded-3xl bg-[#0b1120] border border-white/5 space-y-3 my-auto">
+            <div className="p-16 text-center rounded-3xl bg-[#0b1120] border border-white/5 space-y-3 my-auto animate-fade-in">
               <span className="text-3xl">🗓️</span>
               <h3 className="font-luxury text-lg font-bold text-white uppercase">No hay eventos activos en la cartelera</h3>
               <p className="text-xs text-slate-400">Creá una productora y publicá tu primer evento para verlo reflejado aquí.</p>
@@ -356,15 +356,15 @@ export default function CatalogPage() {
           ) : (
             <>
               {featuredEvent && (
-                <section 
+                <section
                   onClick={() => goToDetails(featuredEvent)}
-                  className="relative rounded-3xl overflow-hidden border border-blue-500/30 bg-[#0b1120] shadow-2xl group cursor-pointer"
+                  className="relative rounded-3xl overflow-hidden border border-blue-500/30 bg-[#0b1120] shadow-2xl group cursor-pointer active:scale-[0.995] transition-transform duration-150 ease-out-strong animate-hero-in"
                 >
                   <div className="absolute inset-0 z-0">
                     <img
                       src={featuredEvent.imageUrl}
                       alt={featuredEvent.name}
-                      className="w-full h-full object-cover opacity-40 group-hover:scale-105 transition duration-1000"
+                      className="w-full h-full object-cover opacity-40 group-hover:scale-105 transition-transform duration-1000 ease-out-strong"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#05070d] via-[#05070d]/60 to-transparent" />
                   </div>
@@ -387,7 +387,7 @@ export default function CatalogPage() {
                     </div>
 
                     <div className="pt-2 flex items-center gap-4 font-mono">
-                      <span className="px-8 py-3.5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white font-black uppercase text-xs rounded-xl transition-all duration-200 shadow-lg shadow-blue-600/25 hover:shadow-blue-500/40 hover:-translate-y-0.5 tracking-wider inline-block">
+                      <span className="px-8 py-3.5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white font-black uppercase text-xs rounded-xl transition-[transform,box-shadow,background-color] duration-200 ease-out-strong shadow-lg shadow-blue-600/25 hover:shadow-blue-500/40 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.97] tracking-wider inline-block">
                         Ver Evento y Tickets →
                       </span>
                     </div>
@@ -402,17 +402,18 @@ export default function CatalogPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {events.map((ev) => (
+                  {events.map((ev, idx) => (
                     <div
                       key={ev.id}
-                      className="rounded-2xl bg-[#0b1120] border border-white/5 hover:border-blue-500/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 flex flex-col overflow-hidden shadow-xl group cursor-pointer"
+                      style={{ '--stagger-delay': `${Math.min(idx * 60, 360)}ms` } as React.CSSProperties}
+                      className="rounded-2xl bg-[#0b1120] border border-white/5 hover:border-blue-500/40 transition-[transform,box-shadow,border-color] duration-300 ease-out-strong hover:-translate-y-1 active:translate-y-0 active:scale-[0.98] hover:shadow-2xl hover:shadow-blue-500/10 flex flex-col overflow-hidden shadow-xl group cursor-pointer animate-card-in"
                       onClick={() => goToDetails(ev)}
                     >
                       <div className="relative aspect-[16/9] overflow-hidden">
                         <img
                           src={ev.imageUrl}
                           alt={ev.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition duration-500 opacity-85"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out-strong opacity-85"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-[#0b1120] via-transparent to-transparent" />
                         <span className="absolute top-3 right-3 px-2.5 py-0.5 rounded-full bg-black/70 text-blue-300 border border-blue-500/30 text-[9px] font-mono font-bold uppercase">
@@ -430,7 +431,7 @@ export default function CatalogPage() {
                           </h3>
                         </div>
 
-                        <div className="w-full py-2.5 bg-white/5 group-hover:bg-blue-500 border border-white/10 group-hover:border-blue-500 text-slate-300 group-hover:text-white font-black text-[11px] uppercase rounded-xl transition font-mono tracking-wider text-center">
+                        <div className="w-full py-2.5 bg-white/5 group-hover:bg-blue-500 border border-white/10 group-hover:border-blue-500 text-slate-300 group-hover:text-white font-black text-[11px] uppercase rounded-xl transition-colors duration-200 ease-out-strong font-mono tracking-wider text-center">
                           Ver Información & Tickets →
                         </div>
                       </div>
@@ -499,11 +500,11 @@ export default function CatalogPage() {
                           <span className="text-xl font-black text-white">${tier.price.toLocaleString('es-AR')}</span>
                           
                           <div className="flex items-center gap-3 bg-[#05070d] border border-white/10 rounded-full px-2 py-1">
-                            <button onClick={() => updateCart(tier.name, -1)} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/10 text-white font-black transition cursor-pointer">
+                            <button onClick={() => updateCart(tier.name, -1)} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/10 active:scale-90 text-white font-black transition duration-[120ms] ease-out-strong cursor-pointer">
                               −
                             </button>
                             <span className="w-5 text-center text-xs font-bold text-white">{qty}</span>
-                            <button onClick={() => updateCart(tier.name, 1)} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/10 text-white font-black transition cursor-pointer">
+                            <button onClick={() => updateCart(tier.name, 1)} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/10 active:scale-90 text-white font-black transition duration-[120ms] ease-out-strong cursor-pointer">
                               +
                             </button>
                           </div>
@@ -517,7 +518,7 @@ export default function CatalogPage() {
                   <div className="pt-6 flex justify-end">
                     <button
                       onClick={() => handleProceedFromTickets()}
-                      className="px-8 py-4 bg-blue-600 hover:bg-blue-500 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] duration-200 text-white font-black uppercase text-xs rounded-xl transition shadow-xl shadow-blue-500/20 cursor-pointer tracking-wider"
+                      className="px-8 py-4 bg-blue-600 hover:bg-blue-500 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.97] duration-200 ease-out-strong text-white font-black uppercase text-xs rounded-xl transition-[transform,background-color,box-shadow] shadow-xl shadow-blue-500/20 cursor-pointer tracking-wider"
                     >
                       Continuar al Pago ({totalTickets} tickets) →
                     </button>
@@ -580,7 +581,7 @@ export default function CatalogPage() {
                     className="w-full px-4 py-3 bg-[#05070d] border border-white/10 rounded-xl text-white font-bold text-xs"
                   />
                 </div>
-                <button type="submit" className="w-full py-4 bg-blue-600 hover:bg-blue-500 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] duration-200 text-white font-black uppercase text-xs rounded-xl transition cursor-pointer tracking-wider mt-4">
+                <button type="submit" className="w-full py-4 bg-blue-600 hover:bg-blue-500 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.97] duration-200 ease-out-strong text-white font-black uppercase text-xs rounded-xl transition-[transform,background-color] cursor-pointer tracking-wider mt-4">
                   Continuar al Pago →
                 </button>
               </form>
@@ -600,7 +601,7 @@ export default function CatalogPage() {
                       type="text" placeholder="INGRESA EL CÓDIGO" value={promoCode} onChange={(e) => setPromoCode(e.target.value)}
                       className="flex-1 px-4 py-3.5 bg-[#05070d] border border-white/10 rounded-xl text-blue-400 font-black uppercase text-xs focus:outline-none"
                     />
-                    <button type="button" onClick={handleApplyCoupon} className="px-6 py-3.5 bg-white/10 hover:bg-white/20 border border-white/10 text-white font-black text-xs uppercase rounded-xl transition-all duration-200 cursor-pointer">
+                    <button type="button" onClick={handleApplyCoupon} className="px-6 py-3.5 bg-white/10 hover:bg-white/20 active:scale-95 border border-white/10 text-white font-black text-xs uppercase rounded-xl transition-[transform,background-color] duration-150 ease-out-strong cursor-pointer">
                       Aplicar
                     </button>
                   </div>
@@ -614,9 +615,9 @@ export default function CatalogPage() {
                   </div>
 
                   <div className="space-y-3">
-                    <label 
+                    <label
                       onClick={() => setPaymentMethod('mercado_pago')}
-                      className={`flex items-start gap-4 p-4 rounded-2xl border cursor-pointer transition ${paymentMethod === 'mercado_pago' ? 'bg-blue-500/10 border-blue-500/50' : 'bg-[#05070d] border-white/5 hover:border-white/20'}`}
+                      className={`flex items-start gap-4 p-4 rounded-2xl border cursor-pointer active:scale-[0.99] transition-colors duration-150 ease-out-strong ${paymentMethod === 'mercado_pago' ? 'bg-blue-500/10 border-blue-500/50' : 'bg-[#05070d] border-white/5 hover:border-white/20'}`}
                     >
                       <input type="radio" name="payment" checked={paymentMethod === 'mercado_pago'} onChange={() => setPaymentMethod('mercado_pago')} className="mt-1 accent-blue-500" />
                       <div className="space-y-0.5">
@@ -625,9 +626,9 @@ export default function CatalogPage() {
                       </div>
                     </label>
 
-                    <label 
+                    <label
                       onClick={() => setPaymentMethod('transfer')}
-                      className={`flex items-start gap-4 p-4 rounded-2xl border cursor-pointer transition ${paymentMethod === 'transfer' ? 'bg-blue-500/10 border-blue-500/50' : 'bg-[#05070d] border-white/5 hover:border-white/20'}`}
+                      className={`flex items-start gap-4 p-4 rounded-2xl border cursor-pointer active:scale-[0.99] transition-colors duration-150 ease-out-strong ${paymentMethod === 'transfer' ? 'bg-blue-500/10 border-blue-500/50' : 'bg-[#05070d] border-white/5 hover:border-white/20'}`}
                     >
                       <input type="radio" name="payment" checked={paymentMethod === 'transfer'} onChange={() => setPaymentMethod('transfer')} className="mt-1 accent-blue-500" />
                       <div className="space-y-0.5">
@@ -650,7 +651,7 @@ export default function CatalogPage() {
                   <button
                     onClick={handleConfirmPurchase}
                     disabled={isProcessing}
-                    className="w-full py-5 bg-blue-600 hover:bg-blue-500 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] duration-200 text-white font-black uppercase text-xs rounded-2xl transition cursor-pointer shadow-xl shadow-blue-500/20 tracking-wider disabled:opacity-50"
+                    className="w-full py-5 bg-blue-600 hover:bg-blue-500 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.97] duration-200 ease-out-strong text-white font-black uppercase text-xs rounded-2xl transition-[transform,background-color,box-shadow] cursor-pointer shadow-xl shadow-blue-500/20 tracking-wider disabled:opacity-50"
                   >
                     {isProcessing ? 'Procesando...' : '🔒 Confirmar Orden'}
                   </button>

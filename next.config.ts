@@ -5,11 +5,16 @@ import type { NextConfig } from "next";
 // armar el Content-Security-Policy sin tener que abrirlo a "cualquier cosa".
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 
+const isDev = process.env.NODE_ENV !== 'production';
+
 const csp = [
   "default-src 'self'",
   // Next.js inyecta scripts inline chicos para hidratar la página (datos de
-  // RSC/streaming); sin 'unsafe-inline' acá el sitio no arranca.
-  "script-src 'self' 'unsafe-inline'",
+  // RSC/streaming); sin 'unsafe-inline' acá el sitio no arranca. 'unsafe-eval'
+  // solo se suma en desarrollo: React/Turbopack lo usan para reconstruir
+  // call stacks y el hot-reload, pero React nunca usa eval() en producción,
+  // así que en build de producción esto queda afuera del header.
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
   "img-src 'self' data: blob: https:",

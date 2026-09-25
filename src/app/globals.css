@@ -10,6 +10,13 @@
 @theme {
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+  /* Curvas de easing con más "punch" que las de CSS por defecto — se usan
+     en botones, tarjetas y transiciones de vista en vez de ease/ease-out
+     genéricos, que se sienten planos. Definidas acá generan las utilidades
+     de Tailwind ease-out-strong / ease-in-out-strong. */
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
 body {
@@ -46,4 +53,57 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #334155;
+}
+
+/* La clase "animate-fade-in" ya se usaba en varias vistas (cambio de
+   catálogo a detalle/checkout, dashboard de RRPP) pero nunca estuvo
+   definida acá — no hacía nada, esas vistas aparecían de golpe sin
+   transición. Entra con opacidad + un desplazamiento y escala mínimos
+   (nunca desde scale(0): nada en la realidad aparece de la nada), solo
+   transform/opacity para que corra en la GPU. */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 220ms var(--ease-out-strong) both;
+}
+
+/* Entrada para bloques "hero" (el evento destacado) y para tarjetas que
+   aparecen en grilla con stagger (delay escalonado puesto inline por
+   componente, vía --stagger-delay). Mismo principio que fade-in: nunca
+   desde scale(0), solo transform/opacity. */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-hero-in {
+  animation: rise-in 520ms var(--ease-out-strong) both;
+}
+
+.animate-card-in {
+  animation: rise-in 420ms var(--ease-out-strong) both;
+  animation-delay: var(--stagger-delay, 0ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-hero-in,
+  .animate-card-in {
+    animation: none;
+  }
 }
