@@ -87,10 +87,10 @@ export async function POST(req: Request) {
 
     const cleanTiers: TierInput[] = tiers.map((t: any) => ({
       name: String(t.name || '').trim() || 'General',
-      price: Number(t.price) || 0,
-      capacity: Number(t.capacity) || 100,
+      price: Math.max(0, Number(t.price) || 0),
+      capacity: Math.max(1, Number(t.capacity) || 100),
       showStockToClients: t.showStockToClients !== false,
-      lowStockThreshold: Number(t.lowStockThreshold) || 10,
+      lowStockThreshold: Math.max(0, Number(t.lowStockThreshold) || 10),
       description: String(t.description || '').trim(),
       entryCutoffTime: String(t.entryCutoffTime || '').trim(),
     }));

@@ -43,7 +43,7 @@ export async function POST(req: Request) {
         producer_name: producerName,
         name: String(name).trim(),
         code: cleanCode,
-        commission_per_ticket: Number(commission_per_ticket) || 0,
+        commission_per_ticket: Math.max(0, Number(commission_per_ticket) || 0),
       })
       .select()
       .single();

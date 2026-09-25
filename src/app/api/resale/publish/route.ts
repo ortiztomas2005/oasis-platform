@@ -12,6 +12,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Faltan datos obligatorios' }, { status: 400 });
     }
 
+    const cleanResalePrice = Number(resale_price);
+    if (!Number.isFinite(cleanResalePrice) || cleanResalePrice <= 0 || cleanResalePrice > 100_000_000) {
+      return NextResponse.json({ error: 'El precio de reventa no es válido' }, { status: 400 });
+    }
+
     // 0. Antes cualquiera que supiera el UUID de un ticket ajeno podía
     // congelarlo y publicarlo en reventa a su propio alias, sin verificar
     // que fuera el dueño. Ahora hace falta sesión, y que el email de esa
@@ -74,7 +79,7 @@ export async function POST(req: Request) {
       .insert({
         ticket_id,
         event_id: ticket.event_id,
-        resale_price: Number(resale_price),
+        resale_price: cleanResalePrice,
         original_price: Number(ticket.purchase_price) || 0,
         seller_cbu_alias,
         seller_name: sellerName,

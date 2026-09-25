@@ -1,10 +1,20 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/core/supabase/admin';
+import { checkRateLimit, getClientIp } from '@/core/security/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
+// Sin límite de intentos, esto era una forma de fuerza bruta para
+// encontrar la combinación DNI+email de otra persona y quedarse con su
+// qr_hash/auth_code real — la credencial que abre la puerta del evento.
 export async function POST(req: Request) {
   try {
+    const ip = getClientIp(req);
+    const rl = await checkRateLimit(`find-ticket:${ip}`, { limit: 10, windowSeconds: 300 });
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Demasiados intentos. Probá de nuevo en unos minutos.' }, { status: 429 });
+    }
+
     const { dni, email } = await req.json();
 
     if (!dni || !email) {
