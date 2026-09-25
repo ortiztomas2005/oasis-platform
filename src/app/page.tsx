@@ -4,10 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import UserMenu from '@/components/UserMenu';
-import { createClient } from '@/core/supabase/client';
 import { useSession } from '@/core/auth/useSession';
-
-const supabase = createClient();
 
 export interface Tier {
   name: string;
@@ -91,22 +88,21 @@ export default function CatalogPage() {
   useEffect(() => {
     const loadEventsFromSupabase = async () => {
       try {
-        // Antes esto consultaba status='ACTIVE' y el join 'event_tiers' —
-        // ninguno de los dos existe de verdad: los eventos reales se crean
-        // con status 'PUBLISHED' (ver /api/producers/events) y la tabla de
-        // tandas se llama 'ticket_tiers'. Por eso nunca aparecía nada acá
-        // aunque la productora tuviera eventos publicados.
-        const { data: dbEvents, error } = await supabase
-          .from('events')
-          .select('*, ticket_tiers(*)')
-          .in('status', ['PUBLISHED', 'ACTIVE'])
-          .order('date', { ascending: true });
-
-        if (error) {
-          console.error('❌ Detalle del error de Supabase:', error.message, error.details, error.hint);
+        // Antes esto consultaba Supabase directo desde el navegador con la
+        // clave anon, lo que exigía dejar 'events'/'ticket_tiers' con RLS
+        // abierto (o sin políticas) para que cualquiera pudiera leerlos —
+        // y de paso exponía la tabla 'tickets' completa (nombres, DNI, QR
+        // reales) a quien consultara la API pública de Supabase a mano.
+        // Ahora se pide por un endpoint propio, ya filtrado a eventos
+        // públicos y resuelto con la service role del lado del servidor.
+        const res = await fetch('/api/admin/events-data');
+        if (!res.ok) {
+          console.error('❌ Error cargando eventos:', res.status);
           setEvents([]);
           return;
         }
+
+        const { events: dbEvents, tiers: dbTiers } = await res.json();
 
         if (dbEvents && dbEvents.length > 0) {
           // La tabla real solo tiene un timestamp único 'date' (no
@@ -114,6 +110,7 @@ export default function CatalogPage() {
           // así que la fecha y la hora para mostrar se derivan de ahí.
           const formattedEvents: EventItem[] = dbEvents.map((ev: any) => {
             const eventDate = ev.date ? new Date(ev.date) : null;
+            const eventTiers = (dbTiers || []).filter((t: any) => t.event_id === ev.id);
             return {
               id: ev.id,
               producerName: ev.producer_name,
@@ -127,7 +124,7 @@ export default function CatalogPage() {
               genre: ev.genre || 'Melodic Techno',
               description: ev.description || '',
               status: ev.status,
-              tiers: (ev.ticket_tiers || []).map((t: any) => ({
+              tiers: eventTiers.map((t: any) => ({
                 name: t.name,
                 price: t.price,
                 capacity: t.available_capacity ?? t.total_capacity ?? t.capacity ?? 0,

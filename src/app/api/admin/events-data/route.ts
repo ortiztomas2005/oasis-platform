@@ -21,7 +21,7 @@ export async function GET() {
       .from('events')
       .select('*')
       .in('status', PUBLIC_EVENT_STATUSES)
-      .order('created_at', { ascending: false });
+      .order('date', { ascending: true });
 
     const { data: tiers } = await supabaseAdmin
       .from('ticket_tiers')
