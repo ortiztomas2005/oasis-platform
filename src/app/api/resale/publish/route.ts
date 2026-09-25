@@ -41,7 +41,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Esta entrada no pertenece a tu cuenta.' }, { status: 403 });
     }
 
-    if (ticket.status !== 'VALID') {
+    // Los tickets comprados de verdad (issuePrimaryTicketForOrder) se
+    // emiten con status 'AVAILABLE', y los de cortesía con 'VALID' — dos
+    // convenciones distintas para "el pase está bien y sin usar" según por
+    // dónde se emitió. /api/scan/validate ya contempla las dos; acá solo
+    // se contemplaba 'VALID', así que ningún ticket comprado de verdad
+    // (la gran mayoría) podía revenderse nunca.
+    if (ticket.status !== 'VALID' && ticket.status !== 'AVAILABLE') {
       return NextResponse.json(
         { error: 'El ticket no está disponible para reventa o ya fue publicado' },
         { status: 400 }

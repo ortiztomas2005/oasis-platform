@@ -19,6 +19,7 @@ interface Ticket {
 
 const STATUS_LABEL: Record<string, string> = {
   VALID: 'Válido',
+  AVAILABLE: 'Válido',
   USED: 'Usado',
   CANCELLED: 'Cancelado',
 };
@@ -104,7 +105,7 @@ export default function ProducerAttendeesPage() {
                   </span>
                   <span
                     className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border ${
-                      t.status === 'VALID'
+                      t.status === 'VALID' || t.status === 'AVAILABLE'
                         ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
                         : t.status === 'USED'
                         ? 'bg-sky-500/10 text-sky-300 border-sky-500/30'

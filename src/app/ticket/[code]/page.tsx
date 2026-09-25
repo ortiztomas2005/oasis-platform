@@ -84,7 +84,7 @@ export default async function TicketPage({ params }: { params: Promise<{ code: s
           }}
         />
 
-        {ticket.status === 'VALID' && (
+        {(ticket.status === 'VALID' || ticket.status === 'AVAILABLE') && (
           <ResaleModal
             ticketId={ticket.id}
             originalPrice={Number(ticket.purchase_price || ticket.price || 0)}
