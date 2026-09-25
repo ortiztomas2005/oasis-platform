@@ -224,6 +224,61 @@ export default function ProducerEventsPage() {
     }
   };
 
+  // Antes solo se podían cargar tandas al crear el evento — si después
+  // necesitabas sumar una (ej: agregar "VIP" a un evento que ya estaba
+  // publicado) no había forma de hacerlo sin tocar la base a mano.
+  const EMPTY_NEW_TIER_FORM = { name: '', price: '', capacity: '', description: '', entryCutoffTime: '' };
+  const [newTierForm, setNewTierForm] = useState(EMPTY_NEW_TIER_FORM);
+  const [addingTier, setAddingTier] = useState(false);
+
+  const addTierToEvent = async (eventId: string) => {
+    if (!newTierForm.name.trim() || !newTierForm.price || !newTierForm.capacity) {
+      alert('Completá nombre, precio y capacidad de la tanda.');
+      return;
+    }
+    setAddingTier(true);
+    try {
+      const res = await fetch(`/api/producers/events/${eventId}/tiers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newTierForm.name,
+          price: Number(newTierForm.price),
+          capacity: Number(newTierForm.capacity),
+          description: newTierForm.description,
+          entryCutoffTime: newTierForm.entryCutoffTime,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setNewTierForm(EMPTY_NEW_TIER_FORM);
+      await load();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setAddingTier(false);
+    }
+  };
+
+  const removeTierFromEvent = async (eventId: string, tierId: string) => {
+    if (!confirm('¿Eliminar esta tanda?')) return;
+    setSavingTierId(tierId);
+    try {
+      const res = await fetch(`/api/producers/events/${eventId}/tiers`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tierId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      await load();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setSavingTierId(null);
+    }
+  };
+
   const setEventStatus = async (ev: EventRow, newStatus: string) => {
     if (newStatus === 'CANCELLED' && !confirm(`¿Suspender "${ev.name || ev.title}"? Va a desaparecer de la cartelera pública hasta que lo reactivés.`)) {
       return;
@@ -691,7 +746,10 @@ export default function ProducerEventsPage() {
                     )}
 
                     <button
-                      onClick={() => setExpandedEventId(isExpanded ? null : ev.id)}
+                      onClick={() => {
+                        setNewTierForm(EMPTY_NEW_TIER_FORM);
+                        setExpandedEventId(isExpanded ? null : ev.id);
+                      }}
                       className="ml-auto text-[11px] px-3.5 py-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20 transition cursor-pointer font-bold"
                     >
                       {isExpanded ? 'Cerrar tandas ▲' : 'Gestionar tandas ▾'}
@@ -715,6 +773,15 @@ export default function ProducerEventsPage() {
                                     ${Number(t.price).toLocaleString('es-AR')} · Quedan {t.available_capacity ?? '—'} de {t.total_capacity ?? '—'}
                                   </span>
                                 </div>
+                                {t.available_capacity === t.total_capacity && (
+                                  <button
+                                    onClick={() => removeTierFromEvent(ev.id, t.id)}
+                                    disabled={busy}
+                                    className="self-start sm:self-auto text-[10px] text-rose-400 hover:text-rose-300 cursor-pointer disabled:opacity-50"
+                                  >
+                                    Quitar tanda
+                                  </button>
+                                )}
                               </div>
 
                               <div className="grid grid-cols-1 sm:grid-cols-[1fr_130px] gap-2">
@@ -777,6 +844,59 @@ export default function ProducerEventsPage() {
                           );
                         })
                       )}
+
+                      {/* AGREGAR TANDA NUEVA */}
+                      <div className="p-3.5 rounded-xl bg-[#05070d] border border-dashed border-white/15 space-y-2">
+                        <span className="text-[10px] text-blue-400 uppercase font-bold block">+ Agregar tanda nueva</span>
+                        <div className="grid grid-cols-1 sm:grid-cols-[1fr_110px_110px] gap-2">
+                          <input
+                            placeholder="Nombre (ej: VIP)"
+                            value={newTierForm.name}
+                            onChange={(e) => setNewTierForm({ ...newTierForm, name: e.target.value })}
+                            className="px-3 py-2 bg-black/60 border border-white/10 rounded-lg text-[11px] text-white outline-none focus:border-blue-500"
+                          />
+                          <input
+                            type="number"
+                            min={0}
+                            placeholder="Precio"
+                            value={newTierForm.price}
+                            onChange={(e) => setNewTierForm({ ...newTierForm, price: e.target.value })}
+                            className="px-3 py-2 bg-black/60 border border-white/10 rounded-lg text-[11px] text-white outline-none focus:border-blue-500"
+                          />
+                          <input
+                            type="number"
+                            min={1}
+                            placeholder="Capacidad"
+                            value={newTierForm.capacity}
+                            onChange={(e) => setNewTierForm({ ...newTierForm, capacity: e.target.value })}
+                            className="px-3 py-2 bg-black/60 border border-white/10 rounded-lg text-[11px] text-white outline-none focus:border-blue-500"
+                          />
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-[1fr_130px] gap-2">
+                          <input
+                            placeholder="Descripción breve (opcional)"
+                            value={newTierForm.description}
+                            onChange={(e) => setNewTierForm({ ...newTierForm, description: e.target.value })}
+                            className="px-3 py-2 bg-black/60 border border-white/10 rounded-lg text-[11px] text-neutral-300 outline-none focus:border-blue-500"
+                          />
+                          <div className="flex items-center gap-1.5">
+                            <label className="text-[10px] text-neutral-500 whitespace-nowrap">Hora límite:</label>
+                            <input
+                              type="time"
+                              value={newTierForm.entryCutoffTime}
+                              onChange={(e) => setNewTierForm({ ...newTierForm, entryCutoffTime: e.target.value })}
+                              className="flex-1 px-2 py-2 bg-black/60 border border-white/10 rounded-lg text-[11px] text-white outline-none focus:border-blue-500"
+                            />
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => addTierToEvent(ev.id)}
+                          disabled={addingTier}
+                          className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-black uppercase transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 cursor-pointer"
+                        >
+                          {addingTier ? 'Agregando...' : '+ Agregar tanda'}
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
