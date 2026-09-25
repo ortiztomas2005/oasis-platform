@@ -93,12 +93,12 @@ export async function POST(req: Request) {
       });
     }
 
-    // 3. Quemar ticket para marcar INGRESO VÁLIDO. "tickets" no tiene
-    // columnas scanned_at ni updated_at (ver supabase/migrations si en
-    // algún momento se quiere agregar un registro real de cuándo se
-    // escaneó cada entrada) — hoy solo se puede persistir el status.
+    // 3. Quemar ticket para marcar INGRESO VÁLIDO. Migración 002 ya agregó
+    // scanned_at/updated_at hace rato, pero esta ruta nunca se actualizó
+    // para escribirlas — sin esto, el dashboard de Métricas y el CRM no
+    // podían distinguir "se escaneó en la puerta" de "se emitió nomás".
     const now = new Date().toISOString();
-    await supabaseAdmin.from('tickets').update({ status: 'USED' }).eq('id', ticket.id);
+    await supabaseAdmin.from('tickets').update({ status: 'USED', scanned_at: now, updated_at: now }).eq('id', ticket.id);
 
     return NextResponse.json({
       valid: true,

@@ -51,6 +51,43 @@ export async function GET(req: Request) {
 
     if (error) throw error;
 
+    // Avisos reales de las productoras de los eventos a los que este
+    // usuario tiene entrada — un aviso puede apuntar a un evento puntual
+    // (event_id) o a "todos los eventos" de esa productora (event_id null).
+    // Antes esto se armaba en /admin/broadcast pero nunca llegaba a
+    // mostrarse en ningún lado que un asistente pudiera ver.
+    //
+    // Se hacen dos consultas con .in() (en vez de armar un .or() a mano con
+    // el nombre de la productora, que es texto libre que el producer eligió
+    // al registrarse) para no repetir el mismo riesgo de inyección de
+    // filtro que ya se evitó en otras rutas — .in() no tiene ese problema
+    // porque el array lo arma el cliente de Supabase, no un string crudo.
+    let alerts: any[] = [];
+    const eventIds = Array.from(new Set((tickets || []).map((t: any) => t.event_id).filter(Boolean)));
+    const producerNames = Array.from(
+      new Set((tickets || []).map((t: any) => t.events?.producer_name).filter(Boolean))
+    );
+
+    const [byEvent, byProducer] = await Promise.all([
+      eventIds.length > 0
+        ? supabaseAdmin
+            .from('broadcast_alerts')
+            .select('id, producer_name, event_id, title, message, created_at')
+            .in('event_id', eventIds)
+        : Promise.resolve({ data: [] as any[] }),
+      producerNames.length > 0
+        ? supabaseAdmin
+            .from('broadcast_alerts')
+            .select('id, producer_name, event_id, title, message, created_at')
+            .is('event_id', null)
+            .in('producer_name', producerNames)
+        : Promise.resolve({ data: [] as any[] }),
+    ]);
+
+    alerts = [...(byEvent.data || []), ...(byProducer.data || [])]
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 20);
+
     return NextResponse.json({
       authenticated: true,
       user: {
@@ -60,6 +97,7 @@ export async function GET(req: Request) {
         avatar_url: user.user_metadata?.avatar_url,
       },
       tickets: tickets || [],
+      alerts,
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

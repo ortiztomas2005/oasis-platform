@@ -32,11 +32,21 @@ interface ResaleListing {
   seller_cbu_alias: string;
 }
 
+interface BroadcastAlert {
+  id: string;
+  event_id: string | null;
+  title: string;
+  message: string;
+  created_at: string;
+}
+
 export default function MyTicketsPage() {
   const { user, isAuthenticated, loading: sessionLoading } = useSession();
 
   const [tickets, setTickets] = useState<RawTicket[]>([]);
   const [myResales, setMyResales] = useState<ResaleListing[]>([]);
+  const [alerts, setAlerts] = useState<BroadcastAlert[]>([]);
+  const [dismissedAlerts, setDismissedAlerts] = useState<string[]>([]);
   const [loadingTickets, setLoadingTickets] = useState(true);
   const [filter, setFilter] = useState<'all' | 'active' | 'for_sale' | 'used'>('all');
 
@@ -62,6 +72,7 @@ export default function MyTicketsPage() {
 
       const ticketsData = await ticketsRes.json();
       setTickets(ticketsData.tickets || []);
+      setAlerts(ticketsData.alerts || []);
 
       const resalesData = await resalesRes.json();
       const mine = (resalesData.resales || []).filter(
@@ -79,6 +90,28 @@ export default function MyTicketsPage() {
   useEffect(() => {
     if (!sessionLoading) syncWallet();
   }, [sessionLoading, syncWallet]);
+
+  // Los avisos cerrados se recuerdan por navegador para no repetir el
+  // mismo cartel en cada visita — esto es solo una conveniencia de UI, no
+  // hace falta que sea por cuenta ni sincronizarlo entre dispositivos.
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('le_dismissed_alerts');
+      if (stored) setDismissedAlerts(JSON.parse(stored));
+    } catch {}
+  }, []);
+
+  const dismissAlert = (id: string) => {
+    setDismissedAlerts((prev) => {
+      const updated = [...prev, id];
+      try {
+        localStorage.setItem('le_dismissed_alerts', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+  };
+
+  const visibleAlerts = alerts.filter((a) => !dismissedAlerts.includes(a.id));
 
   const openSellModal = (ticket: RawTicket) => {
     const basePrice = ticket.purchase_price || ticket.price_paid || 12000;
@@ -189,6 +222,34 @@ export default function MyTicketsPage() {
 
       {/* MAIN */}
       <main className="max-w-7xl mx-auto w-full px-6 py-10 space-y-10 flex-1 font-mono">
+        {visibleAlerts.length > 0 && (
+          <div className="space-y-2">
+            {visibleAlerts.map((a) => (
+              <div
+                key={a.id}
+                className="p-4 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-start justify-between gap-3"
+              >
+                <div className="flex items-start gap-3">
+                  <span className="text-lg shrink-0">📢</span>
+                  <div>
+                    <span className="text-xs font-bold text-blue-300 block">{a.title}</span>
+                    <p className="text-xs text-slate-300 mt-0.5">{a.message}</p>
+                    <span className="text-[10px] text-slate-500 mt-1 block">
+                      {new Date(a.created_at).toLocaleString('es-AR')}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => dismissAlert(a.id)}
+                  className="shrink-0 text-slate-500 hover:text-white transition cursor-pointer text-sm"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-white/10 pb-6">
           <div className="space-y-2">
             <span className="text-[10px] text-blue-400 uppercase font-bold tracking-widest block">
