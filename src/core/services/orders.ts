@@ -1,3 +1,4 @@
+import 'server-only';
 import { supabaseAdmin } from '@/core/supabase/admin';
 import { sendTicketConfirmationEmail } from '@/core/services/email';
 import { consumeProducerTicket, refundProducerTicket } from '@/core/services/producers';

@@ -1,3 +1,4 @@
+import 'server-only';
 import { createClient as createServerClient } from '@/core/supabase/server';
 import { supabaseAdmin } from '@/core/supabase/admin';
 import { getAdminContext } from '@/core/auth/admin-session';

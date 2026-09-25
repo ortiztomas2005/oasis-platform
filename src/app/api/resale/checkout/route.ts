@@ -1,11 +1,18 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/core/supabase/admin';
 import { preference } from '@/core/mercadopago';
+import { checkRateLimit, getClientIp } from '@/core/security/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
+    const ip = getClientIp(req);
+    const rl = await checkRateLimit(`checkout:${ip}`, { limit: 15, windowSeconds: 300 });
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Demasiados intentos de compra. Esperá unos minutos.' }, { status: 429 });
+    }
+
     const { resale_id, buyer_name, buyer_email, buyer_dni } = await req.json();
 
     if (!resale_id || !buyer_name || !buyer_email || !buyer_dni) {

@@ -2,16 +2,44 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/core/supabase/admin';
 import { preference as platformPreference } from '@/core/mercadopago';
 import { getPreferenceClientForProducer } from '@/core/services/mercadopago-connect';
+import { checkRateLimit, getClientIp } from '@/core/security/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
-    const { eventId, ticketTier, amount, customerName, customerEmail, customerDni, userId } = await req.json();
+    const ip = getClientIp(req);
+    const rl = await checkRateLimit(`checkout:${ip}`, { limit: 15, windowSeconds: 300 });
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Demasiados intentos de compra. Esperá unos minutos.' }, { status: 429 });
+    }
 
-    if (!eventId || !ticketTier || !amount || !customerName || !customerEmail) {
+    const { eventId, ticketTier, customerName, customerEmail, customerDni, userId } = await req.json();
+
+    if (!eventId || !ticketTier || !customerName || !customerEmail) {
       return NextResponse.json({ error: 'Faltan datos obligatorios' }, { status: 400 });
     }
+
+    // El precio se resuelve acá, contra la tanda real — antes se tomaba
+    // "amount" tal cual lo mandaba el cliente, así que cualquiera podía
+    // armar el request a mano y pedir un link de pago por $1 (o $0) para
+    // una entrada de cualquier precio; Mercado Pago de verdad cobraba eso,
+    // y el webhook emitía el ticket igual porque el pago "aprobado" era
+    // legítimo para ese monto manipulado.
+    const { data: tier } = await supabaseAdmin
+      .from('ticket_tiers')
+      .select('price, available_capacity')
+      .eq('event_id', eventId)
+      .eq('name', ticketTier)
+      .maybeSingle();
+
+    if (!tier) {
+      return NextResponse.json({ error: 'La tanda seleccionada no existe para este evento.' }, { status: 400 });
+    }
+    if (tier.available_capacity !== undefined && tier.available_capacity !== null && tier.available_capacity <= 0) {
+      return NextResponse.json({ error: 'Esa tanda ya está agotada.' }, { status: 400 });
+    }
+    const amount = Number(tier.price);
 
     const referenceCode = `MP-${Math.floor(100000 + Math.random() * 900000)}`;
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';

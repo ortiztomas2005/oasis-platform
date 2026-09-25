@@ -1,3 +1,4 @@
+import 'server-only';
 import { MercadoPagoConfig, Preference } from 'mercadopago';
 import { supabaseAdmin } from '@/core/supabase/admin';
 

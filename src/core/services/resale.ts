@@ -1,3 +1,4 @@
+import 'server-only';
 import { supabaseAdmin } from '@/core/supabase/admin';
 import crypto from 'crypto';
 import { sendTicketConfirmationEmail } from '@/core/services/email';

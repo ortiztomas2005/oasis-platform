@@ -7,6 +7,7 @@ import {
   createAdminSessionToken,
 } from '@/core/auth/admin-session';
 import { hasAnyPortalAccess } from '@/core/services/producers';
+import { checkRateLimit, getClientIp } from '@/core/security/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +25,19 @@ export async function GET() {
 // Login: valida la contraseña de administrador y abre sesión
 export async function POST(req: Request) {
   try {
+    // ADMIN_PASSWORD es un secreto único y compartido — sin límite de
+    // intentos, cualquiera podía probar combinaciones sin parar hasta
+    // adivinarla. 8 intentos cada 10 minutos por IP alcanza para un login
+    // real (con typos incluidos) y frena la fuerza bruta.
+    const ip = getClientIp(req);
+    const rl = await checkRateLimit(`admin-login:${ip}`, { limit: 8, windowSeconds: 600 });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: `Demasiados intentos. Probá de nuevo en ${Math.ceil(rl.resetInSeconds / 60)} minuto(s).` },
+        { status: 429 }
+      );
+    }
+
     const { password } = await req.json();
 
     if (!checkAdminPassword(password)) {
