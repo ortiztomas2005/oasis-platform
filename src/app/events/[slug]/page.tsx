@@ -207,7 +207,7 @@ export default function EventDetailPage() {
               <span>Cartelera</span>
             </Link>
             <div className="flex flex-col">
-              <span className="text-xs font-black tracking-[0.2em] uppercase text-white leading-none">LIVE EXPERIENCE</span>
+              <span className="text-xs font-black tracking-[0.2em] uppercase text-white leading-none select-none">LIVE EXPERIENCE</span>
               <span className="text-[9px] text-blue-400 font-mono tracking-wider mt-0.5">PASS CHECKOUT</span>
             </div>
           </div>

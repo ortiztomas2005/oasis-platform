@@ -290,7 +290,7 @@ export default function CatalogPage() {
               LE
             </div>
             <div className="flex flex-col">
-              <span className="font-luxury text-lg font-black tracking-[0.1em] uppercase text-white leading-none group-hover:text-blue-400 transition">
+              <span className="font-luxury text-lg font-black tracking-[0.1em] uppercase text-white leading-none group-hover:text-blue-400 transition select-none">
                 LIVE EXPERIENCE
               </span>
             </div>

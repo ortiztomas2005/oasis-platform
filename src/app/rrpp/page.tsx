@@ -105,7 +105,7 @@ export default function RRPPPortalPage() {
               O
             </div>
             <div>
-              <span className="text-xs font-black tracking-widest uppercase block">LIVE EXPERIENCE RRPP</span>
+              <span className="text-xs font-black tracking-widest uppercase block select-none">LIVE EXPERIENCE RRPP</span>
               <span className="text-[10px] text-blue-400 font-mono">Portal de Embajadores</span>
             </div>
           </Link>

@@ -41,7 +41,7 @@ export default function EventsPage() {
       <header className="border-b border-blue-950/60 bg-[#05070d]/90 backdrop-blur-xl sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-8 h-20 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <span className="text-2xl font-black italic tracking-tighter text-white font-serif">LIVE EXPERIENCE</span>
+            <span className="text-2xl font-black italic tracking-tighter text-white font-serif select-none">LIVE EXPERIENCE</span>
             <span className="font-mono text-[10px] text-blue-400 tracking-widest uppercase font-bold border-l border-blue-900/60 pl-3">
               Eventos
             </span>

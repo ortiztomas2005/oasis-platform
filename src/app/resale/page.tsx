@@ -110,7 +110,7 @@ export default function ResaleMarketplacePage() {
               <span>Cartelera</span>
             </Link>
             <div className="flex flex-col">
-              <span className="text-xs font-black tracking-[0.2em] uppercase text-white leading-none">
+              <span className="text-xs font-black tracking-[0.2em] uppercase text-white leading-none select-none">
                 LIVE EXPERIENCE
               </span>
               <span className="text-[9px] text-indigo-400 font-mono tracking-wider mt-0.5">
