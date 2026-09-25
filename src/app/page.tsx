@@ -277,13 +277,24 @@ export default function CatalogPage() {
   const featuredEvent = events[featuredIndex] || events[0];
 
   return (
-    <div className="min-h-screen bg-[#05070d] text-slate-100 flex flex-col font-sans antialiased selection:bg-blue-500 selection:text-white">
+    <div className="relative min-h-screen bg-[#05070d] text-slate-100 flex flex-col font-sans antialiased selection:bg-blue-500 selection:text-white overflow-x-hidden">
+
+      {/* FONDO AMBIENTE — antes el sitio era un color plano (#05070d) de
+          punta a punta; estos tres bloques de luz difuminados le dan
+          profundidad sin distraer (son decorativos, quedan siempre detrás
+          del contenido con pointer-events-none). */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div className="absolute -top-32 -left-32 w-[32rem] h-[32rem] rounded-full bg-blue-600/25 blur-[130px]" />
+        <div className="absolute top-1/4 -right-40 w-[36rem] h-[36rem] rounded-full bg-indigo-600/20 blur-[150px]" />
+        <div className="absolute bottom-[-10rem] left-1/4 w-[28rem] h-[28rem] rounded-full bg-violet-600/10 blur-[140px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.035)_1px,transparent_0)] bg-[size:28px_28px]" />
+      </div>
 
       {/* NAVBAR */}
-      <header className="border-b border-white/5 bg-[#05070d]/90 backdrop-blur-xl sticky top-0 z-40 px-6 py-4">
+      <header className="relative z-40 border-b border-white/5 bg-[#05070d]/80 backdrop-blur-xl sticky top-0 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link href="/" onClick={() => setViewMode('catalog')} className="flex items-center gap-3.5 cursor-pointer group">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-500 via-indigo-400 to-blue-600 flex items-center justify-center font-black text-white text-sm shadow-lg shadow-blue-500/20">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-500 via-indigo-400 to-blue-600 flex items-center justify-center font-black text-white text-sm shadow-lg shadow-blue-500/30 ring-1 ring-white/10 group-hover:shadow-blue-500/50 transition-shadow duration-300 ease-out-strong">
               LE
             </div>
             <div className="flex flex-col">
@@ -330,7 +341,7 @@ export default function CatalogPage() {
 
       {/* VISTA CARTELERA */}
       {viewMode === 'catalog' && (
-        <main className="max-w-7xl mx-auto w-full px-6 py-10 space-y-12 flex-1">
+        <main className="relative z-10 max-w-7xl mx-auto w-full px-6 py-10 space-y-12 flex-1">
           {events.length === 0 ? (
             <div className="p-16 text-center rounded-3xl bg-[#0b1120] border border-white/5 space-y-3 my-auto animate-fade-in">
               <span className="text-3xl">🗓️</span>
@@ -358,20 +369,24 @@ export default function CatalogPage() {
               {featuredEvent && (
                 <section
                   onClick={() => goToDetails(featuredEvent)}
-                  className="relative rounded-3xl overflow-hidden border border-blue-500/30 bg-[#0b1120] shadow-2xl group cursor-pointer active:scale-[0.995] transition-transform duration-150 ease-out-strong animate-hero-in"
+                  className="relative rounded-[2rem] overflow-hidden border border-white/10 bg-[#0b1120] shadow-2xl group cursor-pointer active:scale-[0.995] transition-transform duration-150 ease-out-strong animate-hero-in before:absolute before:inset-0 before:z-20 before:rounded-[2rem] before:pointer-events-none before:ring-1 before:ring-inset before:ring-white/10 before:transition-all before:duration-300 before:ease-out-strong hover:before:ring-blue-400/40"
                 >
+                  {/* Glow de borde: un halo azul detrás de la tarjeta, apenas visible, que se intensifica al pasar el mouse — le da presencia de "producto premium" en vez de un panel plano. */}
+                  <div className="absolute -inset-px rounded-[2rem] bg-gradient-to-br from-blue-500/40 via-transparent to-indigo-500/30 opacity-0 group-hover:opacity-100 blur-sm transition-opacity duration-500 ease-out-strong pointer-events-none" />
+
                   <div className="absolute inset-0 z-0">
                     <img
                       src={featuredEvent.imageUrl}
                       alt={featuredEvent.name}
                       className="w-full h-full object-cover opacity-40 group-hover:scale-105 transition-transform duration-1000 ease-out-strong"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#05070d] via-[#05070d]/60 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#05070d] via-[#05070d]/70 to-[#05070d]/20" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-[#05070d]/60 via-transparent to-transparent" />
                   </div>
 
-                  <div className="relative z-10 p-8 sm:p-12 flex flex-col justify-end min-h-[380px] space-y-4 max-w-2xl">
+                  <div className="relative z-10 p-8 sm:p-14 flex flex-col justify-end min-h-[420px] space-y-5 max-w-2xl">
                     <div className="flex items-center gap-3 font-mono">
-                      <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/40 text-[10px] font-black uppercase tracking-wider backdrop-blur-md">
+                      <span className="px-3 py-1 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 text-white border border-blue-400/40 text-[10px] font-black uppercase tracking-wider shadow-lg shadow-blue-500/30">
                         ★ Destacado
                       </span>
                       <span className="text-xs text-slate-300 font-semibold">{featuredEvent.venue} · {featuredEvent.city}</span>
@@ -381,13 +396,13 @@ export default function CatalogPage() {
                       <span className="text-xs text-blue-400 font-mono font-bold uppercase tracking-widest block">
                         {featuredEvent.date} — {featuredEvent.startTime} HS
                       </span>
-                      <h1 className="font-luxury text-3xl sm:text-4xl font-black uppercase text-white tracking-wide">
+                      <h1 className="font-luxury text-4xl sm:text-5xl font-black uppercase tracking-wide bg-gradient-to-br from-white via-white to-blue-200 bg-clip-text text-transparent drop-shadow-sm">
                         {featuredEvent.name}
                       </h1>
                     </div>
 
                     <div className="pt-2 flex items-center gap-4 font-mono">
-                      <span className="px-8 py-3.5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white font-black uppercase text-xs rounded-xl transition-[transform,box-shadow,background-color] duration-200 ease-out-strong shadow-lg shadow-blue-600/25 hover:shadow-blue-500/40 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.97] tracking-wider inline-block">
+                      <span className="px-8 py-3.5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white font-black uppercase text-xs rounded-xl transition-[transform,box-shadow,background-color] duration-200 ease-out-strong shadow-lg shadow-blue-600/30 hover:shadow-blue-500/50 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.97] tracking-wider inline-block">
                         Ver Evento y Tickets →
                       </span>
                     </div>
@@ -396,19 +411,29 @@ export default function CatalogPage() {
               )}
 
               <section className="space-y-6">
-                <div className="border-b border-white/5 pb-4">
-                  <span className="text-[10px] text-blue-400 font-mono uppercase font-bold tracking-widest block">● Próximas Fechas</span>
-                  <h2 className="font-luxury text-2xl font-bold uppercase text-white tracking-wider">Cartelera General</h2>
+                <div className="flex items-end justify-between border-b border-white/5 pb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="w-1 h-8 rounded-full bg-gradient-to-b from-blue-400 to-indigo-500 shadow-lg shadow-blue-500/30" />
+                    <div>
+                      <span className="text-[10px] text-blue-400 font-mono uppercase font-bold tracking-widest block">● Próximas Fechas</span>
+                      <h2 className="font-luxury text-2xl font-bold uppercase text-white tracking-wider">Cartelera General</h2>
+                    </div>
+                  </div>
+                  <span className="hidden sm:block text-[10px] font-mono text-slate-500 uppercase tracking-widest">{events.length} evento{events.length !== 1 ? 's' : ''}</span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {events.map((ev, idx) => (
+                  {events.map((ev, idx) => {
+                    const fromPrice = ev.tiers.length > 0 ? Math.min(...ev.tiers.map((t) => t.price)) : null;
+                    return (
                     <div
                       key={ev.id}
                       style={{ '--stagger-delay': `${Math.min(idx * 60, 360)}ms` } as React.CSSProperties}
-                      className="rounded-2xl bg-[#0b1120] border border-white/5 hover:border-blue-500/40 transition-[transform,box-shadow,border-color] duration-300 ease-out-strong hover:-translate-y-1 active:translate-y-0 active:scale-[0.98] hover:shadow-2xl hover:shadow-blue-500/10 flex flex-col overflow-hidden shadow-xl group cursor-pointer animate-card-in"
+                      className="relative rounded-2xl bg-[#0b1120] border border-white/5 hover:border-blue-500/40 transition-[transform,box-shadow,border-color] duration-300 ease-out-strong hover:-translate-y-1 active:translate-y-0 active:scale-[0.98] hover:shadow-2xl hover:shadow-blue-500/10 flex flex-col overflow-hidden shadow-xl group cursor-pointer animate-card-in"
                       onClick={() => goToDetails(ev)}
                     >
+                      <span className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-blue-500 via-indigo-400 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out-strong z-10" />
+
                       <div className="relative aspect-[16/9] overflow-hidden">
                         <img
                           src={ev.imageUrl}
@@ -416,9 +441,14 @@ export default function CatalogPage() {
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out-strong opacity-85"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-[#0b1120] via-transparent to-transparent" />
-                        <span className="absolute top-3 right-3 px-2.5 py-0.5 rounded-full bg-black/70 text-blue-300 border border-blue-500/30 text-[9px] font-mono font-bold uppercase">
+                        <span className="absolute top-3 right-3 px-2.5 py-0.5 rounded-full bg-black/70 text-blue-300 border border-blue-500/30 text-[9px] font-mono font-bold uppercase backdrop-blur-md">
                           📍 {ev.city}
                         </span>
+                        {fromPrice !== null && (
+                          <span className="absolute bottom-3 left-3 px-3 py-1 rounded-full bg-blue-500/90 text-white border border-blue-300/40 text-[10px] font-mono font-black uppercase shadow-lg shadow-blue-500/40 backdrop-blur-md">
+                            Desde ${fromPrice.toLocaleString('es-AR')}
+                          </span>
+                        )}
                       </div>
 
                       <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
@@ -426,7 +456,7 @@ export default function CatalogPage() {
                           <span className="text-[9px] text-blue-400 font-mono font-bold uppercase tracking-wider block">
                             {ev.date}
                           </span>
-                          <h3 className="font-luxury text-base font-bold text-white leading-snug">
+                          <h3 className="font-luxury text-base font-bold text-white leading-snug group-hover:text-blue-300 transition-colors duration-200 ease-out-strong">
                             {ev.name}
                           </h3>
                         </div>
@@ -436,7 +466,8 @@ export default function CatalogPage() {
                         </div>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </section>
             </>
@@ -446,7 +477,7 @@ export default function CatalogPage() {
 
       {/* VISTA DETALLES */}
       {viewMode === 'details' && selectedEvent && (
-        <main className="max-w-6xl mx-auto w-full px-6 py-8 flex-1 animate-fade-in font-mono">
+        <main className="relative z-10 max-w-6xl mx-auto w-full px-6 py-8 flex-1 animate-fade-in font-mono">
           <button 
             onClick={() => setViewMode('catalog')} 
             className="text-xs text-slate-400 hover:text-blue-400 transition mb-6 block cursor-pointer font-bold"
@@ -532,7 +563,7 @@ export default function CatalogPage() {
 
       {/* VISTA CHECKOUT */}
       {viewMode === 'checkout' && selectedEvent && (
-        <main className="max-w-6xl mx-auto w-full px-6 py-10 flex-1 animate-fade-in font-mono space-y-8">
+        <main className="relative z-10 max-w-6xl mx-auto w-full px-6 py-10 flex-1 animate-fade-in font-mono space-y-8">
           <div className="flex items-center justify-between border-b border-white/10 pb-6 mb-8 max-w-2xl mx-auto w-full">
             <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold">
               <span className="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500 flex items-center justify-center text-[10px]">✓</span>
@@ -705,7 +736,7 @@ export default function CatalogPage() {
       )}
 
       {/* FOOTER */}
-      <footer className="border-t border-white/5 bg-[#050507] py-6 text-xs font-mono text-slate-500 text-center space-y-1 mt-auto">
+      <footer className="relative z-10 border-t border-white/5 bg-[#050507]/80 backdrop-blur-xl py-6 text-xs font-mono text-slate-500 text-center space-y-1 mt-auto">
         <p className="font-luxury text-blue-400 tracking-widest text-xs font-bold">LIVE EXPERIENCE</p>
       </footer>
     </div>
