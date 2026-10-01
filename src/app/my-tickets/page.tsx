@@ -7,6 +7,7 @@ import HoloTicket, { TicketData } from '@/components/HoloTicket';
 import { useSession } from '@/core/auth/useSession';
 import { gsap, useGSAP, ScrollTrigger } from '@/core/gsap';
 import RevealText from '@/components/fx/RevealText';
+import AuroraBackground from '@/components/fx/AuroraBackground';
 
 interface RawTicket {
   id: string;
@@ -228,14 +229,11 @@ export default function MyTicketsPage() {
 
   return (
     <div className="relative min-h-screen bg-[#05070d] text-slate-100 flex flex-col justify-between font-sans antialiased selection:bg-blue-500 selection:text-white overflow-x-hidden">
-      {/* FONDO AMBIENTE */}
-      <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-        <div className="absolute -top-32 -left-32 w-[32rem] h-[32rem] rounded-full bg-blue-600/20 blur-[130px]" />
-        <div className="absolute top-1/3 -right-40 w-[32rem] h-[32rem] rounded-full bg-indigo-600/15 blur-[140px]" />
-      </div>
+      {/* FONDO AURORA */}
+      <AuroraBackground />
 
       {/* NAVBAR */}
-      <header className="relative z-40 border-b border-white/5 bg-[#05070d]/85 backdrop-blur-xl sticky top-0 px-6 py-4">
+      <header className="glass relative z-40 sticky top-0 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3.5 cursor-pointer group">
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-500 via-indigo-400 to-blue-600 flex items-center justify-center font-black text-white text-sm shadow-lg shadow-blue-500/20">
@@ -438,7 +436,7 @@ export default function MyTicketsPage() {
           <div
             ref={modalRef}
             onClick={(e) => e.stopPropagation()}
-            className="max-w-md w-full rounded-3xl bg-[#0c0f16] border border-blue-500/40 p-6 sm:p-8 space-y-6 shadow-2xl"
+            className="glass glass-edge max-w-md w-full rounded-3xl p-6 sm:p-8 space-y-6"
           >
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div>

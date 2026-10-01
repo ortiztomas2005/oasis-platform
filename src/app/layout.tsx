@@ -1,4 +1,5 @@
 import './globals.css';
+import CursorGlow from '@/components/fx/CursorGlow';
 
 export const metadata = {
   title: 'Live Experience | Event Tickets',
@@ -12,7 +13,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <body className="bg-[#05070d] text-white">{children}</body>
+      <body className="bg-[#05070d] text-white">
+        <CursorGlow />
+        {children}
+      </body>
     </html>
   );
 }

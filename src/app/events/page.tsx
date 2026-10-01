@@ -6,6 +6,7 @@ import { gsap, useGSAP, ScrollTrigger } from '@/core/gsap';
 import RevealText from '@/components/fx/RevealText';
 import Marquee from '@/components/fx/Marquee';
 import CountUp from '@/components/fx/CountUp';
+import AuroraBackground from '@/components/fx/AuroraBackground';
 
 export default function EventsPage() {
   const [events, setEvents] = useState<any[]>([]);
@@ -68,16 +69,11 @@ export default function EventsPage() {
   return (
     <main className="relative min-h-screen bg-[#05070d] text-white selection:bg-blue-600 selection:text-white font-sans antialiased overflow-x-hidden">
 
-      {/* FONDO AMBIENTE — mismo tratamiento que la home, para que el sitio
-          se sienta como un solo sistema y no como páginas pegadas. */}
-      <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-        <div className="absolute -top-32 -left-32 w-[32rem] h-[32rem] rounded-full bg-blue-600/25 blur-[130px]" />
-        <div className="absolute top-1/4 -right-40 w-[36rem] h-[36rem] rounded-full bg-indigo-600/20 blur-[150px]" />
-        <div className="absolute bottom-[-10rem] left-1/4 w-[28rem] h-[28rem] rounded-full bg-violet-600/10 blur-[140px]" />
-      </div>
+      {/* FONDO AURORA — mismo sistema que la home. */}
+      <AuroraBackground />
 
       {/* NAVBAR CON TODOS LOS LINKS INCLUIDO BACKSTAGE */}
-      <header className="relative z-50 border-b border-blue-950/60 bg-[#05070d]/80 backdrop-blur-xl sticky top-0">
+      <header className="glass relative z-50 sticky top-0">
         <div className="max-w-6xl mx-auto px-4 sm:px-8 h-20 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <span className="font-luxury text-2xl font-black tracking-tighter text-white select-none">LIVE EXPERIENCE</span>
@@ -110,7 +106,7 @@ export default function EventsPage() {
       </header>
 
       {/* CINTA EN MOVIMIENTO */}
-      <div className="relative z-10 border-b border-white/5 bg-blue-600/10 py-2 text-[11px] font-mono font-bold uppercase tracking-widest text-blue-300">
+      <div className="glass-light relative z-10 border-b border-white/5 py-2 text-[11px] font-mono font-bold uppercase tracking-widest text-blue-300">
         <Marquee
           items={
             filteredEvents.length > 0

@@ -10,6 +10,7 @@ import RevealText from '@/components/fx/RevealText';
 import Magnetic from '@/components/fx/Magnetic';
 import Marquee from '@/components/fx/Marquee';
 import CountUp from '@/components/fx/CountUp';
+import AuroraBackground from '@/components/fx/AuroraBackground';
 
 export interface Tier {
   name: string;
@@ -334,19 +335,13 @@ export default function CatalogPage() {
   return (
     <div className="relative min-h-screen bg-[#05070d] text-slate-100 flex flex-col font-sans antialiased selection:bg-blue-500 selection:text-white overflow-x-hidden">
 
-      {/* FONDO AMBIENTE — antes el sitio era un color plano (#05070d) de
-          punta a punta; estos tres bloques de luz difuminados le dan
-          profundidad sin distraer (son decorativos, quedan siempre detrás
-          del contenido con pointer-events-none). */}
-      <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-        <div className="absolute -top-32 -left-32 w-[32rem] h-[32rem] rounded-full bg-blue-600/25 blur-[130px]" />
-        <div className="absolute top-1/4 -right-40 w-[36rem] h-[36rem] rounded-full bg-indigo-600/20 blur-[150px]" />
-        <div className="absolute bottom-[-10rem] left-1/4 w-[28rem] h-[28rem] rounded-full bg-violet-600/10 blur-[140px]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.035)_1px,transparent_0)] bg-[size:28px_28px]" />
-      </div>
+      {/* FONDO AURORA — reemplaza los tres halos estáticos de antes por
+          blobs que derivan orgánicamente (ver AuroraBackground). */}
+      <AuroraBackground />
+      <div aria-hidden className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.035)_1px,transparent_0)] bg-[size:28px_28px]" />
 
       {/* NAVBAR */}
-      <header className="relative z-40 border-b border-white/5 bg-[#05070d]/80 backdrop-blur-xl sticky top-0 px-6 py-4">
+      <header className="glass relative z-40 sticky top-0 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link href="/" onClick={() => setViewMode('catalog')} className="flex items-center gap-3.5 cursor-pointer group">
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-500 via-indigo-400 to-blue-600 flex items-center justify-center font-black text-white text-sm shadow-lg shadow-blue-500/30 ring-1 ring-white/10 group-hover:shadow-blue-500/50 transition-shadow duration-300 ease-out-strong">
@@ -398,7 +393,7 @@ export default function CatalogPage() {
           loop infinito que nunca para, debajo del navbar en todas las
           vistas. Puramente decorativa (aria-hidden adentro del propio
           componente), nunca bloquea nada porque no tiene pointer-events. */}
-      <div className="relative z-10 border-b border-white/5 bg-blue-600/10 py-2 text-[11px] font-mono font-bold uppercase tracking-widest text-blue-300">
+      <div className="glass-light relative z-10 border-b border-white/5 py-2 text-[11px] font-mono font-bold uppercase tracking-widest text-blue-300">
         <Marquee
           items={
             events.length > 0
@@ -440,7 +435,7 @@ export default function CatalogPage() {
                 <section
                   ref={heroSectionRef}
                   onClick={() => goToDetails(featuredEvent)}
-                  className="relative rounded-[2rem] overflow-hidden border border-white/10 bg-[#0b1120] shadow-2xl group cursor-pointer active:scale-[0.995] transition-transform duration-150 ease-out-strong animate-hero-in before:absolute before:inset-0 before:z-20 before:rounded-[2rem] before:pointer-events-none before:ring-1 before:ring-inset before:ring-white/10 before:transition-all before:duration-300 before:ease-out-strong hover:before:ring-blue-400/40"
+                  className="glass relative rounded-[2rem] overflow-hidden group cursor-pointer active:scale-[0.995] transition-transform duration-150 ease-out-strong animate-hero-in before:absolute before:inset-0 before:z-20 before:rounded-[2rem] before:pointer-events-none before:ring-1 before:ring-inset before:ring-white/10 before:transition-all before:duration-300 before:ease-out-strong hover:before:ring-blue-400/40"
                 >
                   {/* Glow de borde: un halo azul detrás de la tarjeta, apenas visible, que se intensifica al pasar el mouse — le da presencia de "producto premium" en vez de un panel plano. */}
                   <div className="absolute -inset-px rounded-[2rem] bg-gradient-to-br from-blue-500/40 via-transparent to-indigo-500/30 opacity-0 group-hover:opacity-100 blur-sm transition-opacity duration-500 ease-out-strong pointer-events-none" />

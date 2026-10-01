@@ -107,3 +107,91 @@ body {
     animation: none;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SISTEMA "AURORA + VIDRIO" — capa de detalles que separa un sitio
+   funcional de uno que impresiona. Grano de textura global (le saca lo
+   "plano" al negro de fondo), y vidrio esmerilado real (frost + borde con
+   brillo + profundidad en capas, no solo opacidad + blur) para navbars,
+   paneles y modales. Basado en el patrón estándar de glassmorphism:
+   backdrop-filter sí hace nada visible sobre un color sólido — necesita
+   algo con textura detrás (el fondo Aurora, una imagen) para "esmerilar".
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Grano sutil en toda la app — un ruido feTurbulence casi imperceptible
+   (opacity 0.035) que rompe el banding de los degradados grandes del
+   fondo Aurora y le da una textura "de película" al negro plano. Fixed +
+   pointer-events:none así nunca interfiere con clicks. */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  body::after {
+    display: none;
+  }
+}
+
+/* Vidrio esmerilado real: frost + translucidez + borde que brilla arriba-
+   izquierda y se apaga abajo-derecha + sombra en capas (ambiente + highlight
+   interno + sombra interna) — las 4 cosas juntas son lo que lo hace leerse
+   como vidrio de verdad y no como "fondo oscuro con blur". */
+.glass {
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+  transition: backdrop-filter 0.4s ease, background 0.4s ease, box-shadow 0.4s ease, transform 0.4s var(--ease-out-strong);
+}
+
+.glass-light {
+  background: rgba(15, 23, 42, 0.3);
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+}
+
+/* Borde con brillo especular: un anillo de 1px enmascarado para que solo
+   se vea el contorno, con una luz que entra desde arriba-izquierda —
+   mucho más "vidrio premium" que un border sólido parejo. */
+.glass-edge {
+  position: relative;
+}
+.glass-edge::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.04) 40%, rgba(255, 255, 255, 0.12) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass,
+  .glass-light {
+    background: #0b1120;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .glass,
+  .glass-light {
+    background: rgba(11, 17, 32, 0.92);
+  }
+}
