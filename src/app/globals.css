@@ -19,80 +19,130 @@
   --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
-body {
-  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
-}
+/* Todo el CSS propio del sitio (no generado por Tailwind) va dentro de
+   @layer base/components. Tailwind v4 define el orden de capas como
+   theme, base, components, utilities — ese orden de PRIORIDAD es fijo,
+   no depende de en qué lugar del archivo esté cada bloque. Sin esto, una
+   regla como ".glass-edge { position: relative }" escrita más abajo en
+   este archivo le ganaba en la cascada a la utilidad "fixed" de Tailwind
+   cuando las dos se usaban en el mismo elemento (es justo lo que le pasó
+   a la isla de navegación: tenía "glass-edge fixed" juntas, y quedaba en
+   position:relative en vez de fixed — se veía pegada al pie de la página
+   en vez de flotando siempre visible). Con @layer, "utilities" siempre
+   gana sobre "components"/"base", pase lo que pase con el orden del
+   archivo. */
+@layer base {
+  body {
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  }
 
-/* ───────────────────────────────────────────────────────────────────────
-   BASE MOBILE — sin esto, el sitio "se siente" una página web dentro del
-   navegador del celular en vez de una app. Cada regla tiene un motivo
-   puntual (ver comentarios), no es boilerplate genérico.
-   ─────────────────────────────────────────────────────────────────────── */
+  /* ─────────────────────────────────────────────────────────────────
+     BASE MOBILE — sin esto, el sitio "se siente" una página web dentro
+     del navegador del celular en vez de una app.
+     ───────────────────────────────────────────────────────────────── */
+  html {
+    /* El flash gris/celeste que Safari/Chrome pintan sobre cualquier
+       elemento tocado si tiene un onClick — la señal más obvia de "esto
+       es una página web". El feedback real ya lo dan los :active de cada
+       botón/tarjeta del sitio. */
+    -webkit-tap-highlight-color: transparent;
+    /* Evita que el texto se agrande solo al rotar a horizontal. */
+    -webkit-text-size-adjust: 100%;
+  }
 
-html {
-  /* El flash gris/celeste que Safari/Chrome pintan sobre cualquier
-     elemento tocado si tiene un onClick — es la señal más obvia de "esto
-     es una página web". El feedback real ya lo dan los :active de cada
-     botón/tarjeta del sitio. */
-  -webkit-tap-highlight-color: transparent;
-  /* Evita que el texto se agrande solo al rotar a horizontal (iOS Safari
-     "ajusta" el tamaño de fuente en landscape si no se lo pedís explícito). */
-  -webkit-text-size-adjust: 100%;
-}
+  /* iOS hace zoom automático al foco si un input tiene fuente < 16px, y
+     no vuelve a hacer zoom-out al perder el foco. El arreglo correcto es
+     la fuente, nunca desactivar el zoom del usuario. */
+  @media (pointer: coarse) {
+    input,
+    textarea,
+    select {
+      font-size: 16px;
+    }
+  }
 
-/* iOS hace zoom automático al foco si un input tiene fuente < 16px, y no
-   vuelve a hacer zoom-out al perder el foco — deja el layout recortado y
-   corrido. El arreglo correcto es la fuente, nunca desactivar el zoom del
-   usuario (eso rompe accesibilidad para cualquiera que necesite agrandar
-   texto). */
-@media (pointer: coarse) {
-  input,
-  textarea,
-  select {
-    font-size: 16px;
+  /* El tap tarda ~300ms en registrar en algunos navegadores mobile
+     porque esperan ver si viene un segundo tap (double-tap-zoom).
+     manipulation le dice al navegador que el click se dispara al
+     instante. */
+  button,
+  a,
+  [role='button'] {
+    touch-action: manipulation;
+  }
+
+  ::selection {
+    background: #3b82f6;
+    color: #ffffff;
+  }
+
+  * {
+    scrollbar-color: #1e293b #05070d;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #05070d;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #1e293b;
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #334155;
+  }
+
+  /* Grano sutil en toda la app — un ruido feTurbulence casi imperceptible
+     que rompe el banding de los degradados grandes del fondo Aurora y le
+     da una textura "de película" al negro plano. */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0.035;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* Scanlines de CRT — líneas horizontales finísimas que derivan despacio
+     hacia abajo, en loop. */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 9998;
+    pointer-events: none;
+    opacity: 0.05;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.6) 0px,
+      rgba(255, 255, 255, 0.6) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    animation: scanline-drift 9s linear infinite;
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    body::after {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    body::before {
+      animation: none;
+    }
   }
 }
 
-/* El tap en botones/links tarda ~300ms en registrar en algunos navegadores
-   mobile porque esperan ver si viene un segundo tap (double-tap-zoom).
-   manipulation le dice al navegador que ese elemento nunca hace zoom así,
-   y el click se dispara al instante. */
-button,
-a,
-[role='button'] {
-  touch-action: manipulation;
-}
-
-/* Antes esta clase cargaba Cinzel (una serif ornamental de "casino de
-   lujo"). El pedido ahora es un look pro/moderno, así que pasa a ser una
-   sans geométrica en negrita — misma clase, mismos usos en el código, look
-   completamente distinto. */
-.font-luxury {
-  font-family: 'Space Grotesk', 'Inter', ui-sans-serif, sans-serif;
-  letter-spacing: -0.01em;
-}
-
-::selection {
-  background: #3b82f6;
-  color: #ffffff;
-}
-
-* {
-  scrollbar-color: #1e293b #05070d;
-}
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-::-webkit-scrollbar-track {
-  background: #05070d;
-}
-::-webkit-scrollbar-thumb {
-  background: #1e293b;
-  border-radius: 999px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+@keyframes scanline-drift {
+  from { background-position: 0 0; }
+  to { background-position: 0 300px; }
 }
 
 /* La clase "animate-fade-in" ya se usaba en varias vistas (cambio de
@@ -112,10 +162,6 @@ a,
   }
 }
 
-.animate-fade-in {
-  animation: fade-in 220ms var(--ease-out-strong) both;
-}
-
 /* Entrada para bloques "hero" (el evento destacado) y para tarjetas que
    aparecen en grilla con stagger (delay escalonado puesto inline por
    componente, vía --stagger-delay). Mismo principio que fade-in: nunca
@@ -131,203 +177,10 @@ a,
   }
 }
 
-.animate-hero-in {
-  animation: rise-in 520ms var(--ease-out-strong) both;
-}
-
-.animate-card-in {
-  animation: rise-in 420ms var(--ease-out-strong) both;
-  animation-delay: var(--stagger-delay, 0ms);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .animate-fade-in,
-  .animate-hero-in,
-  .animate-card-in {
-    animation: none;
-  }
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   SISTEMA "AURORA + VIDRIO" — capa de detalles que separa un sitio
-   funcional de uno que impresiona. Grano de textura global (le saca lo
-   "plano" al negro de fondo), y vidrio esmerilado real (frost + borde con
-   brillo + profundidad en capas, no solo opacidad + blur) para navbars,
-   paneles y modales. Basado en el patrón estándar de glassmorphism:
-   backdrop-filter sí hace nada visible sobre un color sólido — necesita
-   algo con textura detrás (el fondo Aurora, una imagen) para "esmerilar".
-   ═══════════════════════════════════════════════════════════════════════ */
-
-/* Grano sutil en toda la app — un ruido feTurbulence casi imperceptible
-   (opacity 0.035) que rompe el banding de los degradados grandes del
-   fondo Aurora y le da una textura "de película" al negro plano. Fixed +
-   pointer-events:none así nunca interfiere con clicks. */
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  pointer-events: none;
-  opacity: 0.035;
-  mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-
-/* Scanlines de CRT — líneas horizontales finísimas que derivan despacio
-   hacia abajo, en loop. Es LA señal visual que lee "pantalla", "HUD",
-   "cabina futurista" antes de que el ojo procese nada más. Se queda fijo
-   (pointer-events:none, z altísimo) sobre toda la app. */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: 9998;
-  pointer-events: none;
-  opacity: 0.05;
-  background-image: repeating-linear-gradient(
-    to bottom,
-    rgba(255, 255, 255, 0.6) 0px,
-    rgba(255, 255, 255, 0.6) 1px,
-    transparent 1px,
-    transparent 3px
-  );
-  animation: scanline-drift 9s linear infinite;
-}
-
-@keyframes scanline-drift {
-  from { background-position: 0 0; }
-  to { background-position: 0 300px; }
-}
-
-@media (prefers-reduced-transparency: reduce) {
-  body::after {
-    display: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  body::before {
-    animation: none;
-  }
-}
-
-/* Vidrio esmerilado real: frost + translucidez + borde que brilla arriba-
-   izquierda y se apaga abajo-derecha + sombra en capas (ambiente + highlight
-   interno + sombra interna) — las 4 cosas juntas son lo que lo hace leerse
-   como vidrio de verdad y no como "fondo oscuro con blur". */
-.glass {
-  background: rgba(15, 23, 42, 0.45);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
-  transition: backdrop-filter 0.4s ease, background 0.4s ease, box-shadow 0.4s ease, transform 0.4s var(--ease-out-strong);
-}
-
-.glass-light {
-  background: rgba(15, 23, 42, 0.3);
-  backdrop-filter: blur(14px) saturate(150%);
-  -webkit-backdrop-filter: blur(14px) saturate(150%);
-}
-
-/* Borde con brillo especular: un anillo de 1px enmascarado para que solo
-   se vea el contorno, con una luz que entra desde arriba-izquierda —
-   mucho más "vidrio premium" que un border sólido parejo. */
-.glass-edge {
-  position: relative;
-}
-.glass-edge::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.04) 40%, rgba(255, 255, 255, 0.12) 100%);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-transparency: reduce) {
-  .glass,
-  .glass-light {
-    background: #0b1120;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
-}
-
-@supports not (backdrop-filter: blur(1px)) {
-  .glass,
-  .glass-light {
-    background: rgba(11, 17, 32, 0.92);
-  }
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   SISTEMA "HUD / SYNTHWAVE" — la identidad visual distintiva del sitio:
-   ya no es "otro panel oscuro con vidrio", es una cabina de control de
-   evento nocturno. Glow neón en azul (el color de marca, no se reemplaza
-   — se le agrega una segunda piel luminosa), acentos magenta/cian solo
-   como condimento puntual, esquinas de HUD tipo mira/escáner, y glitch
-   reservado a 1-2 momentos de alto impacto (nunca ambiental ni constante:
-   un glitch que nunca para dejar de leerse como "glitch" y empieza a leerse
-   como "roto").
-   ═══════════════════════════════════════════════════════════════════════ */
-
-.neon-text {
-  text-shadow: 0 0 8px rgba(59, 130, 246, 0.9), 0 0 24px rgba(59, 130, 246, 0.5), 0 0 48px rgba(59, 130, 246, 0.25);
-}
-.neon-text-pink {
-  text-shadow: 0 0 8px rgba(236, 72, 153, 0.9), 0 0 24px rgba(236, 72, 153, 0.5);
-}
-.neon-text-cyan {
-  text-shadow: 0 0 8px rgba(34, 211, 238, 0.9), 0 0 24px rgba(34, 211, 238, 0.5);
-}
-
-.neon-border {
-  border-color: rgba(59, 130, 246, 0.6);
-  box-shadow: 0 0 12px rgba(59, 130, 246, 0.35), inset 0 0 12px rgba(59, 130, 246, 0.08);
-}
-
-/* Esquinas de HUD: 4 marcas en las puntas, como la mira de un escáner.
-   Las 4 van en un solo ::after (8 capas de gradiente, una por segmento)
-   para no pelear por ::before con .glass-edge ni con anillos de hover ya
-   existentes — así "hud-corners" se puede combinar con cualquier otra
-   clase decorativa sin conflicto. Una sola clase en un contenedor
-   position:relative alcanza. */
-.hud-corners {
-  position: relative;
-}
-.hud-corners::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.65;
-  transition: opacity 0.3s ease;
-  background:
-    linear-gradient(to right, #60a5fa 2px, transparent 2px) top left / 18px 2px no-repeat,
-    linear-gradient(to bottom, #60a5fa 2px, transparent 2px) top left / 2px 18px no-repeat,
-    linear-gradient(to left, #60a5fa 2px, transparent 2px) top right / 18px 2px no-repeat,
-    linear-gradient(to bottom, #60a5fa 2px, transparent 2px) top right / 2px 18px no-repeat,
-    linear-gradient(to right, #60a5fa 2px, transparent 2px) bottom left / 18px 2px no-repeat,
-    linear-gradient(to top, #60a5fa 2px, transparent 2px) bottom left / 2px 18px no-repeat,
-    linear-gradient(to left, #60a5fa 2px, transparent 2px) bottom right / 18px 2px no-repeat,
-    linear-gradient(to top, #60a5fa 2px, transparent 2px) bottom right / 2px 18px no-repeat;
-}
-.hud-corners:hover::after {
-  opacity: 1;
-}
-
 /* Glitch de "bootup": split RGB breve al montar — reservado para 1-2
-   titulares hero por página. Three.js-free, solo clip-path + translate.
-   Dura <400ms y no se repite (no es un loop), para que siga leyéndose
-   como una interferencia puntual y no como ruido de fondo. */
+   titulares hero por página. Dura <400ms y no se repite (no es un loop),
+   para que siga leyéndose como una interferencia puntual y no como ruido
+   de fondo. */
 @keyframes glitch-1 {
   0%, 100% { clip-path: inset(0 0 0 0); transform: translate(0); }
   10% { clip-path: inset(10% 0 60% 0); transform: translate(-3px, 1px); }
@@ -336,40 +189,6 @@ body::before {
   40% { clip-path: inset(0 0 0 0); transform: translate(0); }
 }
 
-.animate-glitch-boot {
-  animation: glitch-1 380ms steps(2, jump-end);
-}
-
-/* Glitch RGB-split: 2 copias fantasma del mismo texto (vía content:
-   attr(data-text), sin duplicar DOM) desplazadas en magenta/cian que se
-   separan y vuelven a converger — el titular "entra en foco" como si la
-   señal se estuviera sintonizando. Requiere data-text="mismo texto" en el
-   elemento. Solo 1-2 veces por página, nunca en loop. */
-.glitch-rgb {
-  position: relative;
-  display: inline-block;
-}
-.glitch-rgb.is-glitching::before,
-.glitch-rgb.is-glitching::after {
-  content: attr(data-text);
-  position: absolute;
-  inset: 0;
-  background: inherit;
-  background-clip: inherit;
-  -webkit-background-clip: inherit;
-}
-.glitch-rgb.is-glitching::before {
-  color: #ec4899;
-  -webkit-text-fill-color: #ec4899;
-  mix-blend-mode: screen;
-  animation: glitch-1 420ms steps(2, jump-end);
-}
-.glitch-rgb.is-glitching::after {
-  color: #22d3ee;
-  -webkit-text-fill-color: #22d3ee;
-  mix-blend-mode: screen;
-  animation: glitch-2 420ms steps(2, jump-end);
-}
 @keyframes glitch-2 {
   0%, 100% { clip-path: inset(0 0 0 0); transform: translate(0); }
   15% { clip-path: inset(50% 0 20% 0); transform: translate(3px, -1px); }
@@ -378,16 +197,192 @@ body::before {
   45% { clip-path: inset(0 0 0 0); transform: translate(0); }
 }
 
-@media (prefers-reduced-motion: reduce) {
+@layer components {
+  /* Antes esta clase cargaba Cinzel (una serif ornamental de "casino de
+     lujo"). El pedido ahora es un look pro/moderno, así que pasa a ser
+     una sans geométrica en negrita. */
+  .font-luxury {
+    font-family: 'Space Grotesk', 'Inter', ui-sans-serif, sans-serif;
+    letter-spacing: -0.01em;
+  }
+
+  .animate-fade-in {
+    animation: fade-in 220ms var(--ease-out-strong) both;
+  }
+
+  .animate-hero-in {
+    animation: rise-in 520ms var(--ease-out-strong) both;
+  }
+
+  .animate-card-in {
+    animation: rise-in 420ms var(--ease-out-strong) both;
+    animation-delay: var(--stagger-delay, 0ms);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-fade-in,
+    .animate-hero-in,
+    .animate-card-in {
+      animation: none;
+    }
+  }
+
+  /* ═════════════════════════════════════════════════════════════════
+     SISTEMA "AURORA + VIDRIO" — vidrio esmerilado real: frost +
+     translucidez + borde que brilla arriba-izquierda y se apaga abajo-
+     derecha + sombra en capas — las 4 cosas juntas son lo que lo hace
+     leerse como vidrio de verdad y no como "fondo oscuro con blur".
+     ═════════════════════════════════════════════════════════════════ */
+  .glass {
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+    transition: backdrop-filter 0.4s ease, background 0.4s ease, box-shadow 0.4s ease, transform 0.4s var(--ease-out-strong);
+  }
+
+  .glass-light {
+    background: rgba(15, 23, 42, 0.3);
+    backdrop-filter: blur(14px) saturate(150%);
+    -webkit-backdrop-filter: blur(14px) saturate(150%);
+  }
+
+  /* Borde con brillo especular: un anillo de 1px enmascarado para que
+     solo se vea el contorno. position:relative acá es el default para
+     cuando el elemento no trae ya su propia utilidad de posición de
+     Tailwind — y como esta regla vive en @layer components, si el
+     elemento SÍ trae "fixed"/"sticky"/"absolute" de Tailwind (que vive en
+     @layer utilities, de mayor prioridad), esa gana sin pelear. */
+  .glass-edge {
+    position: relative;
+  }
+  .glass-edge::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.04) 40%, rgba(255, 255, 255, 0.12) 100%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    .glass,
+    .glass-light {
+      background: #0b1120;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+  }
+
+  @supports not (backdrop-filter: blur(1px)) {
+    .glass,
+    .glass-light {
+      background: rgba(11, 17, 32, 0.92);
+    }
+  }
+
+  /* ═════════════════════════════════════════════════════════════════
+     SISTEMA "HUD / SYNTHWAVE" — glow neón en azul (el color de marca),
+     acentos magenta/cian solo como condimento puntual, esquinas de HUD
+     tipo mira/escáner, y glitch reservado a 1-2 momentos de alto impacto.
+     ═════════════════════════════════════════════════════════════════ */
+  .neon-text {
+    text-shadow: 0 0 8px rgba(59, 130, 246, 0.9), 0 0 24px rgba(59, 130, 246, 0.5), 0 0 48px rgba(59, 130, 246, 0.25);
+  }
+  .neon-text-pink {
+    text-shadow: 0 0 8px rgba(236, 72, 153, 0.9), 0 0 24px rgba(236, 72, 153, 0.5);
+  }
+  .neon-text-cyan {
+    text-shadow: 0 0 8px rgba(34, 211, 238, 0.9), 0 0 24px rgba(34, 211, 238, 0.5);
+  }
+
+  .neon-border {
+    border-color: rgba(59, 130, 246, 0.6);
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.35), inset 0 0 12px rgba(59, 130, 246, 0.08);
+  }
+
+  /* Esquinas de HUD: 4 marcas en las puntas, como la mira de un escáner.
+     Las 4 van en un solo ::after (8 capas de gradiente) para no pelear
+     por ::before con .glass-edge ni con anillos de hover ya existentes.
+     Mismo motivo que en .glass-edge: position:relative acá es el default,
+     pero vive en @layer components así que una utilidad de posición de
+     Tailwind en el mismo elemento (fixed/sticky/absolute) siempre gana. */
+  .hud-corners {
+    position: relative;
+  }
+  .hud-corners::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.65;
+    transition: opacity 0.3s ease;
+    background:
+      linear-gradient(to right, #60a5fa 2px, transparent 2px) top left / 18px 2px no-repeat,
+      linear-gradient(to bottom, #60a5fa 2px, transparent 2px) top left / 2px 18px no-repeat,
+      linear-gradient(to left, #60a5fa 2px, transparent 2px) top right / 18px 2px no-repeat,
+      linear-gradient(to bottom, #60a5fa 2px, transparent 2px) top right / 2px 18px no-repeat,
+      linear-gradient(to right, #60a5fa 2px, transparent 2px) bottom left / 18px 2px no-repeat,
+      linear-gradient(to top, #60a5fa 2px, transparent 2px) bottom left / 2px 18px no-repeat,
+      linear-gradient(to left, #60a5fa 2px, transparent 2px) bottom right / 18px 2px no-repeat,
+      linear-gradient(to top, #60a5fa 2px, transparent 2px) bottom right / 2px 18px no-repeat;
+  }
+  .hud-corners:hover::after {
+    opacity: 1;
+  }
+
   .animate-glitch-boot {
-    animation: none;
+    animation: glitch-1 380ms steps(2, jump-end);
+  }
+
+  /* Glitch RGB-split: 2 copias fantasma del mismo texto (vía content:
+     attr(data-text), sin duplicar DOM) desplazadas en magenta/cian que
+     se separan y vuelven a converger — el titular "entra en foco" como
+     si la señal se estuviera sintonizando. Requiere data-text="mismo
+     texto" en el elemento. Solo 1-2 veces por página, nunca en loop. */
+  .glitch-rgb {
+    display: inline-block;
   }
   .glitch-rgb.is-glitching::before,
   .glitch-rgb.is-glitching::after {
-    display: none;
+    content: attr(data-text);
+    position: absolute;
+    inset: 0;
+    background: inherit;
+    background-clip: inherit;
+    -webkit-background-clip: inherit;
   }
-  .hud-corners::before,
-  .hud-corners::after {
-    transition: none;
+  .glitch-rgb.is-glitching::before {
+    color: #ec4899;
+    -webkit-text-fill-color: #ec4899;
+    mix-blend-mode: screen;
+    animation: glitch-1 420ms steps(2, jump-end);
+  }
+  .glitch-rgb.is-glitching::after {
+    color: #22d3ee;
+    -webkit-text-fill-color: #22d3ee;
+    mix-blend-mode: screen;
+    animation: glitch-2 420ms steps(2, jump-end);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-glitch-boot {
+      animation: none;
+    }
+    .glitch-rgb.is-glitching::before,
+    .glitch-rgb.is-glitching::after {
+      display: none;
+    }
+    .hud-corners::after {
+      transition: none;
+    }
   }
 }
