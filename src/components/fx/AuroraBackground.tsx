@@ -48,20 +48,8 @@ export default function AuroraBackground() {
 
     let raf = 0;
     let lastFrame = 0;
+    let lastPaintedT = 0;
     let alive = true;
-
-    function resize() {
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      canvas!.width = w * dpr;
-      canvas!.height = h * dpr;
-      canvas!.style.width = `${w}px`;
-      canvas!.style.height = `${h}px`;
-      ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
-    }
-    resize();
-    window.addEventListener('resize', resize);
 
     function paint(t: number) {
       const w = window.innerWidth;
@@ -80,7 +68,29 @@ export default function AuroraBackground() {
         ctx!.fillStyle = grad;
         ctx!.fillRect(0, 0, w, h);
       });
+      lastPaintedT = t;
     }
+
+    // Cambiar canvas.width/height borra el buffer a transparente al
+    // instante — en mobile, el navegador dispara "resize" seguido cada
+    // vez que la barra de direcciones se esconde/aparece al scrollear.
+    // Sin repintar ahí mismo, se veía el negro de fondo de la página por
+    // un instante en cada uno de esos resizes (el "fondo se pone negro"
+    // al scrollear). Repintar de forma SÍNCRONA, en el mismo tick que se
+    // redimensiona, cierra ese hueco por completo.
+    function resize() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      canvas!.width = w * dpr;
+      canvas!.height = h * dpr;
+      canvas!.style.width = `${w}px`;
+      canvas!.style.height = `${h}px`;
+      ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
+      paint(lastPaintedT);
+    }
+    resize();
+    window.addEventListener('resize', resize);
 
     function loop(t: number) {
       if (!alive) return;
