@@ -2,6 +2,7 @@ import HoloTicket from '@/components/HoloTicket';
 import ResaleModal from '@/components/ResaleModal';
 import { supabaseAdmin } from '@/core/supabase/admin';
 import Link from 'next/link';
+import AuroraBackground from '@/components/fx/AuroraBackground';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,8 +69,9 @@ export default async function TicketPage({ params }: { params: Promise<{ code: s
   const qrValue = ticket.qr_hash || ticket.id;
 
   return (
-    <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <main className="relative min-h-screen bg-black text-white flex flex-col items-center justify-center p-4 overflow-hidden">
+      <AuroraBackground />
+      <div className="relative z-10 w-full max-w-md">
         <HoloTicket
           ticket={{
             id: ticket.id,

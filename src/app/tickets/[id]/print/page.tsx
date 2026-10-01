@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
+import AuroraBackground from '@/components/fx/AuroraBackground';
 
 interface Ticket {
   id: string;
@@ -204,9 +205,10 @@ export default function TicketDownloadPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#05070d] text-white p-4 sm:p-8 font-mono flex flex-col items-center justify-center">
+    <div className="relative min-h-screen bg-[#05070d] text-white p-4 sm:p-8 font-mono flex flex-col items-center justify-center overflow-hidden">
+      <AuroraBackground />
       {/* BARRA SUPERIOR DE ACCIÓN */}
-      <div className="max-w-md w-full mb-4 flex items-center justify-between">
+      <div className="relative z-10 max-w-md w-full mb-4 flex items-center justify-between">
         <button
           onClick={() => router.back()}
           className="text-xs text-neutral-400 hover:text-white px-3 py-1.5 rounded-lg border border-neutral-800 transition-colors"
@@ -234,7 +236,7 @@ export default function TicketDownloadPage() {
       </div>
 
       {/* VISTA PREVIA EN PANTALLA */}
-      <div className="max-w-md w-full bg-[#090d16] border border-neutral-800 rounded-3xl overflow-hidden shadow-2xl">
+      <div className="glass glass-edge hud-corners relative z-10 max-w-md w-full rounded-3xl overflow-hidden">
         <div className="bg-gradient-to-r from-blue-700 to-indigo-800 p-6 text-white flex justify-between items-start">
           <div>
             <span className="text-[9px] uppercase tracking-widest block font-bold opacity-80">
