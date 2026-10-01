@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import UserMenu from '@/components/UserMenu';
 import HoloTicket, { TicketData } from '@/components/HoloTicket';
 import { useSession } from '@/core/auth/useSession';
+import { gsap, useGSAP, ScrollTrigger } from '@/core/gsap';
+import RevealText from '@/components/fx/RevealText';
 
 interface RawTicket {
   id: string;
@@ -184,10 +186,56 @@ export default function MyTicketsPage() {
 
   const loading = sessionLoading || loadingTickets;
 
+  const gridRef = useRef<HTMLDivElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // Las entradas entran con fade + slide al aparecer en viewport — mismo
+  // criterio que la cartelera.
+  useGSAP(
+    () => {
+      if (!gridRef.current) return;
+      const mm = gsap.matchMedia();
+      mm.add('(prefers-reduced-motion: no-preference)', () => {
+        const cards = gridRef.current!.querySelectorAll('.ticket-card');
+        if (cards.length === 0) return;
+        gsap.set(cards, { opacity: 0, y: 40, scale: 0.97 });
+        const triggers = ScrollTrigger.batch(cards, {
+          start: 'top 90%',
+          once: true,
+          onEnter: (batch) =>
+            gsap.to(batch, { opacity: 1, y: 0, scale: 1, duration: 0.6, ease: 'power3.out', stagger: 0.07, overwrite: true }),
+        });
+        return () => triggers.forEach((t) => t.kill());
+      });
+      return () => mm.revert();
+    },
+    { scope: gridRef, dependencies: [filteredTickets.length, loading] }
+  );
+
+  // El modal de "Fijar precio y alias" entra con un pop — cada vez que se
+  // abre (no solo la primera), ya que se monta/desmonta con la condicional.
+  useGSAP(
+    () => {
+      if (!modalRef.current) return;
+      const mm = gsap.matchMedia();
+      mm.add('(prefers-reduced-motion: no-preference)', () => {
+        gsap.from(modalRef.current, { opacity: 0, scale: 0.92, y: 16, duration: 0.35, ease: 'power3.out' });
+      });
+      return () => mm.revert();
+    },
+    { scope: modalRef, dependencies: [!!ticketToSell] }
+  );
+
   return (
-    <div className="min-h-screen bg-[#05070d] text-slate-100 flex flex-col justify-between font-sans antialiased selection:bg-blue-500 selection:text-white">
+    <div className="relative min-h-screen bg-[#05070d] text-slate-100 flex flex-col justify-between font-sans antialiased selection:bg-blue-500 selection:text-white overflow-x-hidden">
+      {/* FONDO AMBIENTE */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div className="absolute -top-32 -left-32 w-[32rem] h-[32rem] rounded-full bg-blue-600/20 blur-[130px]" />
+        <div className="absolute top-1/3 -right-40 w-[32rem] h-[32rem] rounded-full bg-indigo-600/15 blur-[140px]" />
+      </div>
+
       {/* NAVBAR */}
-      <header className="border-b border-white/5 bg-[#05070d] sticky top-0 z-40 px-6 py-4">
+      <header className="relative z-40 border-b border-white/5 bg-[#05070d]/85 backdrop-blur-xl sticky top-0 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3.5 cursor-pointer group">
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-500 via-indigo-400 to-blue-600 flex items-center justify-center font-black text-white text-sm shadow-lg shadow-blue-500/20">
@@ -221,7 +269,7 @@ export default function MyTicketsPage() {
       </header>
 
       {/* MAIN */}
-      <main className="max-w-7xl mx-auto w-full px-6 py-10 space-y-10 flex-1 font-mono">
+      <main className="relative z-10 max-w-7xl mx-auto w-full px-6 py-10 space-y-10 flex-1 font-mono">
         {visibleAlerts.length > 0 && (
           <div className="space-y-2">
             {visibleAlerts.map((a) => (
@@ -255,9 +303,9 @@ export default function MyTicketsPage() {
             <span className="text-[10px] text-blue-400 uppercase font-bold tracking-widest block">
               ● Billetera Personal
             </span>
-            <h1 className="font-luxury text-3xl font-black uppercase text-white tracking-tight">
+            <RevealText as="h1" type="words" className="block font-luxury text-3xl font-black uppercase text-white tracking-tight">
               Billetera Digital
-            </h1>
+            </RevealText>
             <p className="text-xs text-slate-400 font-sans">
               Tus entradas oficiales, verificadas contra la base de Live Experience.
             </p>
@@ -312,7 +360,7 @@ export default function MyTicketsPage() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-start">
+          <div ref={gridRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-start">
             {filteredTickets.map((t) => {
               const qrValue = t.auth_code || t.qr_hash || t.id;
               const holoData: TicketData = {
@@ -331,7 +379,7 @@ export default function MyTicketsPage() {
               const canResell = t.status === 'VALID' || t.status === 'AVAILABLE' || t.status === 'FROZEN_RESALE';
 
               return (
-                <div key={t.id} className="flex flex-col space-y-3">
+                <div key={t.id} className="ticket-card flex flex-col space-y-3">
                   <HoloTicket ticket={holoData} />
 
                   <div className="p-4 rounded-2xl bg-[#0b1120] border border-white/10 flex flex-col items-center justify-center space-y-2">
@@ -388,6 +436,7 @@ export default function MyTicketsPage() {
           className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 font-mono"
         >
           <div
+            ref={modalRef}
             onClick={(e) => e.stopPropagation()}
             className="max-w-md w-full rounded-3xl bg-[#0c0f16] border border-blue-500/40 p-6 sm:p-8 space-y-6 shadow-2xl"
           >
