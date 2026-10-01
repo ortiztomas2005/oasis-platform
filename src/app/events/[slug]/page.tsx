@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import UserMenu from '@/components/UserMenu';
 import { useSession } from '@/core/auth/useSession';
+import { gsap, useGSAP } from '@/core/gsap';
+import RevealText from '@/components/fx/RevealText';
 
 interface Tier {
   id: string;
@@ -73,6 +75,48 @@ export default function EventDetailPage() {
 
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [purchaseResult, setPurchaseResult] = useState<{ references: string[]; total: number } | null>(null);
+
+  const contentRef = useRef<HTMLDivElement>(null);
+  const successRef = useRef<HTMLDivElement>(null);
+
+  // Entrada del detalle del evento: la portada desliza desde la izquierda,
+  // el panel de compra desde la derecha, con un ligero desfasaje — solo
+  // decorativo, no toca ningún estado ni lógica de compra. Corre una sola
+  // vez cuando el evento termina de cargar.
+  useGSAP(
+    () => {
+      if (!contentRef.current) return;
+      const mm = gsap.matchMedia();
+      mm.add('(prefers-reduced-motion: no-preference)', () => {
+        const cover = contentRef.current!.querySelector('.ev-cover');
+        const panel = contentRef.current!.querySelector('.ev-panel');
+        const tl = gsap.timeline({ defaults: { duration: 0.8, ease: 'power3.out' } });
+        if (cover) tl.from(cover, { opacity: 0, x: -40 });
+        if (panel) tl.from(panel, { opacity: 0, x: 40 }, '<0.1');
+      });
+      return () => mm.revert();
+    },
+    { scope: contentRef, dependencies: [event?.id] }
+  );
+
+  // Pantalla de éxito: momento raro y de alta emoción (el único "delight"
+  // real de todo el flujo de compra) — el check hace un pequeño pop con
+  // rebote y el resto del panel entra después.
+  useGSAP(
+    () => {
+      if (!successRef.current) return;
+      const mm = gsap.matchMedia();
+      mm.add('(prefers-reduced-motion: no-preference)', () => {
+        const check = successRef.current!.querySelector('.success-check');
+        const rest = successRef.current!.querySelectorAll('.success-reveal');
+        const tl = gsap.timeline();
+        if (check) tl.from(check, { scale: 0.4, opacity: 0, duration: 0.6, ease: 'back.out(2)' });
+        if (rest.length) tl.from(rest, { opacity: 0, y: 16, duration: 0.5, ease: 'power2.out', stagger: 0.08 }, '-=0.25');
+      });
+      return () => mm.revert();
+    },
+    { scope: successRef, dependencies: [!!purchaseResult] }
+  );
 
   useEffect(() => {
     if (!slug) return;
@@ -194,20 +238,26 @@ export default function EventDetailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#05070d] text-slate-100 flex flex-col justify-between font-sans antialiased selection:bg-blue-600 selection:text-white">
+    <div className="relative min-h-screen bg-[#05070d] text-slate-100 flex flex-col justify-between font-sans antialiased selection:bg-blue-600 selection:text-white overflow-x-hidden">
+      {/* FONDO AMBIENTE */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div className="absolute -top-32 -left-32 w-[32rem] h-[32rem] rounded-full bg-blue-600/20 blur-[130px]" />
+        <div className="absolute top-1/3 -right-40 w-[32rem] h-[32rem] rounded-full bg-indigo-600/15 blur-[140px]" />
+      </div>
+
       {/* NAVBAR */}
-      <header className="border-b border-slate-800/80 bg-[#0b1120]/90 backdrop-blur-md sticky top-0 z-50 px-6 py-3.5">
+      <header className="relative z-50 border-b border-slate-800/80 bg-[#0b1120]/85 backdrop-blur-md sticky top-0 px-6 py-3.5">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link
               href="/events"
-              className="px-3.5 py-1.5 rounded-xl border border-slate-800 bg-[#161a26] hover:border-slate-700 text-slate-300 text-xs font-mono font-bold transition flex items-center gap-2"
+              className="px-3.5 py-1.5 rounded-xl border border-slate-800 bg-[#161a26] hover:border-slate-700 text-slate-300 text-xs font-mono font-bold transition-colors duration-150 ease-out-strong active:scale-95 flex items-center gap-2"
             >
               <span>←</span>
               <span>Cartelera</span>
             </Link>
             <div className="flex flex-col">
-              <span className="text-xs font-black tracking-[0.2em] uppercase text-white leading-none select-none">LIVE EXPERIENCE</span>
+              <span className="font-luxury text-xs font-black tracking-[0.2em] uppercase text-white leading-none select-none">LIVE EXPERIENCE</span>
               <span className="text-[9px] text-blue-400 font-mono tracking-wider mt-0.5">PASS CHECKOUT</span>
             </div>
           </div>
@@ -221,13 +271,13 @@ export default function EventDetailPage() {
       </header>
 
       {/* MAIN */}
-      <main className="max-w-7xl mx-auto w-full px-6 py-10 flex-1">
+      <main className="relative z-10 max-w-7xl mx-auto w-full px-6 py-10 flex-1">
         {purchaseResult ? (
-          <div className="max-w-xl mx-auto py-12 px-8 rounded-3xl bg-[#131722] border border-emerald-500/40 text-center space-y-6 shadow-2xl">
-            <div className="w-16 h-16 mx-auto rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-3xl">
+          <div ref={successRef} className="max-w-xl mx-auto py-12 px-8 rounded-3xl bg-[#131722] border border-emerald-500/40 text-center space-y-6 shadow-2xl">
+            <div className="success-check w-16 h-16 mx-auto rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-3xl">
               ✅
             </div>
-            <div className="space-y-2">
+            <div className="success-reveal space-y-2">
               <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] font-mono font-bold uppercase tracking-wider">
                 Orden Registrada
               </span>
@@ -240,7 +290,7 @@ export default function EventDetailPage() {
               </p>
             </div>
 
-            <div className="p-4 rounded-2xl bg-black/40 border border-white/5 text-left font-mono text-xs space-y-2">
+            <div className="success-reveal p-4 rounded-2xl bg-black/40 border border-white/5 text-left font-mono text-xs space-y-2">
               <div className="flex justify-between text-slate-400">
                 <span>Referencia{purchaseResult.references.length > 1 ? 's' : ''}:</span>
                 <span className="text-white font-bold text-right">{purchaseResult.references.join(', ')}</span>
@@ -251,25 +301,25 @@ export default function EventDetailPage() {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 pt-2 font-mono">
+            <div className="success-reveal flex flex-col sm:flex-row gap-3 pt-2 font-mono">
               <Link
                 href="/my-tickets"
-                className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-black uppercase text-xs rounded-xl transition shadow-lg shadow-blue-600/30 text-center"
+                className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-500 active:scale-[0.97] text-white font-black uppercase text-xs rounded-xl transition-[transform,background-color] duration-150 ease-out-strong shadow-lg shadow-blue-600/30 text-center"
               >
                 Ver Mis Entradas →
               </Link>
               <Link
                 href="/events"
-                className="py-3.5 px-6 border border-slate-800 bg-[#161a26] hover:bg-[#1d2333] text-slate-300 text-xs font-bold rounded-xl transition text-center"
+                className="py-3.5 px-6 border border-slate-800 bg-[#161a26] hover:bg-[#1d2333] active:scale-[0.97] text-slate-300 text-xs font-bold rounded-xl transition-[transform,background-color] duration-150 ease-out-strong text-center"
               >
                 Volver a la Cartelera
               </Link>
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          <div ref={contentRef} className="grid grid-cols-1 lg:grid-cols-12 gap-10">
             {/* PORTADA Y DESCRIPCIÓN */}
-            <div className="lg:col-span-7 space-y-8">
+            <div className="ev-cover lg:col-span-7 space-y-8">
               <div className="relative rounded-3xl overflow-hidden border border-slate-800/80 bg-slate-900 aspect-[16/10] shadow-2xl">
                 <img
                   src={event.image_url || 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=1200&auto=format&fit=crop'}
@@ -284,9 +334,9 @@ export default function EventDetailPage() {
                   <span className="text-xs font-mono text-blue-400 font-bold block">
                     📅 {eventDate ? new Date(eventDate).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' }) : 'Fecha a confirmar'} · {eventVenue}
                   </span>
-                  <h1 className="text-3xl sm:text-5xl font-black uppercase text-white tracking-tight leading-none">
+                  <RevealText as="h1" type="words" className="block text-3xl sm:text-5xl font-black uppercase text-white tracking-tight leading-none">
                     {eventName}
-                  </h1>
+                  </RevealText>
                 </div>
 
                 <p className="text-sm text-slate-300 leading-relaxed font-normal">
@@ -325,7 +375,7 @@ export default function EventDetailPage() {
             </div>
 
             {/* SELECCIÓN Y PAGO */}
-            <div className="lg:col-span-5">
+            <div className="ev-panel lg:col-span-5">
               <div className="sticky top-24 rounded-3xl bg-[#131722] border border-slate-800/80 p-6 sm:p-7 space-y-6 shadow-2xl">
                 <div>
                   <h2 className="text-lg font-black uppercase text-white tracking-wide">Seleccionar Pases</h2>
@@ -350,7 +400,7 @@ export default function EventDetailPage() {
                         type="button"
                         disabled={sold}
                         onClick={() => setSelectedTierIndex(idx)}
-                        className={`w-full p-4 rounded-2xl border text-left transition-all flex items-center justify-between ${
+                        className={`w-full p-4 rounded-2xl border text-left transition-colors duration-150 ease-out-strong active:scale-[0.99] flex items-center justify-between ${
                           sold
                             ? 'opacity-40 bg-black/20 border-slate-800 cursor-not-allowed'
                             : isSelected
@@ -387,7 +437,7 @@ export default function EventDetailPage() {
                         <button
                           type="button"
                           onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                          className="w-8 h-8 rounded-xl border border-slate-800 bg-[#181d2a] hover:bg-[#202738] text-white flex items-center justify-center text-sm font-bold transition"
+                          className="w-8 h-8 rounded-xl border border-slate-800 bg-[#181d2a] hover:bg-[#202738] active:scale-90 text-white flex items-center justify-center text-sm font-bold transition duration-[120ms] ease-out-strong"
                         >
                           -
                         </button>
@@ -395,7 +445,7 @@ export default function EventDetailPage() {
                         <button
                           type="button"
                           onClick={() => setQuantity(Math.min(6, quantity + 1))}
-                          className="w-8 h-8 rounded-xl border border-slate-800 bg-[#181d2a] hover:bg-[#202738] text-white flex items-center justify-center text-sm font-bold transition"
+                          className="w-8 h-8 rounded-xl border border-slate-800 bg-[#181d2a] hover:bg-[#202738] active:scale-90 text-white flex items-center justify-center text-sm font-bold transition duration-[120ms] ease-out-strong"
                         >
                           +
                         </button>
@@ -435,7 +485,7 @@ export default function EventDetailPage() {
                               key={method.id}
                               type="button"
                               onClick={() => setSelectedPayment(method.id)}
-                              className={`w-full p-3.5 rounded-2xl border text-left transition-all flex items-center justify-between ${
+                              className={`w-full p-3.5 rounded-2xl border text-left transition-colors duration-150 ease-out-strong active:scale-[0.99] flex items-center justify-between ${
                                 isSelected ? 'bg-blue-600/10 border-blue-500 shadow-md' : 'bg-[#181d2a]/70 border-slate-800 hover:border-slate-700'
                               }`}
                             >
@@ -472,7 +522,7 @@ export default function EventDetailPage() {
                       <button
                         type="submit"
                         disabled={isCheckingOut}
-                        className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black uppercase tracking-wider transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 shadow-xl shadow-blue-600/30 hover:shadow-blue-500/40 disabled:opacity-50 disabled:hover:translate-y-0 cursor-pointer"
+                        className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black uppercase tracking-wider transition-[transform,background-color,box-shadow] duration-200 ease-out-strong hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.97] shadow-xl shadow-blue-600/30 hover:shadow-blue-500/40 disabled:opacity-50 disabled:hover:translate-y-0 cursor-pointer"
                       >
                         {isCheckingOut ? 'Procesando...' : `Pagar con ${activeMethod.name} · $${totalAmount.toLocaleString('es-AR')} →`}
                       </button>
