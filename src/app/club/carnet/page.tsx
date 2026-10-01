@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import UserMenu from '@/components/UserMenu';
+import AuroraBackground from '@/components/fx/AuroraBackground';
 
 interface ClubMembership {
   clubId: string;
@@ -102,10 +103,11 @@ export default function DigitalSocioCardPage() {
   const activeCard = memberships.find(m => m.clubId === selectedCardId) || memberships[0];
 
   return (
-    <div className="min-h-screen bg-[#05070d] text-slate-100 flex flex-col justify-between font-sans antialiased selection:bg-blue-500 selection:text-white">
-      
+    <div className="relative min-h-screen bg-[#05070d] text-slate-100 flex flex-col justify-between font-sans antialiased selection:bg-blue-500 selection:text-white overflow-x-hidden">
+      <AuroraBackground />
+
       {/* NAVBAR */}
-      <header className="border-b border-white/5 bg-[#05070d] sticky top-0 z-40 px-6 py-4">
+      <header className="glass relative z-40 sticky top-0 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link href="/club/partidos" className="flex items-center gap-3.5 cursor-pointer group">
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-500 via-indigo-400 to-blue-600 flex items-center justify-center font-black text-white text-sm shadow-lg shadow-blue-500/20">
@@ -134,7 +136,7 @@ export default function DigitalSocioCardPage() {
       </header>
 
       {/* MAIN */}
-      <main className="max-w-xl mx-auto w-full px-6 py-10 flex-1 flex flex-col items-center justify-center font-mono">
+      <main className="relative z-10 max-w-xl mx-auto w-full px-6 py-10 flex-1 flex flex-col items-center justify-center font-mono">
         <div className="w-full space-y-6">
           
           <div className="text-center space-y-2">
@@ -170,7 +172,7 @@ export default function DigitalSocioCardPage() {
 
           {/* TARJETA DE CREDENCIAL DIGITAL */}
           {activeCard && (
-            <div className="w-full bg-[#0b1120] border-2 border-blue-500 rounded-3xl p-7 shadow-2xl space-y-6 relative overflow-hidden">
+            <div className="glass glass-edge hud-corners w-full rounded-3xl p-7 space-y-6 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
 
               {/* ENCABEZADO CREDENCIAL */}

@@ -1,7 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { gsap, useGSAP, ScrollTrigger } from '@/core/gsap';
+import AuroraBackground from '@/components/fx/AuroraBackground';
+import GlitchHeading from '@/components/fx/GlitchHeading';
+import RevealText from '@/components/fx/RevealText';
 
 interface MatchItem {
   id: string;
@@ -28,6 +32,7 @@ export default function SportsCatalogPage() {
     plateaMember: 15000,
     plateaSpecial: 12000,
   });
+  const gridRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     try {
@@ -79,25 +84,48 @@ export default function SportsCatalogPage() {
     }
   }, []);
 
+  // Encuentros con fade+slide al entrar en viewport.
+  useGSAP(
+    () => {
+      if (!gridRef.current) return;
+      const mm = gsap.matchMedia();
+      mm.add('(prefers-reduced-motion: no-preference)', () => {
+        const cards = gridRef.current!.querySelectorAll('.match-card');
+        if (cards.length === 0) return;
+        gsap.set(cards, { opacity: 0, y: 40, scale: 0.97 });
+        const triggers = ScrollTrigger.batch(cards, {
+          start: 'top 90%',
+          once: true,
+          onEnter: (batch) =>
+            gsap.to(batch, { opacity: 1, y: 0, scale: 1, duration: 0.6, ease: 'power3.out', stagger: 0.08, overwrite: true }),
+        });
+        return () => triggers.forEach((t) => t.kill());
+      });
+      return () => mm.revert();
+    },
+    { scope: gridRef, dependencies: [matches.length] }
+  );
+
   return (
-    <div className="min-h-screen bg-[#05070d] text-slate-100 flex flex-col font-sans antialiased selection:bg-blue-500 selection:text-white font-mono">
-      
+    <div className="relative min-h-screen bg-[#05070d] text-slate-100 flex flex-col font-sans antialiased selection:bg-blue-500 selection:text-white font-mono overflow-x-hidden">
+      <AuroraBackground />
+
       {/* HEADER GENERAL DE LA TIQUETERA MULTICLUB */}
-      <header className="h-20 border-b border-white/10 bg-[#05070d] px-8 flex items-center justify-between shrink-0 z-30">
+      <header className="glass relative z-30 h-20 px-8 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-blue-500 flex items-center justify-center font-black text-white text-sm shadow-lg shadow-blue-500/20 font-luxury">
             ⚽
           </div>
-          <span className="font-luxury text-sm font-black text-white tracking-widest uppercase">
+          <GlitchHeading className="neon-text font-luxury text-sm font-black text-white tracking-widest uppercase">
             LIVE EXPERIENCE | TICKETERA DEPORTIVA MULTICLUB
-          </span>
+          </GlitchHeading>
         </div>
-        
+
         <div className="flex items-center gap-3 text-xs font-bold">
           {/* BOTÓN NUEVO: CARNETS DE SOCIO MULTICLUB */}
           <Link
             href="/club/carnet"
-            className="px-4 py-2 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border border-blue-500/40 transition cursor-pointer flex items-center gap-2 shadow-md shadow-blue-500/10"
+            className="px-4 py-2 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 active:scale-95 text-blue-300 border border-blue-500/40 transition-colors duration-150 ease-out-strong cursor-pointer flex items-center gap-2 shadow-md shadow-blue-500/10"
           >
             <span>🪪</span>
             <span>Carnets de Socio</span>
@@ -105,7 +133,7 @@ export default function SportsCatalogPage() {
 
           <Link
             href="/club"
-            className="px-4 py-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 transition cursor-pointer flex items-center gap-2"
+            className="px-4 py-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 active:scale-95 text-blue-400 border border-blue-500/30 transition-colors duration-150 ease-out-strong cursor-pointer flex items-center gap-2"
           >
             <span>💳</span>
             <span>Mi Billetera Club</span>
@@ -113,7 +141,7 @@ export default function SportsCatalogPage() {
 
           <Link
             href="/"
-            className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition cursor-pointer"
+            className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 text-slate-300 border border-white/10 transition-colors duration-150 ease-out-strong cursor-pointer"
           >
             ← Volver a Fiestas (Home)
           </Link>
@@ -121,14 +149,14 @@ export default function SportsCatalogPage() {
       </header>
 
       {/* CONTENIDO DE LA CARTELERA */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-8 space-y-10">
-        
-        <div className="relative rounded-3xl overflow-hidden border border-blue-500/30 bg-[#0b1120] shadow-2xl p-6 sm:p-12 flex flex-col justify-center min-h-[280px] sm:min-h-[320px] group">
+      <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto p-8 space-y-10">
+
+        <div className="glass hud-corners relative rounded-3xl overflow-hidden shadow-2xl p-6 sm:p-12 flex flex-col justify-center min-h-[280px] sm:min-h-[320px] group animate-hero-in">
           <div className="absolute inset-0 z-0">
             <img
               src="https://images.unsplash.com/photo-1518091043644-c1d4457512c6?q=80&w=1200&auto=format&fit=crop"
               alt="Estadio"
-              className="w-full h-full object-cover opacity-40 group-hover:scale-105 transition duration-1000"
+              className="w-full h-full object-cover opacity-40 group-hover:scale-105 transition-transform duration-1000 ease-out-strong"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[#05070d] via-[#05070d]/60 to-transparent" />
           </div>
@@ -137,9 +165,9 @@ export default function SportsCatalogPage() {
             <span className="inline-block px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/40 text-[10px] font-black uppercase tracking-wider">
               ● CARTELERA OFICIAL MULTICLUB
             </span>
-            <h1 className="font-luxury text-2xl sm:text-4xl lg:text-5xl font-black text-white uppercase tracking-wide leading-tight">
+            <RevealText as="h1" type="words" className="block font-luxury text-2xl sm:text-4xl lg:text-5xl font-black text-white uppercase tracking-wide leading-tight">
               Próximos Encuentros
-            </h1>
+            </RevealText>
             <p className="text-xs text-slate-300 leading-relaxed">
               Explorá los partidos de los diferentes clubes asociados, adquirí tus plateas, populares o realizá tus canjes de socio.
             </p>
@@ -157,7 +185,7 @@ export default function SportsCatalogPage() {
               <p className="text-sm text-slate-400 font-bold">No hay encuentros activos disponibles en este momento.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div ref={gridRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {matches.map((match) => {
                 const primary = match.primaryColor || '#2563eb';
                 const accent = match.accentColor || '#fbbf24';
@@ -165,8 +193,8 @@ export default function SportsCatalogPage() {
 
                 return (
                   <div 
-                    key={match.id} 
-                    className="rounded-3xl border overflow-hidden shadow-2xl flex flex-col justify-between group transition duration-300 hover:scale-[1.01]"
+                    key={match.id}
+                    className="match-card rounded-3xl border overflow-hidden shadow-2xl flex flex-col justify-between group transition-transform duration-300 ease-out-strong hover:scale-[1.01] active:scale-[0.99]"
                     style={{ 
                       backgroundColor: '#0b1120',
                       borderColor: `${accent}60`,

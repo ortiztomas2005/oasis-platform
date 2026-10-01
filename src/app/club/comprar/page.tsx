@@ -3,6 +3,8 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import AuroraBackground from '@/components/fx/AuroraBackground';
+import RevealText from '@/components/fx/RevealText';
 
 function ClubCheckoutContent() {
   const searchParams = useSearchParams();
@@ -193,10 +195,11 @@ function ClubCheckoutContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#05070d] text-slate-100 flex flex-col font-sans antialiased selection:bg-blue-500 selection:text-white font-mono">
-      
+    <div className="relative min-h-screen bg-[#05070d] text-slate-100 flex flex-col font-sans antialiased selection:bg-blue-500 selection:text-white font-mono overflow-x-hidden">
+      <AuroraBackground />
+
       {/* HEADER */}
-      <header className="h-20 border-b border-white/10 bg-[#05070d] px-8 flex items-center justify-between shrink-0 z-30">
+      <header className="glass relative z-30 h-20 px-8 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl flex items-center justify-center font-black text-black text-sm shadow-lg font-luxury" style={{ backgroundColor: clubColors.primary }}>
             ⚽
@@ -205,17 +208,17 @@ function ClubCheckoutContent() {
             {match.clubName || 'CLUB'} | CHECKOUT OFICIAL
           </span>
         </div>
-        
+
         <Link
           href="/club/partidos"
-          className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition cursor-pointer text-xs font-bold"
+          className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 text-slate-300 border border-white/10 transition-colors duration-150 ease-out-strong cursor-pointer text-xs font-bold"
         >
           ← Volver a Cartelera
         </Link>
       </header>
 
       {/* CONTENIDO DE CHECKOUT */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-6 sm:p-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto p-6 sm:p-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
         {/* COLUMNA IZQUIERDA: SELECCIÓN */}
         <form onSubmit={handleProcessPayment} className="lg:col-span-7 space-y-8">
@@ -326,10 +329,10 @@ function ClubCheckoutContent() {
 
         {/* COLUMNA DERECHA: RESUMEN Y PAGO */}
         <div className="lg:col-span-5 space-y-6 sticky top-24">
-          <div className="p-6 rounded-3xl bg-[#0b1120] border space-y-6 shadow-2xl" style={{ borderColor: `${clubColors.accent}50` }}>
+          <div className="glass glass-edge hud-corners p-6 rounded-3xl space-y-6" style={{ borderColor: `${clubColors.accent}50` }}>
             <div className="border-b border-white/10 pb-4 space-y-1">
               <span className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">Resumen del Encuentro</span>
-              <h3 className="font-luxury text-base font-black text-white uppercase">{match.name}</h3>
+              <RevealText as="h3" type="words" className="block font-luxury text-base font-black text-white uppercase">{match.name}</RevealText>
               <p className="text-xs text-slate-400">📅 {match.date} · 🏟️ {match.venue}</p>
             </div>
 

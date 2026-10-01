@@ -1,8 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import TicketQrCard from '@/components/TicketQrCard';
+import { gsap, useGSAP, ScrollTrigger } from '@/core/gsap';
+import AuroraBackground from '@/components/fx/AuroraBackground';
+import RevealText from '@/components/fx/RevealText';
 
 interface TicketItem {
   id: string;
@@ -35,6 +38,7 @@ export default function ClubWalletPage() {
   const [accentColor, setAccentColor] = useState('#fbbf24');
   
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
+  const foldersRef = useRef<HTMLDivElement>(null);
 
   const loadWalletData = () => {
     try {
@@ -103,11 +107,33 @@ export default function ClubWalletPage() {
 
   const activeAnnouncements = announcements.filter(ann => !dismissedAnnouncements.includes(ann.id));
 
+  // Carpetas de pases con fade+slide al entrar en viewport.
+  useGSAP(
+    () => {
+      if (!foldersRef.current) return;
+      const mm = gsap.matchMedia();
+      mm.add('(prefers-reduced-motion: no-preference)', () => {
+        const cards = foldersRef.current!.querySelectorAll('.wallet-folder');
+        if (cards.length === 0) return;
+        gsap.set(cards, { opacity: 0, y: 32 });
+        const triggers = ScrollTrigger.batch(cards, {
+          start: 'top 92%',
+          once: true,
+          onEnter: (batch) => gsap.to(batch, { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out', stagger: 0.08, overwrite: true }),
+        });
+        return () => triggers.forEach((t) => t.kill());
+      });
+      return () => mm.revert();
+    },
+    { scope: foldersRef, dependencies: [tickets.length] }
+  );
+
   return (
-    <div className="min-h-screen bg-[#05070d] text-slate-100 flex flex-col font-sans antialiased selection:bg-blue-500 selection:text-white font-mono">
-      
+    <div className="relative min-h-screen bg-[#05070d] text-slate-100 flex flex-col font-sans antialiased selection:bg-blue-500 selection:text-white font-mono overflow-x-hidden">
+      <AuroraBackground />
+
       {/* HEADER DE LA BILLETERA */}
-      <header className="h-20 border-b border-white/10 bg-[#05070d] px-8 flex items-center justify-between shrink-0 z-30">
+      <header className="glass relative z-30 h-20 px-8 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl flex items-center justify-center font-black text-black text-sm shadow-lg font-luxury" style={{ backgroundColor: primaryColor }}>
             ⚽
@@ -136,7 +162,7 @@ export default function ClubWalletPage() {
       </header>
 
       {/* CONTENIDO PRINCIPAL */}
-      <main className="flex-1 max-w-5xl w-full mx-auto p-8 space-y-10">
+      <main className="relative z-10 flex-1 max-w-5xl w-full mx-auto p-8 space-y-10">
         
         {/* SECCIÓN DE COMUNICADOS Y ANUNCIOS (CON BOTÓN DE CIERRE ✕) */}
         {activeAnnouncements.length > 0 && (
@@ -175,7 +201,7 @@ export default function ClubWalletPage() {
         {/* TÍTULO DE MIS PASES */}
         <div className="space-y-2 border-b border-white/10 pb-4 flex justify-between items-end">
           <div>
-            <h1 className="font-luxury text-2xl font-black text-white uppercase tracking-wider">Mis Pases Deportivos & Entradas</h1>
+            <RevealText as="h1" type="words" className="block font-luxury text-2xl font-black text-white uppercase tracking-wider">Mis Pases Deportivos & Entradas</RevealText>
             <p className="text-xs text-slate-400">Organizados por carpetas de cada club o productora emisora.</p>
           </div>
           <span className="text-xs font-bold px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-blue-400">
@@ -202,12 +228,12 @@ export default function ClubWalletPage() {
             </Link>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div ref={foldersRef} className="space-y-6">
             {Object.entries(groupedTickets).map(([orgNameKey, orgTickets]) => {
               const isExpanded = expandedFolders[orgNameKey] ?? true;
 
               return (
-                <div key={orgNameKey} className="rounded-3xl bg-[#0b1120] border border-white/10 overflow-hidden shadow-2xl transition-all">
+                <div key={orgNameKey} className="wallet-folder rounded-3xl bg-[#0b1120] border border-white/10 overflow-hidden shadow-2xl transition-all">
                   
                   <div 
                     onClick={() => toggleFolder(orgNameKey)}
