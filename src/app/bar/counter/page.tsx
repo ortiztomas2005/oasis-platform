@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import AuroraBackground from '@/components/fx/AuroraBackground';
+import RevealText from '@/components/fx/RevealText';
 
 export interface BarOrder {
   id: string;
@@ -168,9 +170,11 @@ export default function BarCounterValidationPage() {
   const delivered = orders.filter((o) => o.status === 'delivered');
 
   return (
-    <div className="min-h-screen bg-[#05070d] text-slate-100 flex flex-col justify-between font-sans antialiased selection:bg-blue-500 selection:text-white">
+    <div className="relative min-h-screen bg-[#05070d] text-slate-100 flex flex-col justify-between font-sans antialiased selection:bg-blue-500 selection:text-white overflow-x-hidden">
+      <AuroraBackground />
+
       {/* HEADER: SIEMPRE REGRESA A /admin */}
-      <header className="border-b border-slate-800/80 bg-[#0f131c]/95 backdrop-blur-md sticky top-0 z-40 px-6 py-3.5 flex items-center justify-between">
+      <header className="glass relative z-40 sticky top-0 px-6 py-3.5 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link
             href="/admin"
@@ -201,29 +205,29 @@ export default function BarCounterValidationPage() {
       </header>
 
       {/* CONTENIDO PRINCIPAL */}
-      <main className="max-w-7xl mx-auto w-full px-6 py-8 space-y-8 flex-1">
+      <main className="relative z-10 max-w-7xl mx-auto w-full px-6 py-8 space-y-8 flex-1">
         {/* TITULAR Y MÉTRICAS */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-800/80 pb-6">
           <div className="space-y-1.5">
             <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-[10px] font-mono text-blue-400 font-bold uppercase tracking-wider">
               <span>●</span> Fast Despatch Counter
             </div>
-            <h1 className="text-3xl font-black uppercase tracking-tight text-white">
+            <RevealText as="h1" type="words" className="block text-3xl font-black uppercase tracking-tight text-white">
               Validador de Barra
-            </h1>
+            </RevealText>
             <p className="text-xs text-slate-400 font-mono">
               Entregá tragos escaneando el código QR o ingresando el identificador del ticket.
             </p>
           </div>
 
           <div className="flex items-center gap-3 font-mono text-xs">
-            <div className="px-5 py-3 rounded-2xl bg-[#131722] border border-slate-800 text-center min-w-[120px]">
+            <div className="glass px-5 py-3 rounded-2xl text-center min-w-[120px]">
               <span className="text-[10px] text-blue-400 uppercase font-bold block">Por Entregar</span>
               <span className="text-2xl font-black text-white">{pending.length}</span>
             </div>
-            <div className="px-5 py-3 rounded-2xl bg-[#131722] border border-slate-800 text-center min-w-[120px]">
+            <div className="glass px-5 py-3 rounded-2xl text-center min-w-[120px]">
               <span className="text-[10px] text-emerald-400 uppercase font-bold block">Entregados</span>
-              <span className="text-2xl font-black text-white">{delivered.length}</span>
+              <span className="text-2xl font-black text-white neon-text">{delivered.length}</span>
             </div>
           </div>
         </div>
@@ -248,7 +252,7 @@ export default function BarCounterValidationPage() {
 
         {/* VISOR DE CÁMARA */}
         {isCameraActive && (
-          <section className="bg-[#131722] border border-blue-500/40 rounded-3xl p-6 shadow-2xl space-y-4 max-w-lg mx-auto">
+          <section className="glass glass-edge rounded-3xl p-6 space-y-4 max-w-lg mx-auto">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3 font-mono">
               <span className="text-xs font-bold text-blue-400 uppercase">
                 Visor de Escaneo en Vivo
@@ -283,7 +287,7 @@ export default function BarCounterValidationPage() {
         )}
 
         {/* INPUT MANUAL DE TOKEN */}
-        <div className="bg-[#131722] border border-slate-800/80 rounded-2xl p-4 flex flex-col sm:flex-row gap-3 items-center justify-between font-mono">
+        <div className="glass rounded-2xl p-4 flex flex-col sm:flex-row gap-3 items-center justify-between font-mono">
           <span className="text-xs text-slate-400 font-bold uppercase">
             Ingreso Rápido de Código:
           </span>
@@ -322,7 +326,7 @@ export default function BarCounterValidationPage() {
               {pending.map((o) => (
                 <div
                   key={o.id}
-                  className="bg-[#131722] border border-blue-500/30 rounded-2xl p-5 space-y-4 shadow-xl flex flex-col justify-between"
+                  className="glass rounded-2xl p-5 space-y-4 flex flex-col justify-between"
                 >
                   <div className="space-y-3 font-mono">
                     <div className="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -356,7 +360,7 @@ export default function BarCounterValidationPage() {
 
                   <button
                     onClick={() => handleValidate(o.token)}
-                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-xs font-black uppercase rounded-xl transition shadow-md shadow-emerald-600/20"
+                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.97] text-white font-mono text-xs font-black uppercase rounded-xl transition-[transform,background-color] duration-150 ease-out-strong shadow-md shadow-emerald-600/20"
                   >
                     Marcar como Entregado ✓
                   </button>
