@@ -1,10 +1,15 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import UserMenu from '@/components/UserMenu';
 import { useSession } from '@/core/auth/useSession';
+import { gsap, useGSAP, ScrollTrigger } from '@/core/gsap';
+import RevealText from '@/components/fx/RevealText';
+import Magnetic from '@/components/fx/Magnetic';
+import Marquee from '@/components/fx/Marquee';
+import CountUp from '@/components/fx/CountUp';
 
 export interface Tier {
   name: string;
@@ -58,6 +63,10 @@ export default function CatalogPage() {
   const [paymentMethod, setPaymentMethod] = useState<'mercado_pago' | 'transfer'>('mercado_pago');
   const [acceptedTerms, setAcceptedTerms] = useState<boolean>(false);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+
+  const heroSectionRef = useRef<HTMLElement>(null);
+  const heroImgRef = useRef<HTMLImageElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
 
   // Prellenar los datos del comprador con la sesión real de Supabase Auth y
   // resolver si ya es dueño de una productora (antes esto se leía de un
@@ -150,6 +159,52 @@ export default function CatalogPage() {
 
     loadEventsFromSupabase();
   }, []);
+
+  // Parallax sutil en la imagen del evento destacado: se mueve más lento
+  // que el scroll (la imagen ya está agrandada con scale-110 por CSS y el
+  // contenedor recorta con overflow-hidden, así que nunca deja ver bordes
+  // vacíos). Solo corre si hay evento destacado y con reduced-motion
+  // desactivado.
+  useGSAP(
+    () => {
+      if (!heroSectionRef.current || !heroImgRef.current) return;
+      const mm = gsap.matchMedia();
+      mm.add('(prefers-reduced-motion: no-preference)', () => {
+        const tween = gsap.to(heroImgRef.current, {
+          yPercent: 12,
+          ease: 'none',
+          scrollTrigger: { trigger: heroSectionRef.current, start: 'top top', end: 'bottom top', scrub: true },
+        });
+        return () => tween.scrollTrigger?.kill();
+      });
+      return () => mm.revert();
+    },
+    { scope: heroSectionRef, dependencies: [viewMode === 'catalog' && events[0]?.id] }
+  );
+
+  // Las tarjetas de evento entran con fade + slide al aparecer en
+  // viewport (no solo al montar) — importante para una cartelera larga
+  // donde la mayoría de las tarjetas arrancan debajo del pliegue.
+  useGSAP(
+    () => {
+      if (!gridRef.current) return;
+      const mm = gsap.matchMedia();
+      mm.add('(prefers-reduced-motion: no-preference)', () => {
+        const cards = gridRef.current!.querySelectorAll('.event-card');
+        if (cards.length === 0) return;
+        gsap.set(cards, { opacity: 0, y: 48, scale: 0.96 });
+        const triggers = ScrollTrigger.batch(cards, {
+          start: 'top 88%',
+          once: true,
+          onEnter: (batch) =>
+            gsap.to(batch, { opacity: 1, y: 0, scale: 1, duration: 0.7, ease: 'power3.out', stagger: 0.08, overwrite: true }),
+        });
+        return () => triggers.forEach((t) => t.kill());
+      });
+      return () => mm.revert();
+    },
+    { scope: gridRef, dependencies: [events.length] }
+  );
 
   const goToDetails = (event: EventItem) => {
     setSelectedEvent(event);
@@ -339,6 +394,21 @@ export default function CatalogPage() {
         </div>
       </header>
 
+      {/* CINTA EN MOVIMIENTO — recurso maximalista: una franja angosta con
+          loop infinito que nunca para, debajo del navbar en todas las
+          vistas. Puramente decorativa (aria-hidden adentro del propio
+          componente), nunca bloquea nada porque no tiene pointer-events. */}
+      <div className="relative z-10 border-b border-white/5 bg-blue-600/10 py-2 text-[11px] font-mono font-bold uppercase tracking-widest text-blue-300">
+        <Marquee
+          items={
+            events.length > 0
+              ? events.map((ev) => `${ev.name} — ${ev.city}`)
+              : ['Live Experience', 'Entradas 100% verificadas', 'Reventa segura', 'Pago con MercadoPago o transferencia']
+          }
+          speed={events.length > 0 ? Math.max(22, events.length * 6) : 28}
+        />
+      </div>
+
       {/* VISTA CARTELERA */}
       {viewMode === 'catalog' && (
         <main className="relative z-10 max-w-7xl mx-auto w-full px-6 py-10 space-y-12 flex-1">
@@ -368,17 +438,19 @@ export default function CatalogPage() {
             <>
               {featuredEvent && (
                 <section
+                  ref={heroSectionRef}
                   onClick={() => goToDetails(featuredEvent)}
                   className="relative rounded-[2rem] overflow-hidden border border-white/10 bg-[#0b1120] shadow-2xl group cursor-pointer active:scale-[0.995] transition-transform duration-150 ease-out-strong animate-hero-in before:absolute before:inset-0 before:z-20 before:rounded-[2rem] before:pointer-events-none before:ring-1 before:ring-inset before:ring-white/10 before:transition-all before:duration-300 before:ease-out-strong hover:before:ring-blue-400/40"
                 >
                   {/* Glow de borde: un halo azul detrás de la tarjeta, apenas visible, que se intensifica al pasar el mouse — le da presencia de "producto premium" en vez de un panel plano. */}
                   <div className="absolute -inset-px rounded-[2rem] bg-gradient-to-br from-blue-500/40 via-transparent to-indigo-500/30 opacity-0 group-hover:opacity-100 blur-sm transition-opacity duration-500 ease-out-strong pointer-events-none" />
 
-                  <div className="absolute inset-0 z-0">
+                  <div className="absolute inset-0 z-0 overflow-hidden">
                     <img
+                      ref={heroImgRef}
                       src={featuredEvent.imageUrl}
                       alt={featuredEvent.name}
-                      className="w-full h-full object-cover opacity-40 group-hover:scale-105 transition-transform duration-1000 ease-out-strong"
+                      className="w-full h-full scale-110 object-cover opacity-40 group-hover:scale-125 transition-transform duration-1000 ease-out-strong"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#05070d] via-[#05070d]/70 to-[#05070d]/20" />
                     <div className="absolute inset-0 bg-gradient-to-r from-[#05070d]/60 via-transparent to-transparent" />
@@ -396,15 +468,21 @@ export default function CatalogPage() {
                       <span className="text-xs text-blue-400 font-mono font-bold uppercase tracking-widest block">
                         {featuredEvent.date} — {featuredEvent.startTime} HS
                       </span>
-                      <h1 className="font-luxury text-4xl sm:text-5xl font-black uppercase tracking-wide bg-gradient-to-br from-white via-white to-blue-200 bg-clip-text text-transparent drop-shadow-sm">
+                      <RevealText
+                        as="h1"
+                        type="words"
+                        className="font-luxury text-4xl sm:text-5xl font-black uppercase tracking-wide bg-gradient-to-br from-white via-white to-blue-200 bg-clip-text text-transparent drop-shadow-sm block"
+                      >
                         {featuredEvent.name}
-                      </h1>
+                      </RevealText>
                     </div>
 
                     <div className="pt-2 flex items-center gap-4 font-mono">
-                      <span className="px-8 py-3.5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white font-black uppercase text-xs rounded-xl transition-[transform,box-shadow,background-color] duration-200 ease-out-strong shadow-lg shadow-blue-600/30 hover:shadow-blue-500/50 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.97] tracking-wider inline-block">
-                        Ver Evento y Tickets →
-                      </span>
+                      <Magnetic strength={0.3}>
+                        <span className="px-8 py-3.5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white font-black uppercase text-xs rounded-xl transition-[box-shadow,background-color] duration-200 ease-out-strong shadow-lg shadow-blue-600/30 hover:shadow-blue-500/50 active:scale-[0.97] tracking-wider inline-block">
+                          Ver Evento y Tickets →
+                        </span>
+                      </Magnetic>
                     </div>
                   </div>
                 </section>
@@ -416,20 +494,21 @@ export default function CatalogPage() {
                     <span className="w-1 h-8 rounded-full bg-gradient-to-b from-blue-400 to-indigo-500 shadow-lg shadow-blue-500/30" />
                     <div>
                       <span className="text-[10px] text-blue-400 font-mono uppercase font-bold tracking-widest block">● Próximas Fechas</span>
-                      <h2 className="font-luxury text-2xl font-bold uppercase text-white tracking-wider">Cartelera General</h2>
+                      <RevealText as="h2" type="chars" scrollTrigger className="font-luxury text-2xl font-bold uppercase text-white tracking-wider block">
+                        Cartelera General
+                      </RevealText>
                     </div>
                   </div>
                   <span className="hidden sm:block text-[10px] font-mono text-slate-500 uppercase tracking-widest">{events.length} evento{events.length !== 1 ? 's' : ''}</span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {events.map((ev, idx) => {
+                <div ref={gridRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {events.map((ev) => {
                     const fromPrice = ev.tiers.length > 0 ? Math.min(...ev.tiers.map((t) => t.price)) : null;
                     return (
                     <div
                       key={ev.id}
-                      style={{ '--stagger-delay': `${Math.min(idx * 60, 360)}ms` } as React.CSSProperties}
-                      className="relative rounded-2xl bg-[#0b1120] border border-white/5 hover:border-blue-500/40 transition-[transform,box-shadow,border-color] duration-300 ease-out-strong hover:-translate-y-1 active:translate-y-0 active:scale-[0.98] hover:shadow-2xl hover:shadow-blue-500/10 flex flex-col overflow-hidden shadow-xl group cursor-pointer animate-card-in"
+                      className="event-card relative rounded-2xl bg-[#0b1120] border border-white/5 hover:border-blue-500/40 transition-[transform,box-shadow,border-color] duration-300 ease-out-strong hover:-translate-y-1 active:translate-y-0 active:scale-[0.98] hover:shadow-2xl hover:shadow-blue-500/10 flex flex-col overflow-hidden shadow-xl group cursor-pointer"
                       onClick={() => goToDetails(ev)}
                     >
                       <span className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-blue-500 via-indigo-400 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out-strong z-10" />
@@ -446,7 +525,7 @@ export default function CatalogPage() {
                         </span>
                         {fromPrice !== null && (
                           <span className="absolute bottom-3 left-3 px-3 py-1 rounded-full bg-blue-500/90 text-white border border-blue-300/40 text-[10px] font-mono font-black uppercase shadow-lg shadow-blue-500/40 backdrop-blur-md">
-                            Desde ${fromPrice.toLocaleString('es-AR')}
+                            Desde <CountUp value={fromPrice} prefix="$" />
                           </span>
                         )}
                       </div>

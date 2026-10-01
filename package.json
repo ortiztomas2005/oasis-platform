@@ -9,12 +9,14 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@gsap/react": "^2.1.2",
     "@supabase/ssr": "^0.12.5",
     "@supabase/supabase-js": "^2.112.3",
     "@upstash/redis": "^1.38.2",
     "@walletpass/pass-js": "^7.2.0",
     "clsx": "^2.1.1",
     "cross-fetch": "^4.1.0",
+    "gsap": "^3.15.0",
     "html2canvas": "^1.4.1",
     "html5-qrcode": "^2.3.8",
     "jspdf": "^4.2.1",
