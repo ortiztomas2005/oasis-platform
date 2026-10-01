@@ -133,9 +133,41 @@ body::after {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
+/* Scanlines de CRT — líneas horizontales finísimas que derivan despacio
+   hacia abajo, en loop. Es LA señal visual que lee "pantalla", "HUD",
+   "cabina futurista" antes de que el ojo procese nada más. Se queda fijo
+   (pointer-events:none, z altísimo) sobre toda la app. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.6) 0px,
+    rgba(255, 255, 255, 0.6) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  animation: scanline-drift 9s linear infinite;
+}
+
+@keyframes scanline-drift {
+  from { background-position: 0 0; }
+  to { background-position: 0 300px; }
+}
+
 @media (prefers-reduced-transparency: reduce) {
   body::after {
     display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before {
+    animation: none;
   }
 }
 
@@ -193,5 +225,129 @@ body::after {
   .glass,
   .glass-light {
     background: rgba(11, 17, 32, 0.92);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SISTEMA "HUD / SYNTHWAVE" — la identidad visual distintiva del sitio:
+   ya no es "otro panel oscuro con vidrio", es una cabina de control de
+   evento nocturno. Glow neón en azul (el color de marca, no se reemplaza
+   — se le agrega una segunda piel luminosa), acentos magenta/cian solo
+   como condimento puntual, esquinas de HUD tipo mira/escáner, y glitch
+   reservado a 1-2 momentos de alto impacto (nunca ambiental ni constante:
+   un glitch que nunca para dejar de leerse como "glitch" y empieza a leerse
+   como "roto").
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.neon-text {
+  text-shadow: 0 0 8px rgba(59, 130, 246, 0.9), 0 0 24px rgba(59, 130, 246, 0.5), 0 0 48px rgba(59, 130, 246, 0.25);
+}
+.neon-text-pink {
+  text-shadow: 0 0 8px rgba(236, 72, 153, 0.9), 0 0 24px rgba(236, 72, 153, 0.5);
+}
+.neon-text-cyan {
+  text-shadow: 0 0 8px rgba(34, 211, 238, 0.9), 0 0 24px rgba(34, 211, 238, 0.5);
+}
+
+.neon-border {
+  border-color: rgba(59, 130, 246, 0.6);
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.35), inset 0 0 12px rgba(59, 130, 246, 0.08);
+}
+
+/* Esquinas de HUD: 4 marcas en las puntas, como la mira de un escáner.
+   Las 4 van en un solo ::after (8 capas de gradiente, una por segmento)
+   para no pelear por ::before con .glass-edge ni con anillos de hover ya
+   existentes — así "hud-corners" se puede combinar con cualquier otra
+   clase decorativa sin conflicto. Una sola clase en un contenedor
+   position:relative alcanza. */
+.hud-corners {
+  position: relative;
+}
+.hud-corners::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.65;
+  transition: opacity 0.3s ease;
+  background:
+    linear-gradient(to right, #60a5fa 2px, transparent 2px) top left / 18px 2px no-repeat,
+    linear-gradient(to bottom, #60a5fa 2px, transparent 2px) top left / 2px 18px no-repeat,
+    linear-gradient(to left, #60a5fa 2px, transparent 2px) top right / 18px 2px no-repeat,
+    linear-gradient(to bottom, #60a5fa 2px, transparent 2px) top right / 2px 18px no-repeat,
+    linear-gradient(to right, #60a5fa 2px, transparent 2px) bottom left / 18px 2px no-repeat,
+    linear-gradient(to top, #60a5fa 2px, transparent 2px) bottom left / 2px 18px no-repeat,
+    linear-gradient(to left, #60a5fa 2px, transparent 2px) bottom right / 18px 2px no-repeat,
+    linear-gradient(to top, #60a5fa 2px, transparent 2px) bottom right / 2px 18px no-repeat;
+}
+.hud-corners:hover::after {
+  opacity: 1;
+}
+
+/* Glitch de "bootup": split RGB breve al montar — reservado para 1-2
+   titulares hero por página. Three.js-free, solo clip-path + translate.
+   Dura <400ms y no se repite (no es un loop), para que siga leyéndose
+   como una interferencia puntual y no como ruido de fondo. */
+@keyframes glitch-1 {
+  0%, 100% { clip-path: inset(0 0 0 0); transform: translate(0); }
+  10% { clip-path: inset(10% 0 60% 0); transform: translate(-3px, 1px); }
+  20% { clip-path: inset(60% 0 5% 0); transform: translate(3px, -1px); }
+  30% { clip-path: inset(30% 0 40% 0); transform: translate(-2px, 0); }
+  40% { clip-path: inset(0 0 0 0); transform: translate(0); }
+}
+
+.animate-glitch-boot {
+  animation: glitch-1 380ms steps(2, jump-end);
+}
+
+/* Glitch RGB-split: 2 copias fantasma del mismo texto (vía content:
+   attr(data-text), sin duplicar DOM) desplazadas en magenta/cian que se
+   separan y vuelven a converger — el titular "entra en foco" como si la
+   señal se estuviera sintonizando. Requiere data-text="mismo texto" en el
+   elemento. Solo 1-2 veces por página, nunca en loop. */
+.glitch-rgb {
+  position: relative;
+  display: inline-block;
+}
+.glitch-rgb.is-glitching::before,
+.glitch-rgb.is-glitching::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  background: inherit;
+  background-clip: inherit;
+  -webkit-background-clip: inherit;
+}
+.glitch-rgb.is-glitching::before {
+  color: #ec4899;
+  -webkit-text-fill-color: #ec4899;
+  mix-blend-mode: screen;
+  animation: glitch-1 420ms steps(2, jump-end);
+}
+.glitch-rgb.is-glitching::after {
+  color: #22d3ee;
+  -webkit-text-fill-color: #22d3ee;
+  mix-blend-mode: screen;
+  animation: glitch-2 420ms steps(2, jump-end);
+}
+@keyframes glitch-2 {
+  0%, 100% { clip-path: inset(0 0 0 0); transform: translate(0); }
+  15% { clip-path: inset(50% 0 20% 0); transform: translate(3px, -1px); }
+  25% { clip-path: inset(5% 0 70% 0); transform: translate(-3px, 1px); }
+  35% { clip-path: inset(35% 0 35% 0); transform: translate(2px, 0); }
+  45% { clip-path: inset(0 0 0 0); transform: translate(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-glitch-boot {
+    animation: none;
+  }
+  .glitch-rgb.is-glitching::before,
+  .glitch-rgb.is-glitching::after {
+    display: none;
+  }
+  .hud-corners::before,
+  .hud-corners::after {
+    transition: none;
   }
 }

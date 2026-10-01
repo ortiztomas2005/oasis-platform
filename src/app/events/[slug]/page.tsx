@@ -8,6 +8,7 @@ import { useSession } from '@/core/auth/useSession';
 import { gsap, useGSAP } from '@/core/gsap';
 import RevealText from '@/components/fx/RevealText';
 import AuroraBackground from '@/components/fx/AuroraBackground';
+import GlitchHeading from '@/components/fx/GlitchHeading';
 
 interface Tier {
   id: string;
@@ -255,7 +256,7 @@ export default function EventDetailPage() {
               <span>Cartelera</span>
             </Link>
             <div className="flex flex-col">
-              <span className="font-luxury text-xs font-black tracking-[0.2em] uppercase text-white leading-none select-none">LIVE EXPERIENCE</span>
+              <GlitchHeading className="neon-text font-luxury text-xs font-black tracking-[0.2em] uppercase text-white leading-none select-none">LIVE EXPERIENCE</GlitchHeading>
               <span className="text-[9px] text-blue-400 font-mono tracking-wider mt-0.5">PASS CHECKOUT</span>
             </div>
           </div>
@@ -374,7 +375,7 @@ export default function EventDetailPage() {
 
             {/* SELECCIÓN Y PAGO */}
             <div className="ev-panel lg:col-span-5">
-              <div className="glass glass-edge sticky top-24 rounded-3xl p-6 sm:p-7 space-y-6">
+              <div className="glass glass-edge hud-corners sticky top-24 rounded-3xl p-6 sm:p-7 space-y-6">
                 <div>
                   <h2 className="text-lg font-black uppercase text-white tracking-wide">Seleccionar Pases</h2>
                   <p className="text-xs text-slate-400 font-mono">Elegí tu tanda y método de pago</p>

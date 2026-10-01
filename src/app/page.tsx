@@ -11,6 +11,7 @@ import Magnetic from '@/components/fx/Magnetic';
 import Marquee from '@/components/fx/Marquee';
 import CountUp from '@/components/fx/CountUp';
 import AuroraBackground from '@/components/fx/AuroraBackground';
+import GlitchHeading from '@/components/fx/GlitchHeading';
 
 export interface Tier {
   name: string;
@@ -348,9 +349,9 @@ export default function CatalogPage() {
               LE
             </div>
             <div className="flex flex-col">
-              <span className="font-luxury text-lg font-black tracking-[0.1em] uppercase text-white leading-none group-hover:text-blue-400 transition select-none">
+              <GlitchHeading className="neon-text font-luxury text-lg font-black tracking-[0.1em] uppercase text-white leading-none group-hover:text-blue-400 transition select-none">
                 LIVE EXPERIENCE
-              </span>
+              </GlitchHeading>
             </div>
           </Link>
 
@@ -435,7 +436,7 @@ export default function CatalogPage() {
                 <section
                   ref={heroSectionRef}
                   onClick={() => goToDetails(featuredEvent)}
-                  className="glass relative rounded-[2rem] overflow-hidden group cursor-pointer active:scale-[0.995] transition-transform duration-150 ease-out-strong animate-hero-in before:absolute before:inset-0 before:z-20 before:rounded-[2rem] before:pointer-events-none before:ring-1 before:ring-inset before:ring-white/10 before:transition-all before:duration-300 before:ease-out-strong hover:before:ring-blue-400/40"
+                  className="glass hud-corners relative rounded-[2rem] overflow-hidden group cursor-pointer active:scale-[0.995] transition-transform duration-150 ease-out-strong animate-hero-in before:absolute before:inset-0 before:z-20 before:rounded-[2rem] before:pointer-events-none before:ring-1 before:ring-inset before:ring-white/10 before:transition-all before:duration-300 before:ease-out-strong hover:before:ring-blue-400/40"
                 >
                   {/* Glow de borde: un halo azul detrás de la tarjeta, apenas visible, que se intensifica al pasar el mouse — le da presencia de "producto premium" en vez de un panel plano. */}
                   <div className="absolute -inset-px rounded-[2rem] bg-gradient-to-br from-blue-500/40 via-transparent to-indigo-500/30 opacity-0 group-hover:opacity-100 blur-sm transition-opacity duration-500 ease-out-strong pointer-events-none" />

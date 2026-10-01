@@ -8,6 +8,7 @@ import { useSession } from '@/core/auth/useSession';
 import { gsap, useGSAP, ScrollTrigger } from '@/core/gsap';
 import RevealText from '@/components/fx/RevealText';
 import AuroraBackground from '@/components/fx/AuroraBackground';
+import GlitchHeading from '@/components/fx/GlitchHeading';
 
 interface RawTicket {
   id: string;
@@ -239,9 +240,9 @@ export default function MyTicketsPage() {
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-500 via-indigo-400 to-blue-600 flex items-center justify-center font-black text-white text-sm shadow-lg shadow-blue-500/20">
               O
             </div>
-            <span className="font-luxury text-lg font-black tracking-[0.1em] uppercase text-white leading-none group-hover:text-blue-400 transition select-none">
+            <GlitchHeading className="neon-text font-luxury text-lg font-black tracking-[0.1em] uppercase text-white leading-none group-hover:text-blue-400 transition select-none">
               LIVE EXPERIENCE
-            </span>
+            </GlitchHeading>
           </Link>
 
           <div className="flex items-center gap-2.5 font-mono text-xs">
@@ -436,7 +437,7 @@ export default function MyTicketsPage() {
           <div
             ref={modalRef}
             onClick={(e) => e.stopPropagation()}
-            className="glass glass-edge max-w-md w-full rounded-3xl p-6 sm:p-8 space-y-6"
+            className="glass glass-edge hud-corners max-w-md w-full rounded-3xl p-6 sm:p-8 space-y-6"
           >
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div>

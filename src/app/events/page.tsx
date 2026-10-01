@@ -7,6 +7,7 @@ import RevealText from '@/components/fx/RevealText';
 import Marquee from '@/components/fx/Marquee';
 import CountUp from '@/components/fx/CountUp';
 import AuroraBackground from '@/components/fx/AuroraBackground';
+import GlitchHeading from '@/components/fx/GlitchHeading';
 
 export default function EventsPage() {
   const [events, setEvents] = useState<any[]>([]);
@@ -76,7 +77,7 @@ export default function EventsPage() {
       <header className="glass relative z-50 sticky top-0">
         <div className="max-w-6xl mx-auto px-4 sm:px-8 h-20 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <span className="font-luxury text-2xl font-black tracking-tighter text-white select-none">LIVE EXPERIENCE</span>
+            <GlitchHeading className="neon-text font-luxury text-2xl font-black tracking-tighter text-white select-none">LIVE EXPERIENCE</GlitchHeading>
             <span className="font-mono text-[10px] text-blue-400 tracking-widest uppercase font-bold border-l border-blue-900/60 pl-3">
               Eventos
             </span>

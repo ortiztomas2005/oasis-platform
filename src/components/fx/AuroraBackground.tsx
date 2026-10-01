@@ -44,6 +44,10 @@ export default function AuroraBackground() {
       <div className="aurora-blob absolute top-1/4 -right-40 w-[36rem] h-[36rem] rounded-full bg-indigo-600/20 blur-[150px]" />
       <div className="aurora-blob absolute bottom-[-10rem] left-1/4 w-[28rem] h-[28rem] rounded-full bg-violet-600/10 blur-[140px]" />
       <div className="aurora-blob absolute top-1/2 left-1/2 w-[24rem] h-[24rem] rounded-full bg-cyan-500/10 blur-[130px]" />
+      {/* Toque synthwave: un quinto blob magenta, chico y tenue — el único
+          acento que no es azul/índigo/violeta en toda la paleta. Suficiente
+          para leerse como "cyberpunk nocturno" sin competir con la marca. */}
+      <div className="aurora-blob absolute bottom-10 right-10 w-[18rem] h-[18rem] rounded-full bg-pink-600/10 blur-[110px]" />
     </div>
   );
 }
