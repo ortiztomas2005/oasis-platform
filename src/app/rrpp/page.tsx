@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import AuroraBackground from '@/components/fx/AuroraBackground';
+import RevealText from '@/components/fx/RevealText';
 
 export interface RRPPMember {
   id: string;
@@ -96,9 +98,11 @@ export default function RRPPPortalPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#05070d] text-white flex flex-col justify-between font-sans antialiased selection:bg-blue-600 selection:text-white">
+    <div className="relative min-h-screen bg-[#05070d] text-white flex flex-col justify-between font-sans antialiased selection:bg-blue-600 selection:text-white overflow-x-hidden">
+      <AuroraBackground />
+
       {/* NAVBAR */}
-      <header className="border-b border-neutral-800/60 bg-[#090d16]/80 backdrop-blur-md sticky top-0 z-40 px-6 py-4">
+      <header className="glass relative z-40 sticky top-0 px-6 py-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 group">
             <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-black text-white shadow-lg shadow-blue-600/30 group-hover:scale-105 transition-transform">
@@ -120,10 +124,10 @@ export default function RRPPPortalPage() {
       </header>
 
       {/* CONTENIDO */}
-      <main className="max-w-4xl mx-auto w-full px-4 py-8 space-y-8 flex-1 font-mono">
+      <main className="relative z-10 max-w-4xl mx-auto w-full px-4 py-8 space-y-8 flex-1 font-mono">
         {!currentRRPP ? (
           /* LOGIN POR DNI */
-          <div className="max-w-md mx-auto bg-[#090d16] border border-neutral-800 rounded-3xl p-8 shadow-2xl space-y-6 text-center">
+          <div className="glass glass-edge hud-corners max-w-md mx-auto rounded-3xl p-8 space-y-6 text-center">
             <div className="w-12 h-12 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-2xl mx-auto">
               👥
             </div>
@@ -165,7 +169,7 @@ export default function RRPPPortalPage() {
           /* DASHBOARD */
           <div className="space-y-8 animate-fade-in">
             {/* CABECERA PERFIL RRPP */}
-            <div className="bg-[#090d16] border border-neutral-800 rounded-3xl p-6 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="glass glass-edge rounded-3xl p-6 flex flex-col md:flex-row items-center justify-between gap-6">
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-blue-600 flex items-center justify-center text-xl font-black text-white shadow-lg shadow-indigo-600/30">
                   {currentRRPP.name.charAt(0).toUpperCase()}
@@ -193,7 +197,7 @@ export default function RRPPPortalPage() {
             </div>
 
             {/* LINK DE VENTA */}
-            <div className="bg-gradient-to-r from-indigo-950/40 via-[#090d16] to-[#090d16] border border-indigo-500/40 rounded-3xl p-6 shadow-2xl space-y-3">
+            <div className="glass glass-edge rounded-3xl p-6 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-black uppercase text-indigo-400 tracking-widest block">
                   ● Tu Enlace de Venta con Atribución
@@ -233,21 +237,21 @@ export default function RRPPPortalPage() {
 
             {/* MÉTRICAS */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-[#090d16] border border-neutral-800 p-5 rounded-2xl space-y-1">
+              <div className="glass p-5 rounded-2xl space-y-1">
                 <span className="text-[10px] uppercase text-neutral-500 font-bold block">Pases Vendidos</span>
                 <span className="text-2xl font-black text-white">{totalTicketsSold}</span>
                 <span className="text-[10px] text-neutral-500 block">Con tu código @{currentRRPP.code}</span>
               </div>
-              <div className="bg-[#090d16] border border-neutral-800 p-5 rounded-2xl space-y-1">
+              <div className="glass p-5 rounded-2xl space-y-1">
                 <span className="text-[10px] uppercase text-neutral-500 font-bold block">
                   Comisión Ganada ({currentRRPP.commissionPercentage}%)
                 </span>
-                <span className="text-2xl font-black text-emerald-400">
+                <span className="text-2xl font-black text-emerald-400 neon-text">
                   ${totalEarnedCommission.toLocaleString('es-AR')}
                 </span>
                 <span className="text-[10px] text-emerald-500/80 block">A liquidar por productora</span>
               </div>
-              <div className="bg-[#090d16] border border-neutral-800 p-5 rounded-2xl space-y-1">
+              <div className="glass p-5 rounded-2xl space-y-1">
                 <span className="text-[10px] uppercase text-neutral-500 font-bold block">Facturación Bruta Generada</span>
                 <span className="text-2xl font-black text-indigo-400">
                   ${totalGrossSales.toLocaleString('es-AR')}
@@ -257,7 +261,7 @@ export default function RRPPPortalPage() {
             </div>
 
             {/* HISTORIAL DETALLADO CON CÁLCULO PORCENTUAL */}
-            <div className="bg-[#090d16] border border-neutral-800 rounded-3xl p-6 space-y-4">
+            <div className="glass glass-edge rounded-3xl p-6 space-y-4">
               <h3 className="text-xs font-black uppercase text-neutral-400 tracking-wider border-b border-neutral-800 pb-3">
                 Historial de Entradas Vendidas ({assignedSales.length})
               </h3>

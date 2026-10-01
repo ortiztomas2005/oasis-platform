@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/core/supabase/client';
 import { useSession } from '@/core/auth/useSession';
+import AuroraBackground from '@/components/fx/AuroraBackground';
+import GlitchHeading from '@/components/fx/GlitchHeading';
 
 function AuthContent() {
   const router = useRouter();
@@ -211,19 +213,24 @@ function AuthContent() {
     }
   };
 
+  const title =
+    mode === 'login'
+      ? 'Iniciar Sesión en Live Experience'
+      : mode === 'register_client'
+      ? 'Crear Cuenta de Asistente'
+      : 'Registrar Nueva Productora';
+
   return (
-    <div className="w-full max-w-md bg-[#090d16] border border-neutral-800 rounded-3xl p-8 shadow-2xl space-y-6 font-mono">
+    <div className="glass glass-edge hud-corners w-full max-w-md rounded-3xl p-8 space-y-6 font-mono">
       <div className="text-center space-y-2">
         <Link href="/" className="inline-block">
           <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center font-black text-white text-lg shadow-lg shadow-blue-600/30 mx-auto">
             O
           </div>
         </Link>
-        <h1 className="text-xl font-black uppercase text-white tracking-wide">
-          {mode === 'login' && 'Iniciar Sesión en Live Experience'}
-          {mode === 'register_client' && 'Crear Cuenta de Asistente'}
-          {mode === 'register_producer' && 'Registrar Nueva Productora'}
-        </h1>
+        <GlitchHeading as="h1" className="neon-text block text-xl font-black uppercase text-white tracking-wide">
+          {title}
+        </GlitchHeading>
         <p className="text-xs text-neutral-400">
           {mode === 'login' && 'Ingresá con tus credenciales registradas.'}
           {mode === 'register_client' && 'Tus entradas estarán vinculadas de forma inmutable a tu DNI.'}
@@ -393,10 +400,13 @@ function AuthContent() {
 
 export default function AuthPage() {
   return (
-    <div className="min-h-screen bg-[#05070d] text-white flex items-center justify-center p-4">
-      <Suspense fallback={<div className="text-xs text-neutral-500 font-mono">Cargando...</div>}>
-        <AuthContent />
-      </Suspense>
+    <div className="relative min-h-screen bg-[#05070d] text-white flex items-center justify-center p-4 overflow-hidden">
+      <AuroraBackground />
+      <div className="relative z-10 w-full flex items-center justify-center">
+        <Suspense fallback={<div className="text-xs text-neutral-500 font-mono">Cargando...</div>}>
+          <AuthContent />
+        </Suspense>
+      </div>
     </div>
   );
 }
