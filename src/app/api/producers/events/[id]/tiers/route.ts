@@ -69,6 +69,19 @@ export async function POST(req: Request, context: { params: Promise<{ id: string
     if (price < 0) return NextResponse.json({ error: 'El precio no puede ser negativo' }, { status: 400 });
     if (capacity <= 0) return NextResponse.json({ error: 'La capacidad tiene que ser mayor a 0' }, { status: 400 });
 
+    // El checkout busca la tanda por nombre (no por id) dentro de un mismo
+    // evento, así que dos tandas con el mismo nombre rompen esa búsqueda
+    // (quedaba ambigua y el pago fallaba con "la tanda no existe"). Se
+    // valida acá en vez de solo confiar en que nadie repita un nombre.
+    const { data: existing } = await supabaseAdmin
+      .from('ticket_tiers')
+      .select('id')
+      .eq('event_id', eventId)
+      .ilike('name', name);
+    if (existing && existing.length > 0) {
+      return NextResponse.json({ error: `Ya existe una tanda llamada "${name}" en este evento. Usá otro nombre.` }, { status: 400 });
+    }
+
     const { data: tier, error } = await supabaseAdmin
       .from('ticket_tiers')
       .insert({

@@ -65,10 +65,12 @@ export default function CatalogPage() {
   const [paymentMethod, setPaymentMethod] = useState<'mercado_pago' | 'transfer'>('mercado_pago');
   const [acceptedTerms, setAcceptedTerms] = useState<boolean>(false);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [purchaseFeedback, setPurchaseFeedback] = useState<{ type: 'success' | 'error'; message: string; references?: string[] } | null>(null);
 
   const heroSectionRef = useRef<HTMLElement>(null);
   const heroImgRef = useRef<HTMLImageElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+  const feedbackModalRef = useRef<HTMLDivElement>(null);
 
   // Prellenar los datos del comprador con la sesión real de Supabase Auth y
   // resolver si ya es dueño de una productora (antes esto se leía de un
@@ -208,6 +210,20 @@ export default function CatalogPage() {
     { scope: gridRef, dependencies: [events.length] }
   );
 
+  // Pop de entrada para el modal de feedback de compra (reemplaza el
+  // alert() nativo del navegador por algo acorde a la estética del sitio).
+  useGSAP(
+    () => {
+      if (!feedbackModalRef.current) return;
+      const mm = gsap.matchMedia();
+      mm.add('(prefers-reduced-motion: no-preference)', () => {
+        gsap.from(feedbackModalRef.current, { opacity: 0, scale: 0.92, y: 16, duration: 0.35, ease: 'power3.out' });
+      });
+      return () => mm.revert();
+    },
+    { scope: feedbackModalRef, dependencies: [!!purchaseFeedback] }
+  );
+
   const goToDetails = (event: EventItem) => {
     setSelectedEvent(event);
     setCart({});
@@ -265,9 +281,9 @@ export default function CatalogPage() {
   };
 
   const handleConfirmPurchase = async () => {
-    if (!holderName || !holderDni || !holderEmail) return alert('Por favor completá tus datos.');
-    if (!acceptedTerms) return alert('Debes aceptar las condiciones generales de compra.');
-    if (!selectedEvent || totalTickets === 0) return alert('Tu carrito está vacío.');
+    if (!holderName || !holderDni || !holderEmail) return setPurchaseFeedback({ type: 'error', message: 'Por favor completá tus datos.' });
+    if (!acceptedTerms) return setPurchaseFeedback({ type: 'error', message: 'Debes aceptar las condiciones generales de compra.' });
+    if (!selectedEvent || totalTickets === 0) return setPurchaseFeedback({ type: 'error', message: 'Tu carrito está vacío.' });
 
     setIsProcessing(true);
 
@@ -320,14 +336,15 @@ export default function CatalogPage() {
       }
 
       setViewMode('catalog');
-      alert(
-        `Orden${orderReferences.length > 1 ? 'es' : ''} registrada${orderReferences.length > 1 ? 's' : ''}: ${orderReferences.join(', ')}.\n` +
-          'Tu compra quedó en revisión — vas a ver tus pases en "Mis Entradas" apenas se confirme el pago.'
-      );
+      setPurchaseFeedback({
+        type: 'success',
+        references: orderReferences,
+        message: 'Tu compra quedó en revisión — vas a ver tus pases en "Mis Entradas" apenas se confirme el pago.',
+      });
     } catch (err: any) {
       console.error(err);
       setIsProcessing(false);
-      alert('Error al procesar la compra: ' + err.message);
+      setPurchaseFeedback({ type: 'error', message: err.message || 'Error al procesar la compra.' });
     }
   };
 
@@ -808,6 +825,64 @@ export default function CatalogPage() {
             </div>
           )}
         </main>
+      )}
+
+      {/* MODAL DE FEEDBACK DE COMPRA — reemplaza el alert() nativo del
+          navegador (que rompía toda la estética del sitio) por un panel
+          acorde: vidrio, esquinas HUD, y un pop de entrada. */}
+      {purchaseFeedback && (
+        <div
+          onClick={() => setPurchaseFeedback(null)}
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 font-mono"
+        >
+          <div
+            ref={feedbackModalRef}
+            onClick={(e) => e.stopPropagation()}
+            className="glass glass-edge hud-corners max-w-md w-full rounded-3xl p-8 text-center space-y-5"
+          >
+            <div
+              className={`w-16 h-16 mx-auto rounded-2xl border flex items-center justify-center text-3xl ${
+                purchaseFeedback.type === 'success'
+                  ? 'bg-emerald-500/10 border-emerald-500/30'
+                  : 'bg-rose-500/10 border-rose-500/30'
+              }`}
+            >
+              {purchaseFeedback.type === 'success' ? '✅' : '⚠️'}
+            </div>
+
+            <div className="space-y-2">
+              <span
+                className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                  purchaseFeedback.type === 'success'
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                    : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                }`}
+              >
+                {purchaseFeedback.type === 'success' ? 'Orden Registrada' : 'No se pudo procesar'}
+              </span>
+              <h3 className="text-xl font-black uppercase text-white">
+                {purchaseFeedback.type === 'success' ? '¡Ya casi está!' : 'Revisá los datos'}
+              </h3>
+              <p className="text-xs text-slate-300 leading-relaxed">{purchaseFeedback.message}</p>
+            </div>
+
+            {purchaseFeedback.references && purchaseFeedback.references.length > 0 && (
+              <div className="p-4 rounded-2xl bg-black/40 border border-white/5 text-left text-xs">
+                <div className="flex justify-between text-slate-400 gap-3">
+                  <span className="shrink-0">Referencia{purchaseFeedback.references.length > 1 ? 's' : ''}:</span>
+                  <span className="text-white font-bold text-right">{purchaseFeedback.references.join(', ')}</span>
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={() => setPurchaseFeedback(null)}
+              className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 active:scale-[0.97] text-white font-black uppercase text-xs rounded-xl transition-[transform,background-color] duration-150 ease-out-strong shadow-lg shadow-blue-600/30"
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
       )}
 
       {/* FOOTER */}

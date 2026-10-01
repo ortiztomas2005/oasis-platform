@@ -28,12 +28,17 @@ export async function POST(req: Request) {
 
     // Mismo motivo que en /api/checkout/mercadopago: el precio se resuelve
     // acá contra la tanda real, nunca se confía en lo que mande el cliente.
-    const { data: tier } = await supabaseAdmin
+    // .maybeSingle() rompía en silencio (devolvía null sin avisar del error)
+    // cuando dos tandas del mismo evento comparten nombre — tomamos la más
+    // vieja como desempate en vez de fallar la compra entera.
+    const { data: tiers } = await supabaseAdmin
       .from('ticket_tiers')
       .select('price, available_capacity')
       .eq('event_id', eventId)
       .eq('name', ticketTier)
-      .maybeSingle();
+      .order('created_at', { ascending: true })
+      .limit(1);
+    const tier = tiers?.[0];
 
     if (!tier) {
       return NextResponse.json({ error: 'La tanda seleccionada no existe para este evento.' }, { status: 400 });

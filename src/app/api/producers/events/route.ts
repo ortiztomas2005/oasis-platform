@@ -95,6 +95,18 @@ export async function POST(req: Request) {
       entryCutoffTime: String(t.entryCutoffTime || '').trim(),
     }));
 
+    // El checkout busca la tanda por nombre (no por id) dentro de un mismo
+    // evento, así que dos tandas con el mismo nombre quedan ambiguas y
+    // el pago termina fallando con "la tanda no existe" aunque sí exista.
+    const seenNames = new Set<string>();
+    for (const t of cleanTiers) {
+      const key = t.name.toLowerCase();
+      if (seenNames.has(key)) {
+        return NextResponse.json({ error: `Hay dos tandas con el mismo nombre ("${t.name}"). Cada tanda necesita un nombre distinto.` }, { status: 400 });
+      }
+      seenNames.add(key);
+    }
+
     const baseSlug = cleanTitle
       .toLowerCase()
       .normalize('NFD')
