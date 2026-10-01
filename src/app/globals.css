@@ -178,23 +178,28 @@
 }
 
 /* Glitch de "bootup": split RGB breve al montar — reservado para 1-2
-   titulares hero por página. Dura <400ms y no se repite (no es un loop),
-   para que siga leyéndose como una interferencia puntual y no como ruido
-   de fondo. */
+   titulares hero por página. Dura <400ms y no se repite (no es un loop).
+   Las copias fantasma (ver .glitch-rgb más abajo) terminan en opacity:0
+   y la animación corre con fill-mode "forwards" — si no, las copias
+   magenta/cian se quedaban visibles para siempre después del glitch,
+   superpuestas sobre el texto original (el bug real detrás de "el logo
+   se ve repetido/duplicado" en el header de cada página). */
 @keyframes glitch-1 {
-  0%, 100% { clip-path: inset(0 0 0 0); transform: translate(0); }
+  0% { clip-path: inset(0 0 0 0); transform: translate(0); opacity: 1; }
   10% { clip-path: inset(10% 0 60% 0); transform: translate(-3px, 1px); }
   20% { clip-path: inset(60% 0 5% 0); transform: translate(3px, -1px); }
   30% { clip-path: inset(30% 0 40% 0); transform: translate(-2px, 0); }
-  40% { clip-path: inset(0 0 0 0); transform: translate(0); }
+  85% { clip-path: inset(0 0 0 0); transform: translate(0); opacity: 1; }
+  100% { clip-path: inset(0 0 0 0); transform: translate(0); opacity: 0; }
 }
 
 @keyframes glitch-2 {
-  0%, 100% { clip-path: inset(0 0 0 0); transform: translate(0); }
+  0% { clip-path: inset(0 0 0 0); transform: translate(0); opacity: 1; }
   15% { clip-path: inset(50% 0 20% 0); transform: translate(3px, -1px); }
   25% { clip-path: inset(5% 0 70% 0); transform: translate(-3px, 1px); }
   35% { clip-path: inset(35% 0 35% 0); transform: translate(2px, 0); }
-  45% { clip-path: inset(0 0 0 0); transform: translate(0); }
+  85% { clip-path: inset(0 0 0 0); transform: translate(0); opacity: 1; }
+  100% { clip-path: inset(0 0 0 0); transform: translate(0); opacity: 0; }
 }
 
 @layer components {
@@ -347,8 +352,13 @@
      attr(data-text), sin duplicar DOM) desplazadas en magenta/cian que
      se separan y vuelven a converger — el titular "entra en foco" como
      si la señal se estuviera sintonizando. Requiere data-text="mismo
-     texto" en el elemento. Solo 1-2 veces por página, nunca en loop. */
+     texto" en el elemento. Solo 1-2 veces por página, nunca en loop.
+     position:relative acá es necesario para que las copias fantasma
+     (position:absolute) se anclen al span del logo y no a un ancestro
+     más grande (si faltaba, el texto "fantasma" terminaba estirado y
+     posicionado contra el header entero en vez de sobre el logo). */
   .glitch-rgb {
+    position: relative;
     display: inline-block;
   }
   .glitch-rgb.is-glitching::before,
@@ -359,18 +369,23 @@
     background: inherit;
     background-clip: inherit;
     -webkit-background-clip: inherit;
+    pointer-events: none;
   }
   .glitch-rgb.is-glitching::before {
     color: #ec4899;
     -webkit-text-fill-color: #ec4899;
     mix-blend-mode: screen;
-    animation: glitch-1 420ms steps(2, jump-end);
+    /* "forwards" fija el opacity:0 del final del keyframe para siempre
+       — sin esto, apenas terminaba el glitch (420ms) la copia magenta
+       quedaba visible sobre el texto real de por vida, superpuesta
+       (el bug real detrás de "el texto se ve repetido" en el logo). */
+    animation: glitch-1 420ms steps(2, jump-end) forwards;
   }
   .glitch-rgb.is-glitching::after {
     color: #22d3ee;
     -webkit-text-fill-color: #22d3ee;
     mix-blend-mode: screen;
-    animation: glitch-2 420ms steps(2, jump-end);
+    animation: glitch-2 420ms steps(2, jump-end) forwards;
   }
 
   @media (prefers-reduced-motion: reduce) {
