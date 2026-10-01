@@ -5,6 +5,7 @@ import Link from 'next/link';
 import UserMenu from '@/components/UserMenu';
 import QrCameraScanner from '@/components/QrCameraScanner';
 import { useSession } from '@/core/auth/useSession';
+import AuroraBackground from '@/components/fx/AuroraBackground';
 
 interface EventOption {
   id: string;
@@ -108,8 +109,9 @@ export default function ScannerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#05070d] text-white font-mono">
-      <header className="border-b border-white/10 bg-[#090d16] px-6 py-4 sticky top-0 z-10">
+    <div className="relative min-h-screen bg-[#05070d] text-white font-mono overflow-x-hidden">
+      <AuroraBackground />
+      <header className="glass relative z-10 px-6 py-4 sticky top-0">
         <div className="max-w-lg mx-auto flex items-center justify-between">
           <div>
             <span className="text-[10px] text-blue-400 uppercase font-bold tracking-widest block">Puerta · Control de Acceso</span>
@@ -119,7 +121,7 @@ export default function ScannerPage() {
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto p-6 space-y-6">
+      <main className="relative z-10 max-w-lg mx-auto p-6 space-y-6">
         {eventsError ? (
           <div className="p-3.5 rounded-xl bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs">
             ⚠️ {eventsError}
@@ -177,13 +179,13 @@ export default function ScannerPage() {
             <div className="flex gap-2 text-xs">
               <button
                 onClick={() => setUseCamera(true)}
-                className={`flex-1 py-2 rounded-xl border font-bold uppercase transition cursor-pointer ${useCamera ? 'bg-blue-600 border-blue-500 text-white' : 'bg-[#0c0f16] border-white/10 text-neutral-400'}`}
+                className={`flex-1 py-2 rounded-xl border font-bold uppercase transition-colors duration-150 ease-out-strong active:scale-95 cursor-pointer ${useCamera ? 'bg-blue-600 border-blue-500 text-white' : 'bg-[#0c0f16] border-white/10 text-neutral-400'}`}
               >
                 📷 Cámara
               </button>
               <button
                 onClick={() => setUseCamera(false)}
-                className={`flex-1 py-2 rounded-xl border font-bold uppercase transition cursor-pointer ${!useCamera ? 'bg-blue-600 border-blue-500 text-white' : 'bg-[#0c0f16] border-white/10 text-neutral-400'}`}
+                className={`flex-1 py-2 rounded-xl border font-bold uppercase transition-colors duration-150 ease-out-strong active:scale-95 cursor-pointer ${!useCamera ? 'bg-blue-600 border-blue-500 text-white' : 'bg-[#0c0f16] border-white/10 text-neutral-400'}`}
               >
                 ⌨️ Manual
               </button>
