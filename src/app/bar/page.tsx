@@ -1,8 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import UserMenu from '@/components/UserMenu';
+import { gsap, useGSAP, ScrollTrigger } from '@/core/gsap';
+import AuroraBackground from '@/components/fx/AuroraBackground';
+import GlitchHeading from '@/components/fx/GlitchHeading';
+import RevealText from '@/components/fx/RevealText';
 
 export interface BarMenuItem {
   id: string;
@@ -111,6 +115,8 @@ export default function BarCustomerPage() {
   const [selectedPayment, setSelectedPayment] = useState<string>('mp');
   const [isOrdering, setIsOrdering] = useState<boolean>(false);
   const [createdOrder, setCreatedOrder] = useState<BarOrder | null>(null);
+  const menuGridRef = useRef<HTMLDivElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     try {
@@ -136,6 +142,41 @@ export default function BarCustomerPage() {
       setSelectedEventId('ev-1');
     }
   }, []);
+
+  // Ítems del menú con fade+slide al entrar en viewport.
+  useGSAP(
+    () => {
+      if (!menuGridRef.current) return;
+      const mm = gsap.matchMedia();
+      mm.add('(prefers-reduced-motion: no-preference)', () => {
+        const cards = menuGridRef.current!.querySelectorAll('.bar-item');
+        if (cards.length === 0) return;
+        gsap.set(cards, { opacity: 0, y: 32, scale: 0.97 });
+        const triggers = ScrollTrigger.batch(cards, {
+          start: 'top 92%',
+          once: true,
+          onEnter: (batch) =>
+            gsap.to(batch, { opacity: 1, y: 0, scale: 1, duration: 0.55, ease: 'power3.out', stagger: 0.06, overwrite: true }),
+        });
+        return () => triggers.forEach((t) => t.kill());
+      });
+      return () => mm.revert();
+    },
+    { scope: menuGridRef, dependencies: [menuItems.length] }
+  );
+
+  // Modal de orden confirmada: pop de entrada.
+  useGSAP(
+    () => {
+      if (!modalRef.current) return;
+      const mm = gsap.matchMedia();
+      mm.add('(prefers-reduced-motion: no-preference)', () => {
+        gsap.from(modalRef.current, { opacity: 0, scale: 0.92, y: 16, duration: 0.35, ease: 'power3.out' });
+      });
+      return () => mm.revert();
+    },
+    { scope: modalRef, dependencies: [!!createdOrder] }
+  );
 
   const activeEvent = events.find((e) => e.id === selectedEventId) || events[0] || {
     id: 'ev-1',
@@ -277,33 +318,34 @@ export default function BarCustomerPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#05070d] text-slate-100 flex flex-col justify-between font-sans antialiased selection:bg-blue-500 selection:text-white">
-      
+    <div className="relative min-h-screen bg-[#05070d] text-slate-100 flex flex-col justify-between font-sans antialiased selection:bg-blue-500 selection:text-white overflow-x-hidden">
+      <AuroraBackground />
+
       {/* NAVBAR */}
-      <header className="border-b border-white/5 bg-[#05070d] sticky top-0 z-40 px-6 py-4">
+      <header className="glass relative z-40 sticky top-0 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3.5 cursor-pointer group">
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-500 via-indigo-400 to-blue-600 flex items-center justify-center font-black text-white text-sm shadow-lg shadow-blue-500/20">
               LE
             </div>
             <div className="flex flex-col">
-              <span className="font-luxury text-lg font-black tracking-[0.1em] uppercase text-white leading-none group-hover:text-blue-400 transition select-none">
+              <GlitchHeading className="neon-text font-luxury text-lg font-black tracking-[0.1em] uppercase text-white leading-none group-hover:text-blue-400 transition select-none">
                 LIVE EXPERIENCE
-              </span>
+              </GlitchHeading>
             </div>
           </Link>
 
           <div className="flex items-center gap-2.5 font-mono text-xs">
             <Link
               href="/"
-              className="px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 font-bold transition flex items-center gap-2"
+              className="px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 active:scale-95 text-slate-300 font-bold transition-colors duration-150 ease-out-strong flex items-center gap-2"
             >
               <span>←</span>
               <span className="hidden sm:inline">Cartelera</span>
             </Link>
             <Link
               href="/my-tickets"
-              className="px-4 py-2.5 rounded-xl border border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/15 text-blue-300 font-bold transition flex items-center gap-2"
+              className="px-4 py-2.5 rounded-xl border border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/15 active:scale-95 text-blue-300 font-bold transition-colors duration-150 ease-out-strong flex items-center gap-2"
             >
               <span>💳</span>
               <span className="hidden sm:inline">Billetera</span>
@@ -316,12 +358,12 @@ export default function BarCustomerPage() {
       </header>
 
       {/* CONTENIDO */}
-      <main className="max-w-7xl mx-auto w-full px-6 py-10 space-y-10 flex-1 font-mono">
-        
+      <main className="relative z-10 max-w-7xl mx-auto w-full px-6 py-10 space-y-10 flex-1 font-mono">
+
         {/* MODAL ORDEN CONFIRMADA */}
         {createdOrder && (
           <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-            <div className="max-w-md w-full rounded-3xl bg-[#0b1120] border border-blue-500/40 p-6 sm:p-8 text-center space-y-6 shadow-2xl">
+            <div ref={modalRef} className="glass glass-edge hud-corners max-w-md w-full rounded-3xl p-6 sm:p-8 text-center space-y-6">
               <div className="w-16 h-16 mx-auto rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-3xl">
                 🍸
               </div>
@@ -377,9 +419,9 @@ export default function BarCustomerPage() {
         <section className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-4">
             <div>
-              <h1 className="font-luxury text-3xl font-black uppercase tracking-tight text-white">
+              <RevealText as="h1" type="words" className="block font-luxury text-3xl font-black uppercase tracking-tight text-white">
                 Barra de Tragos & Bebidas
-              </h1>
+              </RevealText>
               <p className="text-xs text-slate-400 font-mono pt-1">
                 Seleccioná el evento para retirar en barra sin filas.
               </p>
@@ -439,7 +481,7 @@ export default function BarCustomerPage() {
               Menú Disponible · {activeEvent?.name}
             </span>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div ref={menuGridRef} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {menuItems.map((item) => {
                 const qty = cart[item.id] || 0;
                 const currentStock = item.stock ?? 100;
@@ -448,7 +490,7 @@ export default function BarCustomerPage() {
                 return (
                   <div
                     key={item.id}
-                    className="p-5 rounded-3xl bg-[#0b1120] border border-white/5 flex flex-col justify-between space-y-4 hover:border-blue-500/30 transition shadow-xl"
+                    className="bar-item p-5 rounded-3xl bg-[#0b1120] border border-white/5 flex flex-col justify-between space-y-4 hover:border-blue-500/30 transition-colors duration-200 ease-out-strong shadow-xl"
                   >
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
@@ -512,7 +554,7 @@ export default function BarCustomerPage() {
 
           {/* CHECKOUT DEL CARRITO DE BARRA */}
           <div className="lg:col-span-4">
-            <div className="sticky top-24 rounded-3xl bg-[#0b1120] border border-blue-500/30 p-6 space-y-6 shadow-2xl">
+            <div className="glass glass-edge hud-corners sticky top-24 rounded-3xl p-6 space-y-6">
               <div>
                 <h2 className="font-luxury text-lg font-black uppercase text-white tracking-wide">
                   Tu Consumición

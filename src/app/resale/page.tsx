@@ -1,8 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import UserMenu from '@/components/UserMenu';
+import { gsap, useGSAP, ScrollTrigger } from '@/core/gsap';
+import AuroraBackground from '@/components/fx/AuroraBackground';
+import GlitchHeading from '@/components/fx/GlitchHeading';
+import RevealText from '@/components/fx/RevealText';
 
 interface Resale {
   id: string;
@@ -27,6 +31,8 @@ export default function ResaleMarketplacePage() {
   const [buyerDni, setBuyerDni] = useState('');
   const [purchasing, setPurchasing] = useState(false);
   const [pendingInfo, setPendingInfo] = useState<{ alias: string } | null>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   const loadMarketplace = async () => {
     setLoading(true);
@@ -96,23 +102,61 @@ export default function ResaleMarketplacePage() {
     setBuyerDni('');
   };
 
+  // Publicaciones con fade+slide al entrar en viewport — mismo criterio
+  // que el resto del sitio.
+  useGSAP(
+    () => {
+      if (!gridRef.current) return;
+      const mm = gsap.matchMedia();
+      mm.add('(prefers-reduced-motion: no-preference)', () => {
+        const cards = gridRef.current!.querySelectorAll('.resale-card');
+        if (cards.length === 0) return;
+        gsap.set(cards, { opacity: 0, y: 40, scale: 0.97 });
+        const triggers = ScrollTrigger.batch(cards, {
+          start: 'top 90%',
+          once: true,
+          onEnter: (batch) =>
+            gsap.to(batch, { opacity: 1, y: 0, scale: 1, duration: 0.6, ease: 'power3.out', stagger: 0.07, overwrite: true }),
+        });
+        return () => triggers.forEach((t) => t.kill());
+      });
+      return () => mm.revert();
+    },
+    { scope: gridRef, dependencies: [resales.length, loading] }
+  );
+
+  // El modal de compra entra con un pop cada vez que se abre.
+  useGSAP(
+    () => {
+      if (!modalRef.current) return;
+      const mm = gsap.matchMedia();
+      mm.add('(prefers-reduced-motion: no-preference)', () => {
+        gsap.from(modalRef.current, { opacity: 0, scale: 0.92, y: 16, duration: 0.35, ease: 'power3.out' });
+      });
+      return () => mm.revert();
+    },
+    { scope: modalRef, dependencies: [!!selected, !!pendingInfo] }
+  );
+
   return (
-    <div className="min-h-screen bg-[#0b0e14] text-slate-100 flex flex-col justify-between font-sans antialiased selection:bg-indigo-500 selection:text-white">
+    <div className="relative min-h-screen bg-[#0b0e14] text-slate-100 flex flex-col justify-between font-sans antialiased selection:bg-indigo-500 selection:text-white overflow-x-hidden">
+      <AuroraBackground />
+
       {/* NAVBAR */}
-      <header className="border-b border-slate-800/80 bg-[#0f131c]/90 backdrop-blur-md sticky top-0 z-40 px-6 py-3.5">
+      <header className="glass relative z-40 sticky top-0 px-6 py-3.5">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link
               href="/"
-              className="px-3.5 py-1.5 rounded-xl border border-slate-800 bg-[#161a26] hover:border-slate-700 text-slate-300 text-xs font-mono font-bold transition flex items-center gap-2"
+              className="px-3.5 py-1.5 rounded-xl border border-slate-800 bg-[#161a26] hover:border-slate-700 active:scale-95 text-slate-300 text-xs font-mono font-bold transition-colors duration-150 ease-out-strong flex items-center gap-2"
             >
               <span>←</span>
               <span>Cartelera</span>
             </Link>
             <div className="flex flex-col">
-              <span className="text-xs font-black tracking-[0.2em] uppercase text-white leading-none select-none">
+              <GlitchHeading className="neon-text text-xs font-black tracking-[0.2em] uppercase text-white leading-none select-none">
                 LIVE EXPERIENCE
-              </span>
+              </GlitchHeading>
               <span className="text-[9px] text-indigo-400 font-mono tracking-wider mt-0.5">
                 SECURE RESALE
               </span>
@@ -122,7 +166,7 @@ export default function ResaleMarketplacePage() {
           <div className="flex items-center gap-3 font-mono text-xs">
             <Link
               href="/my-tickets"
-              className="px-3.5 py-1.5 rounded-xl border border-blue-500/30 bg-blue-600/10 hover:bg-blue-600/20 text-blue-300 text-xs font-bold transition flex items-center gap-1.5"
+              className="px-3.5 py-1.5 rounded-xl border border-blue-500/30 bg-blue-600/10 hover:bg-blue-600/20 active:scale-95 text-blue-300 text-xs font-bold transition-colors duration-150 ease-out-strong flex items-center gap-1.5"
             >
               <span>🎟️</span>
               <span>Mis Entradas</span>
@@ -135,15 +179,15 @@ export default function ResaleMarketplacePage() {
       </header>
 
       {/* CONTENIDO PRINCIPAL */}
-      <main className="max-w-7xl mx-auto w-full px-6 py-8 space-y-8 flex-1 font-mono">
+      <main className="relative z-10 max-w-7xl mx-auto w-full px-6 py-8 space-y-8 flex-1 font-mono">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-800/80 pb-6">
           <div className="space-y-1.5">
             <span className="text-[10px] text-indigo-400 uppercase font-bold tracking-wider block">
               ● Mercado Verificado sin Sobrecostos
             </span>
-            <h1 className="text-3xl font-black uppercase text-white tracking-tight">
+            <RevealText as="h1" type="words" className="block text-3xl font-black uppercase text-white tracking-tight">
               Reventa Oficial
-            </h1>
+            </RevealText>
             <p className="text-xs text-slate-400">
               Al confirmarse el pago, el QR anterior se destruye y se emite uno nuevo a tu nombre.
             </p>
@@ -173,11 +217,11 @@ export default function ResaleMarketplacePage() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div ref={gridRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {resales.map((r) => (
               <div
                 key={r.id}
-                className="p-6 rounded-3xl bg-[#131722] border border-indigo-500/20 hover:border-indigo-500/50 flex flex-col justify-between space-y-4 shadow-xl transition"
+                className="resale-card p-6 rounded-3xl bg-[#131722] border border-indigo-500/20 hover:border-indigo-500/50 active:scale-[0.98] flex flex-col justify-between space-y-4 shadow-xl transition-[border-color,transform] duration-200 ease-out-strong"
               >
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
@@ -210,7 +254,7 @@ export default function ResaleMarketplacePage() {
 
                   <button
                     onClick={() => setSelected(r)}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black uppercase rounded-xl transition shadow-md shadow-indigo-600/30"
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-black uppercase rounded-xl transition-[background-color,transform] duration-150 ease-out-strong shadow-md shadow-indigo-600/30"
                   >
                     Comprar Pase →
                   </button>
@@ -224,7 +268,7 @@ export default function ResaleMarketplacePage() {
       {/* MODAL DE COMPRA */}
       {selected && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 font-mono">
-          <div className="max-w-md w-full rounded-3xl bg-[#131722] border border-indigo-500/40 p-6 sm:p-8 space-y-6 shadow-2xl">
+          <div ref={modalRef} className="glass glass-edge hud-corners max-w-md w-full rounded-3xl p-6 sm:p-8 space-y-6">
             {pendingInfo ? (
               <div className="text-center space-y-5">
                 <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-3xl">

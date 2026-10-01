@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import AuroraBackground from '@/components/fx/AuroraBackground';
 
 /**
  * Protege todo lo que se renderiza dentro de /admin: pide la contraseña de
@@ -55,10 +56,11 @@ export default function AdminGate({ children }: { children: React.ReactNode }) {
 
   if (status === 'locked') {
     return (
-      <div className="min-h-screen bg-[#05070d] text-white flex items-center justify-center p-4">
+      <div className="relative min-h-screen bg-[#05070d] text-white flex items-center justify-center p-4 overflow-hidden">
+        <AuroraBackground />
         <form
           onSubmit={handleSubmit}
-          className="w-full max-w-sm bg-[#090d16] border border-neutral-800 rounded-3xl p-8 shadow-2xl space-y-5 font-mono"
+          className="glass glass-edge hud-corners relative z-10 w-full max-w-sm rounded-3xl p-8 space-y-5 font-mono"
         >
           <div className="text-center space-y-1">
             <span className="text-[10px] tracking-widest text-blue-400 uppercase font-bold">

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import UserMenu from '@/components/UserMenu';
 import { useSession } from '@/core/auth/useSession';
+import AuroraBackground from '@/components/fx/AuroraBackground';
 // Las herramientas reales se muestran embebidas acá adentro (en vez de
 // mandar a otra URL con <Link>) para que un click en el sidebar cambie de
 // pantalla al instante, sin la navegación de página completa de Next. Son
@@ -242,8 +243,9 @@ export default function LiveExperienceAdmin() {
   // BLOQUEO ABSOLUTO SI NO HAY SESIÓN ACTIVA
   if (!currentUserEmail) {
     return (
-      <div className="min-h-screen bg-[#05070d] text-slate-100 flex flex-col items-center justify-center p-6 font-mono selection:bg-blue-500 selection:text-white">
-        <div className="max-w-md w-full rounded-3xl bg-[#0b1120] border border-blue-500/30 p-8 space-y-6 text-center shadow-2xl">
+      <div className="relative min-h-screen bg-[#05070d] text-slate-100 flex flex-col items-center justify-center p-6 font-mono selection:bg-blue-500 selection:text-white overflow-hidden">
+        <AuroraBackground />
+        <div className="glass glass-edge hud-corners relative z-10 max-w-md w-full rounded-3xl p-8 space-y-6 text-center">
           <div className="w-12 h-12 rounded-2xl bg-blue-500/15 border border-blue-500/30 text-blue-400 flex items-center justify-center font-black mx-auto">
             🔒
           </div>
@@ -263,9 +265,11 @@ export default function LiveExperienceAdmin() {
   }
 
   return (
-    <div className="min-h-screen bg-[#05070d] text-slate-100 flex flex-col font-sans antialiased selection:bg-blue-500 selection:text-white">
+    <div className="relative min-h-screen bg-[#05070d] text-slate-100 flex flex-col font-sans antialiased selection:bg-blue-500 selection:text-white overflow-hidden">
+      <AuroraBackground />
+
       {/* HEADER SUPERIOR */}
-      <header className="h-16 border-b border-white/5 bg-[#05070d] px-6 flex items-center justify-between shrink-0 z-30 font-mono">
+      <header className="glass relative h-16 px-6 flex items-center justify-between shrink-0 z-30 font-mono">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-500 via-indigo-400 to-blue-600 flex items-center justify-center font-black text-white text-sm shadow-lg shadow-blue-500/20">
             {activeProducer ? activeProducer.substring(0, 2).toUpperCase() : 'LE'}
@@ -317,9 +321,9 @@ export default function LiveExperienceAdmin() {
       </header>
 
       {/* CUERPO PRINCIPAL CON SIDEBAR */}
-      <div className="flex flex-1 overflow-hidden font-mono">
-        
-        <aside className="w-64 border-r border-white/5 bg-[#070a12] flex flex-col justify-between p-4 shrink-0 select-none overflow-y-auto">
+      <div className="relative z-10 flex flex-1 overflow-hidden font-mono">
+
+        <aside className="glass-light w-64 border-r border-white/5 flex flex-col justify-between p-4 shrink-0 select-none overflow-y-auto">
           <nav className="space-y-1 text-xs font-medium">
 
             {/* Todo lo que se gestiona desde acá ya vive en Supabase, no en
@@ -379,7 +383,7 @@ export default function LiveExperienceAdmin() {
                     <button
                       key={t.id}
                       onClick={() => setActiveRealTab(t.id)}
-                      className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl transition cursor-pointer text-left ${
+                      className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl transition-colors duration-150 ease-out-strong active:scale-[0.98] cursor-pointer text-left ${
                         activeRealTab === t.id
                           ? 'text-emerald-300 font-bold bg-emerald-500/10 border border-emerald-500/30'
                           : 'text-slate-300 hover:bg-white/5 hover:text-emerald-300'
@@ -396,10 +400,10 @@ export default function LiveExperienceAdmin() {
         </aside>
 
         {/* CONTENIDO PRINCIPAL */}
-        <main className="flex-1 overflow-y-auto p-8 space-y-8 bg-[#05070d]">
+        <main className="flex-1 overflow-y-auto p-8 space-y-8">
 
           {!activeProducer ? (
-            <div className="p-16 text-center rounded-3xl bg-[#0b1120] border border-blue-500/30 space-y-4 max-w-lg mx-auto my-12 shadow-2xl">
+            <div className="glass glass-edge p-16 text-center rounded-3xl space-y-4 max-w-lg mx-auto my-12">
               <span className="text-4xl">🏢</span>
               <h2 className="font-luxury text-xl font-bold text-white uppercase">No tenés ninguna productora para este correo</h2>
               <p className="text-xs text-slate-400">Estás conectado con <strong className="text-blue-400">{currentUserEmail}</strong>. Registrá tu productora exclusiva para este mail.</p>
@@ -435,7 +439,7 @@ export default function LiveExperienceAdmin() {
       {/* MODAL CREAR NUEVA PRODUCTORA */}
       {newProducerModal && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 font-mono text-xs">
-          <div className="max-w-md w-full rounded-3xl bg-[#0b1120] border border-blue-500/40 p-6 space-y-4 shadow-2xl">
+          <div className="glass glass-edge hud-corners max-w-md w-full rounded-3xl p-6 space-y-4">
             <h3 className="font-luxury text-base font-black text-white uppercase">✨ Registrar Nueva Productora / Entidad</h3>
             <form onSubmit={handleRegisterProducer} className="space-y-3">
               <input type="text" required placeholder="Nombre Comercial" value={producerForm.producerName} onChange={e => setProducerForm({...producerForm, producerName: e.target.value})} className="w-full px-4 py-3 bg-[#05070d] border border-white/10 rounded-xl text-white font-bold" />
