@@ -245,15 +245,15 @@ export default function EventDetailPage() {
       <AuroraBackground />
 
       {/* NAVBAR */}
-      <header className="glass relative z-50 sticky top-0 px-6 py-3.5">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <header className="glass relative z-50 sticky top-0 px-3 sm:px-6 py-3.5">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <Link
               href="/events"
-              className="px-3.5 py-1.5 rounded-xl border border-slate-800 bg-[#161a26] hover:border-slate-700 text-slate-300 text-xs font-mono font-bold transition-colors duration-150 ease-out-strong active:scale-95 flex items-center gap-2"
+              className="shrink-0 px-2.5 sm:px-3.5 py-1.5 rounded-xl border border-slate-800 bg-[#161a26] hover:border-slate-700 text-slate-300 text-xs font-mono font-bold transition-colors duration-150 ease-out-strong active:scale-95 flex items-center gap-2"
             >
               <span>←</span>
-              <span>Cartelera</span>
+              <span className="hidden sm:inline">Cartelera</span>
             </Link>
             <div className="flex flex-col">
               <GlitchHeading className="neon-text font-luxury text-xs font-black tracking-[0.2em] uppercase text-white leading-none select-none">LIVE EXPERIENCE</GlitchHeading>

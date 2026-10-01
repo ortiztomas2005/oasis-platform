@@ -126,7 +126,7 @@ export default function DigitalSocioCardPage() {
               className="px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 font-bold transition flex items-center gap-2"
             >
               <span>←</span>
-              <span>Cartelera</span>
+              <span className="hidden sm:inline">Cartelera</span>
             </Link>
             <div className="pl-2 border-l border-white/10">
               <UserMenu />

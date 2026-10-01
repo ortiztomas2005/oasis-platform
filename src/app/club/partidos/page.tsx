@@ -111,39 +111,40 @@ export default function SportsCatalogPage() {
       <AuroraBackground />
 
       {/* HEADER GENERAL DE LA TIQUETERA MULTICLUB */}
-      <header className="glass relative z-30 h-20 px-8 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-blue-500 flex items-center justify-center font-black text-white text-sm shadow-lg shadow-blue-500/20 font-luxury">
+      <header className="glass relative z-30 px-4 sm:px-8 py-3 sm:py-0 sm:h-20 flex flex-wrap items-center justify-between gap-3 shrink-0">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="shrink-0 w-10 h-10 rounded-2xl bg-blue-500 flex items-center justify-center font-black text-white text-sm shadow-lg shadow-blue-500/20 font-luxury">
             ⚽
           </div>
-          <GlitchHeading className="neon-text font-luxury text-sm font-black text-white tracking-widest uppercase">
+          <GlitchHeading className="neon-text font-luxury text-sm font-black text-white tracking-widest uppercase truncate">
             LIVE EXPERIENCE | TICKETERA DEPORTIVA MULTICLUB
           </GlitchHeading>
         </div>
 
-        <div className="flex items-center gap-3 text-xs font-bold">
+        <div className="flex items-center gap-2 sm:gap-3 text-xs font-bold">
           {/* BOTÓN NUEVO: CARNETS DE SOCIO MULTICLUB */}
           <Link
             href="/club/carnet"
-            className="px-4 py-2 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 active:scale-95 text-blue-300 border border-blue-500/40 transition-colors duration-150 ease-out-strong cursor-pointer flex items-center gap-2 shadow-md shadow-blue-500/10"
+            className="px-3 sm:px-4 py-2 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 active:scale-95 text-blue-300 border border-blue-500/40 transition-colors duration-150 ease-out-strong cursor-pointer flex items-center gap-2 shadow-md shadow-blue-500/10"
           >
             <span>🪪</span>
-            <span>Carnets de Socio</span>
+            <span className="hidden sm:inline">Carnets de Socio</span>
           </Link>
 
           <Link
             href="/club"
-            className="px-4 py-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 active:scale-95 text-blue-400 border border-blue-500/30 transition-colors duration-150 ease-out-strong cursor-pointer flex items-center gap-2"
+            className="px-3 sm:px-4 py-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 active:scale-95 text-blue-400 border border-blue-500/30 transition-colors duration-150 ease-out-strong cursor-pointer flex items-center gap-2"
           >
             <span>💳</span>
-            <span>Mi Billetera Club</span>
+            <span className="hidden sm:inline">Mi Billetera Club</span>
           </Link>
 
           <Link
             href="/"
-            className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 text-slate-300 border border-white/10 transition-colors duration-150 ease-out-strong cursor-pointer"
+            className="px-3 sm:px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 text-slate-300 border border-white/10 transition-colors duration-150 ease-out-strong cursor-pointer whitespace-nowrap"
           >
-            ← Volver a Fiestas (Home)
+            <span className="sm:hidden">←</span>
+            <span className="hidden sm:inline">← Volver a Fiestas (Home)</span>
           </Link>
         </div>
       </header>

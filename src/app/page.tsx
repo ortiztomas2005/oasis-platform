@@ -470,11 +470,11 @@ export default function CatalogPage() {
                   </div>
 
                   <div className="relative z-10 p-8 sm:p-14 flex flex-col justify-end min-h-[420px] space-y-5 max-w-2xl">
-                    <div className="flex items-center gap-3 font-mono">
-                      <span className="px-3 py-1 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 text-white border border-blue-400/40 text-[10px] font-black uppercase tracking-wider shadow-lg shadow-blue-500/30">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 font-mono">
+                      <span className="shrink-0 px-3 py-1 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 text-white border border-blue-400/40 text-[10px] font-black uppercase tracking-wider shadow-lg shadow-blue-500/30">
                         ★ Destacado
                       </span>
-                      <span className="text-xs text-slate-300 font-semibold">{featuredEvent.venue} · {featuredEvent.city}</span>
+                      <span className="text-xs text-slate-300 font-semibold break-words">{featuredEvent.venue} · {featuredEvent.city}</span>
                     </div>
 
                     <div className="space-y-2">
@@ -484,7 +484,7 @@ export default function CatalogPage() {
                       <RevealText
                         as="h1"
                         type="words"
-                        className="font-luxury text-4xl sm:text-5xl font-black uppercase tracking-wide bg-gradient-to-br from-white via-white to-blue-200 bg-clip-text text-transparent drop-shadow-sm block"
+                        className="font-luxury text-3xl sm:text-4xl lg:text-5xl font-black uppercase tracking-wide bg-gradient-to-br from-white via-white to-blue-200 bg-clip-text text-transparent drop-shadow-sm block break-words"
                       >
                         {featuredEvent.name}
                       </RevealText>
@@ -657,21 +657,23 @@ export default function CatalogPage() {
       {viewMode === 'checkout' && selectedEvent && (
         <main className="relative z-10 max-w-6xl mx-auto w-full px-6 py-10 flex-1 animate-fade-in font-mono space-y-8">
           <div className="flex items-center justify-between border-b border-white/10 pb-6 mb-8 max-w-2xl mx-auto w-full">
-            <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold">
-              <span className="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500 flex items-center justify-center text-[10px]">✓</span>
-              <span>TICKETS</span>
+            <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold min-w-0">
+              <span className="shrink-0 w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500 flex items-center justify-center text-[10px]">✓</span>
+              <span className="hidden sm:inline truncate">TICKETS</span>
             </div>
-            <div className="flex-1 h-[1px] mx-4 bg-slate-800" />
-            <div className={`flex items-center gap-2 text-xs font-bold ${isLoggedIn ? 'text-emerald-400' : 'text-blue-400'}`}>
-              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${isLoggedIn ? 'bg-emerald-500/25 border border-emerald-500' : 'bg-blue-500/25 border border-blue-500'}`}>
+            <div className="flex-1 min-w-[12px] h-[1px] mx-2 sm:mx-4 bg-slate-800" />
+            <div className={`flex items-center gap-2 text-xs font-bold min-w-0 ${isLoggedIn ? 'text-emerald-400' : 'text-blue-400'}`}>
+              <span className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${isLoggedIn ? 'bg-emerald-500/25 border border-emerald-500' : 'bg-blue-500/25 border border-blue-500'}`}>
                 {isLoggedIn ? '✓' : '●'}
               </span>
-              <span>TUS DATOS {isLoggedIn ? '(REGISTRADO)' : ''}</span>
+              <span className="hidden sm:inline truncate">
+                TUS DATOS{isLoggedIn ? ' (REGISTRADO)' : ''}
+              </span>
             </div>
-            <div className="flex-1 h-[1px] mx-4 bg-slate-800" />
-            <div className="flex items-center gap-2 text-blue-400 text-xs font-bold">
-              <span className="w-5 h-5 rounded-full bg-blue-500/25 border border-blue-500 flex items-center justify-center text-[10px]">03</span>
-              <span>PAGO</span>
+            <div className="flex-1 min-w-[12px] h-[1px] mx-2 sm:mx-4 bg-slate-800" />
+            <div className="flex items-center gap-2 text-blue-400 text-xs font-bold min-w-0">
+              <span className="shrink-0 w-5 h-5 rounded-full bg-blue-500/25 border border-blue-500 flex items-center justify-center text-[10px]">03</span>
+              <span className="hidden sm:inline truncate">PAGO</span>
             </div>
           </div>
 

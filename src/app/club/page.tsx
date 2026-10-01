@@ -133,30 +133,33 @@ export default function ClubWalletPage() {
       <AuroraBackground />
 
       {/* HEADER DE LA BILLETERA */}
-      <header className="glass relative z-30 h-20 px-8 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl flex items-center justify-center font-black text-black text-sm shadow-lg font-luxury" style={{ backgroundColor: primaryColor }}>
+      <header className="glass relative z-30 px-4 sm:px-8 py-3 sm:py-0 sm:h-20 flex flex-wrap items-center justify-between gap-3 shrink-0">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center font-black text-black text-sm shadow-lg font-luxury" style={{ backgroundColor: primaryColor }}>
             ⚽
           </div>
-          <span className="font-luxury text-sm font-black text-white tracking-widest uppercase">
-            {clubName} | BILLETERA DE SOCIO & DEPORTES
+          <span className="font-luxury text-sm font-black text-white tracking-widest uppercase truncate">
+            {clubName}
+            <span className="hidden md:inline"> | BILLETERA DE SOCIO & DEPORTES</span>
           </span>
         </div>
 
-        <div className="flex items-center gap-3 text-xs font-bold">
+        <div className="flex items-center gap-2 sm:gap-3 text-xs font-bold">
           <Link
             href="/club/partidos"
-            className="px-4 py-2 rounded-xl text-black font-black uppercase transition cursor-pointer shadow-lg"
+            className="px-3 sm:px-4 py-2 rounded-xl text-black font-black uppercase transition cursor-pointer shadow-lg whitespace-nowrap"
             style={{ backgroundColor: accentColor }}
           >
-            ⚽ Ver Cartelera de Partidos
+            <span className="sm:hidden">⚽</span>
+            <span className="hidden sm:inline">⚽ Ver Cartelera de Partidos</span>
           </Link>
 
           <Link
             href="/"
-            className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition cursor-pointer"
+            className="px-3 sm:px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition cursor-pointer whitespace-nowrap"
           >
-            ← Volver al Sitio
+            <span className="sm:hidden">←</span>
+            <span className="hidden sm:inline">← Volver al Sitio</span>
           </Link>
         </div>
       </header>

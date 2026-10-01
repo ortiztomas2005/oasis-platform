@@ -151,13 +151,13 @@ export default function ResaleMarketplacePage() {
               className="px-3.5 py-1.5 rounded-xl border border-slate-800 bg-[#161a26] hover:border-slate-700 active:scale-95 text-slate-300 text-xs font-mono font-bold transition-colors duration-150 ease-out-strong flex items-center gap-2"
             >
               <span>←</span>
-              <span>Cartelera</span>
+              <span className="hidden sm:inline">Cartelera</span>
             </Link>
-            <div className="flex flex-col">
-              <GlitchHeading className="neon-text text-xs font-black tracking-[0.2em] uppercase text-white leading-none select-none">
+            <div className="flex flex-col min-w-0">
+              <GlitchHeading className="neon-text text-xs font-black tracking-[0.2em] uppercase text-white leading-none select-none truncate">
                 LIVE EXPERIENCE
               </GlitchHeading>
-              <span className="text-[9px] text-indigo-400 font-mono tracking-wider mt-0.5">
+              <span className="hidden sm:block text-[9px] text-indigo-400 font-mono tracking-wider mt-0.5">
                 SECURE RESALE
               </span>
             </div>
@@ -169,7 +169,7 @@ export default function ResaleMarketplacePage() {
               className="px-3.5 py-1.5 rounded-xl border border-blue-500/30 bg-blue-600/10 hover:bg-blue-600/20 active:scale-95 text-blue-300 text-xs font-bold transition-colors duration-150 ease-out-strong flex items-center gap-1.5"
             >
               <span>🎟️</span>
-              <span>Mis Entradas</span>
+              <span className="hidden sm:inline">Mis Entradas</span>
             </Link>
             <div className="pl-1.5 border-l border-slate-800">
               <UserMenu />

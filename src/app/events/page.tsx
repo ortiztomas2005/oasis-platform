@@ -76,14 +76,14 @@ export default function EventsPage() {
       {/* NAVBAR CON TODOS LOS LINKS INCLUIDO BACKSTAGE */}
       <header className="glass relative z-50 sticky top-0">
         <div className="max-w-6xl mx-auto px-4 sm:px-8 h-20 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <GlitchHeading className="neon-text font-luxury text-2xl font-black tracking-tighter text-white select-none">LIVE EXPERIENCE</GlitchHeading>
-            <span className="font-mono text-[10px] text-blue-400 tracking-widest uppercase font-bold border-l border-blue-900/60 pl-3">
+          <Link href="/" className="flex items-center gap-2 min-w-0">
+            <GlitchHeading className="neon-text font-luxury text-base sm:text-2xl font-black tracking-tighter text-white select-none truncate">LIVE EXPERIENCE</GlitchHeading>
+            <span className="hidden sm:inline-block shrink-0 font-mono text-[10px] text-blue-400 tracking-widest uppercase font-bold border-l border-blue-900/60 pl-3">
               Eventos
             </span>
           </Link>
 
-          <div className="flex items-center gap-3 font-mono text-xs">
+          <div className="hidden sm:flex items-center gap-3 font-mono text-xs">
             <Link
               href="/resale"
               className="px-3 py-1.5 rounded-xl border border-blue-900/40 bg-blue-950/20 text-neutral-300 hover:text-white transition-colors duration-150 ease-out-strong active:scale-95"

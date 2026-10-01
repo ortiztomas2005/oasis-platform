@@ -269,13 +269,13 @@ export default function LiveExperienceAdmin() {
       <AuroraBackground />
 
       {/* HEADER SUPERIOR */}
-      <header className="glass relative h-16 px-6 flex items-center justify-between shrink-0 z-30 font-mono">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-500 via-indigo-400 to-blue-600 flex items-center justify-center font-black text-white text-sm shadow-lg shadow-blue-500/20">
+      <header className="glass relative px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3 shrink-0 z-30 font-mono">
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+          <div className="shrink-0 w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-500 via-indigo-400 to-blue-600 flex items-center justify-center font-black text-white text-sm shadow-lg shadow-blue-500/20">
             {activeProducer ? activeProducer.substring(0, 2).toUpperCase() : 'LE'}
           </div>
-          <div className="flex flex-col gap-0.5">
-            <div className="group relative flex items-center gap-1.5 rounded-lg -ml-2 pl-2 pr-1 py-0.5 hover:bg-white/5 transition">
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <div className="group relative flex items-center gap-1.5 rounded-lg -ml-2 pl-2 pr-1 py-0.5 hover:bg-white/5 transition min-w-0">
               <select
                 value={activeProducer}
                 onChange={(e) => {
@@ -286,7 +286,7 @@ export default function LiveExperienceAdmin() {
                     setActiveProducer(val);
                   }
                 }}
-                className="bg-transparent text-white font-luxury text-sm font-black tracking-widest uppercase focus:outline-none cursor-pointer appearance-none pr-1"
+                className="bg-transparent text-white font-luxury text-sm font-black tracking-widest uppercase focus:outline-none cursor-pointer appearance-none pr-1 max-w-[40vw] sm:max-w-none truncate"
               >
                 {uniqueProducers.length === 0 && (
                   <option value="" disabled className="bg-[#0b1120] text-slate-400">Sin productoras para este mail</option>
@@ -297,25 +297,27 @@ export default function LiveExperienceAdmin() {
                 <option disabled value="" className="bg-[#0b1120] text-slate-600">────────────────────</option>
                 <option value="NEW" className="bg-[#0b1120] text-blue-400 font-bold">+ Crear productora para {currentUserEmail}</option>
               </select>
-              <span className="text-slate-500 group-hover:text-blue-400 transition text-[10px] pointer-events-none">▾</span>
+              <span className="shrink-0 text-slate-500 group-hover:text-blue-400 transition text-[10px] pointer-events-none">▾</span>
             </div>
-            <span className="text-[10px] text-blue-400/80 uppercase tracking-wider">{currentUserEmail}</span>
+            <span className="hidden sm:block text-[10px] text-blue-400/80 uppercase tracking-wider truncate">{currentUserEmail}</span>
           </div>
 
           {activeProducer && (
-            <div className="ml-2 px-4 py-2 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-300 text-xs font-bold flex items-center gap-2 shadow-inner">
-              <span>🎟️ Disponibles:</span>
+            <div className="shrink-0 ml-1 sm:ml-2 px-3 sm:px-4 py-2 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-300 text-xs font-bold flex items-center gap-2 shadow-inner">
+              <span className="hidden sm:inline">🎟️ Disponibles:</span>
+              <span className="sm:hidden">🎟️</span>
               <span className="text-white font-black text-sm">{currentPrepaidCount}</span>
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-4 text-xs font-bold font-mono">
-          <Link href="/admin/club" className="px-4 py-2 rounded-2xl bg-blue-500/15 text-blue-300 border border-blue-500/30 hover:bg-blue-500/25 transition flex items-center gap-2 shadow-md">
+        <div className="flex items-center gap-2 sm:gap-4 text-xs font-bold font-mono">
+          <Link href="/admin/club" className="px-3 sm:px-4 py-2 rounded-2xl bg-blue-500/15 text-blue-300 border border-blue-500/30 hover:bg-blue-500/25 transition flex items-center gap-2 shadow-md">
             <span>⚽</span>
-            <span>Ir a Módulo Clubes / Deportes</span>
+            <span className="hidden lg:inline">Ir a Módulo Clubes / Deportes</span>
+            <span className="hidden sm:inline lg:hidden">Deportes</span>
           </Link>
-          <Link href="/" className="text-slate-400 hover:text-white transition">Ver Cartelera</Link>
+          <Link href="/" className="hidden sm:inline text-slate-400 hover:text-white transition">Ver Cartelera</Link>
           <UserMenu />
         </div>
       </header>

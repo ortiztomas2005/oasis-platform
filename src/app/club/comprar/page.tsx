@@ -199,21 +199,22 @@ function ClubCheckoutContent() {
       <AuroraBackground />
 
       {/* HEADER */}
-      <header className="glass relative z-30 h-20 px-8 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl flex items-center justify-center font-black text-black text-sm shadow-lg font-luxury" style={{ backgroundColor: clubColors.primary }}>
+      <header className="glass relative z-30 px-4 sm:px-8 py-3 sm:py-0 sm:h-20 flex flex-wrap items-center justify-between gap-3 shrink-0">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center font-black text-black text-sm shadow-lg font-luxury" style={{ backgroundColor: clubColors.primary }}>
             ⚽
           </div>
-          <span className="font-luxury text-sm font-black text-white tracking-widest uppercase">
-            {match.clubName || 'CLUB'} | CHECKOUT OFICIAL
+          <span className="font-luxury text-sm font-black text-white tracking-widest uppercase truncate">
+            {match.clubName || 'CLUB'}<span className="hidden sm:inline"> | CHECKOUT OFICIAL</span>
           </span>
         </div>
 
         <Link
           href="/club/partidos"
-          className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 text-slate-300 border border-white/10 transition-colors duration-150 ease-out-strong cursor-pointer text-xs font-bold"
+          className="shrink-0 px-3 sm:px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 text-slate-300 border border-white/10 transition-colors duration-150 ease-out-strong cursor-pointer text-xs font-bold whitespace-nowrap"
         >
-          ← Volver a Cartelera
+          <span className="sm:hidden">←</span>
+          <span className="hidden sm:inline">← Volver a Cartelera</span>
         </Link>
       </header>
 

@@ -23,6 +23,46 @@ body {
   font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
 }
 
+/* ───────────────────────────────────────────────────────────────────────
+   BASE MOBILE — sin esto, el sitio "se siente" una página web dentro del
+   navegador del celular en vez de una app. Cada regla tiene un motivo
+   puntual (ver comentarios), no es boilerplate genérico.
+   ─────────────────────────────────────────────────────────────────────── */
+
+html {
+  /* El flash gris/celeste que Safari/Chrome pintan sobre cualquier
+     elemento tocado si tiene un onClick — es la señal más obvia de "esto
+     es una página web". El feedback real ya lo dan los :active de cada
+     botón/tarjeta del sitio. */
+  -webkit-tap-highlight-color: transparent;
+  /* Evita que el texto se agrande solo al rotar a horizontal (iOS Safari
+     "ajusta" el tamaño de fuente en landscape si no se lo pedís explícito). */
+  -webkit-text-size-adjust: 100%;
+}
+
+/* iOS hace zoom automático al foco si un input tiene fuente < 16px, y no
+   vuelve a hacer zoom-out al perder el foco — deja el layout recortado y
+   corrido. El arreglo correcto es la fuente, nunca desactivar el zoom del
+   usuario (eso rompe accesibilidad para cualquiera que necesite agrandar
+   texto). */
+@media (pointer: coarse) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+/* El tap en botones/links tarda ~300ms en registrar en algunos navegadores
+   mobile porque esperan ver si viene un segundo tap (double-tap-zoom).
+   manipulation le dice al navegador que ese elemento nunca hace zoom así,
+   y el click se dispara al instante. */
+button,
+a,
+[role='button'] {
+  touch-action: manipulation;
+}
+
 /* Antes esta clase cargaba Cinzel (una serif ornamental de "casino de
    lujo"). El pedido ahora es un look pro/moderno, así que pasa a ser una
    sans geométrica en negrita — misma clase, mismos usos en el código, look
