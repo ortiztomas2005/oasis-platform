@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/core/supabase/admin';
 import { getOwnedProducerName } from '@/core/services/producers';
-import { disconnectProducerMp } from '@/core/services/mercadopago-connect';
+import { disconnectProducerMp, isMpOAuthConfigured } from '@/core/services/mercadopago-connect';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +21,7 @@ export async function GET() {
     producerName,
     connected: !!data?.mp_connected_at,
     connectedAt: data?.mp_connected_at || null,
+    oauthAvailable: isMpOAuthConfigured(),
   });
 }
 

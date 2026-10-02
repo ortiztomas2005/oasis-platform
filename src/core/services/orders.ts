@@ -84,6 +84,23 @@ export async function issuePrimaryTicketForOrder(order: any): Promise<string> {
       .eq('id', order.id);
 
     try {
+      let branding: {
+        contact_email?: string | null;
+        email_logo_url?: string | null;
+        email_brand_color?: string | null;
+        email_footer_text?: string | null;
+        email_extra_info?: string | null;
+      } | null = null;
+
+      if (producerName) {
+        const { data: producerRow } = await supabaseAdmin
+          .from('producers')
+          .select('contact_email, email_logo_url, email_brand_color, email_footer_text, email_extra_info')
+          .eq('name', producerName)
+          .maybeSingle();
+        branding = producerRow;
+      }
+
       await sendTicketConfirmationEmail({
         toEmail: order.customer_email,
         customerName: order.customer_name,
@@ -93,6 +110,12 @@ export async function issuePrimaryTicketForOrder(order: any): Promise<string> {
         eventVenue: order.events?.venue,
         tierName: order.ticket_tier,
         authCode: uniqueHash,
+        producerDisplayName: producerName,
+        replyToEmail: branding?.contact_email,
+        logoUrl: branding?.email_logo_url,
+        brandColor: branding?.email_brand_color,
+        footerText: branding?.email_footer_text,
+        extraInfo: branding?.email_extra_info,
       });
     } catch (mailErr) {
       console.error('Error enviando email de confirmación de orden:', mailErr);

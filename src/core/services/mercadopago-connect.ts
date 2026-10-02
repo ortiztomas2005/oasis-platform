@@ -25,6 +25,35 @@ interface MpTokenResponse {
   public_key: string;
 }
 
+/**
+ * El flujo OAuth ("Conectar con Mercado Pago" en un click) requiere que
+ * Live Experience tenga su propia aplicación dada de alta en el panel de
+ * desarrolladores de Mercado Pago (MP_CLIENT_ID/MP_CLIENT_SECRET). Mientras
+ * eso no esté configurado, cada productora puede conectar su cuenta a mano
+ * pegando su propio Access Token (ver saveProducerManualMpCredentials) —
+ * ese token lo sacan de SU PROPIA cuenta de Mercado Pago, en "Tus
+ * integraciones" > Credenciales, algo que ya tiene cualquier cuenta de MP
+ * sin necesidad de registrar ninguna app ni "ser developer".
+ */
+export function isMpOAuthConfigured(): boolean {
+  return !!process.env.MP_CLIENT_ID && !!process.env.MP_CLIENT_SECRET;
+}
+
+/**
+ * Las credenciales de Mercado Pago (tanto el Access Token como la Public
+ * Key) arrancan con "TEST-" si son de prueba o "APP_USR-" si son de
+ * producción — mismo prefijo en ambos campos. Pegar la de prueba es el
+ * error más común al conectar a mano: el pago "funciona" en el sentido de
+ * que no tira error de token inválido, pero el dinero nunca es real ni
+ * llega a ningún lado.
+ */
+export function classifyMpCredential(value: string): 'production' | 'test' | 'unknown' {
+  const v = value.trim();
+  if (v.startsWith('TEST-')) return 'test';
+  if (v.startsWith('APP_USR-')) return 'production';
+  return 'unknown';
+}
+
 export function getMercadoPagoRedirectUri(): string {
   const base = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   return `${base}/api/producers/mercadopago/callback`;
@@ -93,6 +122,50 @@ export async function saveProducerMpTokens(producerName: string, tokens: MpToken
   if (error) throw error;
 }
 
+/**
+ * Valida un Access Token de Mercado Pago pegado a mano (sin pasar por
+ * OAuth) consultando /users/me — así nos aseguramos de que es un token
+ * real y de paso conseguimos el user_id de esa cuenta.
+ */
+export async function validateMpAccessToken(accessToken: string): Promise<{ userId: string } | null> {
+  try {
+    const res = await fetch('https://api.mercadopago.com/users/me', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data?.id) return null;
+    return { userId: String(data.id) };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Guarda credenciales pegadas a mano por la productora (sin refresh_token
+ * ni vencimiento — a diferencia del access_token que da el flujo OAuth,
+ * este es el token "de producción" fijo que ya tiene cualquier cuenta de
+ * Mercado Pago, y no hay que renovarlo).
+ */
+export async function saveProducerManualMpCredentials(
+  producerName: string,
+  { accessToken, publicKey, userId }: { accessToken: string; publicKey: string; userId: string }
+) {
+  const { error } = await supabaseAdmin
+    .from('producers')
+    .update({
+      mp_access_token: accessToken,
+      mp_refresh_token: null,
+      mp_user_id: userId,
+      mp_public_key: publicKey,
+      mp_token_expires_at: null,
+      mp_connected_at: new Date().toISOString(),
+    })
+    .eq('name', producerName);
+
+  if (error) throw error;
+}
+
 export async function disconnectProducerMp(producerName: string) {
   await supabaseAdmin
     .from('producers')
@@ -118,7 +191,11 @@ export async function getValidProducerAccessToken(producerName: string): Promise
     .eq('name', producerName)
     .maybeSingle();
 
-  if (!producer?.mp_access_token || !producer.mp_refresh_token) return null;
+  if (!producer?.mp_access_token) return null;
+
+  // Token pegado a mano (sin OAuth): no tiene refresh_token ni vencimiento
+  // conocido, así que se usa directo tal cual está guardado.
+  if (!producer.mp_refresh_token) return producer.mp_access_token;
 
   const expiresAt = producer.mp_token_expires_at ? new Date(producer.mp_token_expires_at).getTime() : 0;
   if (Date.now() < expiresAt - 5 * 60 * 1000) {

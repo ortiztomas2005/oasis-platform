@@ -26,6 +26,7 @@ import BroadcastPage from './broadcast/page';
 import BarraPage from './barra/page';
 import CuponesRrppPage from './cupones-rrpp/page';
 import PasesPage from './pases/page';
+import EmailBrandingPage from './email/page';
 
 type RealTab =
   | 'eventos'
@@ -41,7 +42,8 @@ type RealTab =
   | 'broadcast'
   | 'barra'
   | 'cupones'
-  | 'pases';
+  | 'pases'
+  | 'email';
 
 // Compartido entre el sidebar de desktop y el drawer de mobile — antes
 // esta lista vivía escrita una sola vez adentro del <aside>, pero ahora
@@ -80,6 +82,7 @@ const NAV_GROUPS: { label: string; items: { id: RealTab; icon: string; label: st
       { id: 'costos', icon: '🧾', label: 'Cobros & Gastos' },
       { id: 'metricas', icon: '📊', label: 'Dashboard & Métricas' },
       { id: 'equipo', icon: '👥', label: 'Equipo' },
+      { id: 'email', icon: '✉️', label: 'Mail de Confirmación' },
     ],
   },
 ];
@@ -512,6 +515,7 @@ export default function LiveExperienceAdmin() {
               {activeRealTab === 'barra' && <BarraPage />}
               {activeRealTab === 'cupones' && <CuponesRrppPage />}
               {activeRealTab === 'pases' && <PasesPage />}
+              {activeRealTab === 'email' && <EmailBrandingPage />}
             </div>
           ) : null}
 
