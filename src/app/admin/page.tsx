@@ -79,6 +79,12 @@ export default function LiveExperienceAdmin() {
 
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [activeRealTab, setActiveRealTab] = useState<RealTab | null>('metricas');
+  // El sidebar es fijo (w-64) desde desktop, pero en mobile se come casi
+  // toda la pantalla y el contenido queda amontonado debajo — este estado
+  // lo convierte en un drawer que arranca cerrado en mobile y se abre con
+  // el botón ☰. En desktop (md:) el sidebar se ve siempre, sin importar
+  // este estado.
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [prepaidBalances, setPrepaidBalances] = useState<{ [producer: string]: number }>({});
 
@@ -271,6 +277,14 @@ export default function LiveExperienceAdmin() {
       {/* HEADER SUPERIOR */}
       <header className="glass relative px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3 shrink-0 z-30 font-mono">
         <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Abrir menú"
+            className="md:hidden shrink-0 w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 active:scale-90 transition-[background-color,transform] duration-150 ease-out-strong flex items-center justify-center text-white text-base"
+          >
+            ☰
+          </button>
           <div className="shrink-0 w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-500 via-indigo-400 to-blue-600 flex items-center justify-center font-black text-white text-sm shadow-lg shadow-blue-500/20">
             {activeProducer ? activeProducer.substring(0, 2).toUpperCase() : 'LE'}
           </div>
@@ -325,8 +339,39 @@ export default function LiveExperienceAdmin() {
       {/* CUERPO PRINCIPAL CON SIDEBAR */}
       <div className="relative z-10 flex flex-1 overflow-hidden font-mono">
 
-        <aside className="glass-light w-64 border-r border-white/5 flex flex-col justify-between p-4 shrink-0 select-none overflow-y-auto">
+        {/* Fondo oscuro detrás del drawer en mobile — toca para cerrar.
+            Solo existe (en el DOM y visualmente) cuando el drawer está
+            abierto y por debajo de md, donde el sidebar pasa a ser un
+            overlay en vez de un panel fijo al costado. */}
+        {sidebarOpen && (
+          <div
+            onClick={() => setSidebarOpen(false)}
+            className="md:hidden fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
+            aria-hidden
+          />
+        )}
+
+        <aside
+          className={`glass-light border-r border-white/5 flex flex-col justify-between p-4 select-none overflow-y-auto
+            fixed inset-y-0 left-0 z-50 w-72 transition-transform duration-300 ease-out-strong
+            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+            md:static md:z-auto md:translate-x-0 md:w-64 md:shrink-0`}
+        >
           <nav className="space-y-1 text-xs font-medium">
+
+            {/* Botón de cerrar — solo visible en mobile, donde el sidebar
+                es un drawer superpuesto en vez de un panel fijo. */}
+            <div className="md:hidden flex items-center justify-between mb-3 px-1">
+              <span className="font-luxury text-sm font-black text-white uppercase tracking-widest">Menú</span>
+              <button
+                type="button"
+                onClick={() => setSidebarOpen(false)}
+                aria-label="Cerrar menú"
+                className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 active:scale-90 transition-[background-color,transform] duration-150 ease-out-strong flex items-center justify-center text-white"
+              >
+                ✕
+              </button>
+            </div>
 
             {/* Todo lo que se gestiona desde acá ya vive en Supabase, no en
                 localStorage — no hay más sección "local/demo". Agrupado por
@@ -384,7 +429,10 @@ export default function LiveExperienceAdmin() {
                   {group.items.map((t) => (
                     <button
                       key={t.id}
-                      onClick={() => setActiveRealTab(t.id)}
+                      onClick={() => {
+                        setActiveRealTab(t.id);
+                        setSidebarOpen(false);
+                      }}
                       className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl transition-colors duration-150 ease-out-strong active:scale-[0.98] cursor-pointer text-left ${
                         activeRealTab === t.id
                           ? 'text-emerald-300 font-bold bg-emerald-500/10 border border-emerald-500/30'
