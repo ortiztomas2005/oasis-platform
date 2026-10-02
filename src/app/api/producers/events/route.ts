@@ -62,11 +62,35 @@ export async function POST(req: Request) {
       publish,
       hasBar,
       barItems,
+      isAdultsOnly,
+      minAge,
     } = body;
 
     const cleanTitle = String(title || '').trim();
     if (!cleanTitle) return NextResponse.json({ error: 'Falta el nombre del evento' }, { status: 400 });
     if (!date) return NextResponse.json({ error: 'Falta la fecha del evento' }, { status: 400 });
+
+    // Obligatorio elegir, no hay default razonable: el formulario no deja
+    // avanzar sin tocar ninguna opción, así que acá solo se valida que de
+    // verdad haya llegado un booleano real y no undefined/null.
+    if (typeof isAdultsOnly !== 'boolean') {
+      return NextResponse.json({ error: 'Falta indicar si el evento es solo para mayores de 18 o no.' }, { status: 400 });
+    }
+
+    let cleanMinAge: number | null = null;
+    if (!isAdultsOnly) {
+      const parsedMinAge = Number(minAge);
+      if (minAge === undefined || minAge === null || minAge === '' || !Number.isFinite(parsedMinAge) || parsedMinAge < 0 || parsedMinAge > 17) {
+        return NextResponse.json({ error: 'Indicá la edad mínima permitida (0 a 17) para un evento que no es solo para mayores.' }, { status: 400 });
+      }
+      cleanMinAge = Math.round(parsedMinAge);
+    }
+
+    // La barra sirve alcohol — nunca puede estar habilitada en un evento
+    // que no sea exclusivo para mayores de 18, sin importar qué haya
+    // mandado el formulario (la base de datos también lo garantiza, ver
+    // migración 011, pero acá se corta antes de intentar escribir nada).
+    const cleanHasBar = isAdultsOnly ? !!hasBar : false;
 
     // Antes esto reventaba con "Invalid time value" (el mensaje crudo de
     // toISOString() en una fecha inválida) si el input datetime-local traía
@@ -144,7 +168,9 @@ export async function POST(req: Request) {
         cbu_alias: bankAlias || null,
         status,
         producer_name: producerName,
-        has_bar: !!hasBar,
+        has_bar: cleanHasBar,
+        is_adults_only: isAdultsOnly,
+        min_age: cleanMinAge,
       })
       .select()
       .single();
@@ -176,7 +202,7 @@ export async function POST(req: Request) {
     // Carta de barra inicial, solo si la productora activó "barra en vivo"
     // para este evento (ver migración 009). Se puede seguir editando
     // después desde Escáner de Barra.
-    if (hasBar && Array.isArray(barItems) && barItems.length > 0) {
+    if (cleanHasBar && Array.isArray(barItems) && barItems.length > 0) {
       const barRows = barItems
         .filter((b: any) => String(b?.name || '').trim())
         .map((b: any) => ({

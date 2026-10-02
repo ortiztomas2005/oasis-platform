@@ -38,6 +38,8 @@ interface EventRow {
   status: string;
   image_url?: string;
   has_bar?: boolean;
+  is_adults_only?: boolean;
+  min_age?: number | null;
   ticket_tiers?: ExistingTier[];
 }
 
@@ -75,6 +77,14 @@ export default function ProducerEventsPage() {
   const [bankHolderName, setBankHolderName] = useState('');
   const [publish, setPublish] = useState(true);
   const [tiers, setTiers] = useState<Tier[]>([{ ...EMPTY_TIER }]);
+
+  // Clasificación de edad — obligatoria, arranca en null a propósito
+  // (ni Sí ni No preseleccionado) para forzar una elección real en vez
+  // de dejar pasar un default que nadie miró. Si no es "solo mayores",
+  // minAge queda obligatorio también y la barra no se puede habilitar
+  // (la barra sirve alcohol).
+  const [isAdultsOnly, setIsAdultsOnly] = useState<boolean | null>(null);
+  const [minAge, setMinAge] = useState('');
 
   // Paso 3: barra en vivo. Es opt-in — si la productora dice que no,
   // el evento no lleva ninguna carta y listo (nada más que preguntar).
@@ -124,6 +134,8 @@ export default function ProducerEventsPage() {
     setBankHolderName('');
     setPublish(true);
     setTiers([{ ...EMPTY_TIER }]);
+    setIsAdultsOnly(null);
+    setMinAge('');
     setHasBar(false);
     setBarItems([]);
     setNewBarItem({ name: '', price: '', stock: '' });
@@ -137,6 +149,13 @@ export default function ProducerEventsPage() {
       if (!title.trim()) return setFormError('Falta el nombre del evento.');
       if (!date) return setFormError('Falta la fecha del evento.');
       if (!venue.trim()) return setFormError('Falta el lugar del evento.');
+      if (isAdultsOnly === null) return setFormError('Indicá si el evento es solo para mayores de 18 años.');
+      if (isAdultsOnly === false) {
+        const n = Number(minAge);
+        if (minAge.trim() === '' || !Number.isFinite(n) || n < 0 || n > 17) {
+          return setFormError('Indicá la edad mínima permitida (0 a 17 años).');
+        }
+      }
     }
     if (next === 3) {
       if (tiers.some((t) => !t.name.trim() || t.price < 0 || t.capacity <= 0)) {
@@ -187,7 +206,9 @@ export default function ProducerEventsPage() {
           bankHolderName,
           publish,
           tiers,
-          hasBar,
+          isAdultsOnly,
+          minAge: isAdultsOnly === false ? Number(minAge) : null,
+          hasBar: isAdultsOnly === false ? false : hasBar,
           barItems,
         }),
       });
@@ -427,6 +448,57 @@ export default function ProducerEventsPage() {
                   <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">Capacidad total</label>
                   <input type="number" min={1} value={capacity} onChange={(e) => setCapacity(e.target.value)} className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
                 </div>
+
+                {/* CLASIFICACIÓN DE EDAD — obligatoria. Define si más
+                    adelante (Paso 3) se puede ofrecer barra: la barra
+                    sirve alcohol, así que un evento que no es exclusivo
+                    para mayores de 18 no puede tenerla habilitada. */}
+                <div className="sm:col-span-2 p-3.5 rounded-xl bg-black/30 border border-white/10 space-y-2.5">
+                  <label className="text-[10px] text-blue-400 uppercase font-bold block">¿Es un evento solo para mayores de 18 años? *</label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setIsAdultsOnly(true); setMinAge(''); }}
+                      className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase border transition cursor-pointer ${
+                        isAdultsOnly === true
+                          ? 'bg-blue-500/15 border-blue-500 text-blue-300'
+                          : 'bg-black/40 border-white/10 text-neutral-400 hover:text-white hover:border-white/20'
+                      }`}
+                    >
+                      Sí, solo +18
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsAdultsOnly(false)}
+                      className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase border transition cursor-pointer ${
+                        isAdultsOnly === false
+                          ? 'bg-amber-500/15 border-amber-500 text-amber-300'
+                          : 'bg-black/40 border-white/10 text-neutral-400 hover:text-white hover:border-white/20'
+                      }`}
+                    >
+                      No, apto para menores
+                    </button>
+                  </div>
+
+                  {isAdultsOnly === false && (
+                    <div>
+                      <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">Edad mínima permitida (años) *</label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={17}
+                        required
+                        placeholder="Ej: 0 para todo público, 13, 16..."
+                        value={minAge}
+                        onChange={(e) => setMinAge(e.target.value)}
+                        className="w-full sm:w-48 px-3.5 py-2.5 bg-black/60 border border-amber-500/30 rounded-xl text-xs text-white outline-none focus:border-amber-500"
+                      />
+                      <p className="text-[10px] text-amber-400/90 mt-1.5">
+                        🔞 Como no es exclusivo para mayores, la opción de barra no va a estar disponible en el Paso 3.
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -538,31 +610,37 @@ export default function ProducerEventsPage() {
             {/* PASO 3: BARRA */}
             {wizardStep === 3 && (
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <span className="text-[10px] text-blue-400 uppercase font-bold block">¿Querés barra en vivo en tu evento?</span>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setHasBar(true)}
-                      className={`flex-1 py-3 rounded-xl border text-xs font-bold uppercase transition cursor-pointer ${
-                        hasBar ? 'bg-blue-500/15 border-blue-500 text-blue-300' : 'bg-black/40 border-white/10 text-neutral-400 hover:border-white/20'
-                      }`}
-                    >
-                      🍸 Sí, quiero barra
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setHasBar(false)}
-                      className={`flex-1 py-3 rounded-xl border text-xs font-bold uppercase transition cursor-pointer ${
-                        !hasBar ? 'bg-white/10 border-white/30 text-white' : 'bg-black/40 border-white/10 text-neutral-400 hover:border-white/20'
-                      }`}
-                    >
-                      No, sin barra
-                    </button>
+                {isAdultsOnly === false ? (
+                  <div className="p-4 rounded-xl bg-amber-950/30 border border-amber-800/50 text-amber-300 text-xs font-bold text-center">
+                    🔞 Evento para menores de edad — barra no habilitada.
                   </div>
-                </div>
+                ) : (
+                  <div className="space-y-2">
+                    <span className="text-[10px] text-blue-400 uppercase font-bold block">¿Querés barra en vivo en tu evento?</span>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setHasBar(true)}
+                        className={`flex-1 py-3 rounded-xl border text-xs font-bold uppercase transition cursor-pointer ${
+                          hasBar ? 'bg-blue-500/15 border-blue-500 text-blue-300' : 'bg-black/40 border-white/10 text-neutral-400 hover:border-white/20'
+                        }`}
+                      >
+                        🍸 Sí, quiero barra
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setHasBar(false)}
+                        className={`flex-1 py-3 rounded-xl border text-xs font-bold uppercase transition cursor-pointer ${
+                          !hasBar ? 'bg-white/10 border-white/30 text-white' : 'bg-black/40 border-white/10 text-neutral-400 hover:border-white/20'
+                        }`}
+                      >
+                        No, sin barra
+                      </button>
+                    </div>
+                  </div>
+                )}
 
-                {hasBar && (
+                {isAdultsOnly !== false && hasBar && (
                   <div className="space-y-3 pt-2 border-t border-white/10">
                     <span className="text-[10px] text-neutral-400 uppercase font-bold block">Carta inicial (podés seguir editándola después desde Escáner de Barra)</span>
                     <div className="grid grid-cols-1 sm:grid-cols-[1fr_110px_90px_auto] gap-2">
@@ -705,16 +783,25 @@ export default function ProducerEventsPage() {
 
                   {/* BARRA DE ACCIONES */}
                   <div className="px-4 sm:px-5 py-3 border-t border-white/5 bg-black/20 flex items-center gap-2 flex-wrap">
-                    <button
-                      onClick={() => toggleHasBar(ev)}
-                      className={`text-[11px] px-3 py-2 sm:py-1.5 rounded-lg border active:scale-95 transition-[background-color,color,border-color,transform] duration-150 ease-out-strong cursor-pointer ${
-                        ev.has_bar
-                          ? 'border-blue-500/30 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20'
-                          : 'border-white/10 text-neutral-400 hover:text-white'
-                      }`}
-                    >
-                      🍸 {ev.has_bar ? 'Con barra' : 'Sin barra'}
-                    </button>
+                    {ev.is_adults_only === false ? (
+                      <span
+                        title="Evento para menores de edad — la barra no se puede habilitar."
+                        className="text-[11px] px-3 py-2 sm:py-1.5 rounded-lg border border-amber-800/50 bg-amber-950/20 text-amber-400 cursor-not-allowed"
+                      >
+                        🔞 Sin barra (menores de edad)
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => toggleHasBar(ev)}
+                        className={`text-[11px] px-3 py-2 sm:py-1.5 rounded-lg border active:scale-95 transition-[background-color,color,border-color,transform] duration-150 ease-out-strong cursor-pointer ${
+                          ev.has_bar
+                            ? 'border-blue-500/30 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20'
+                            : 'border-white/10 text-neutral-400 hover:text-white'
+                        }`}
+                      >
+                        🍸 {ev.has_bar ? 'Con barra' : 'Sin barra'}
+                      </button>
+                    )}
                     {ev.has_bar && (
                       <Link href="/admin/barra" className="text-[11px] px-3 py-2 sm:py-1.5 rounded-lg border border-white/10 text-neutral-400 hover:text-white hover:border-white/20 active:scale-95 transition-[color,border-color,transform] duration-150 ease-out-strong">
                         Editar carta

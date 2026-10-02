@@ -57,7 +57,50 @@ export async function PATCH(req: Request, context: { params: Promise<{ id: strin
     if (body.status !== undefined && ['DRAFT', 'PUBLISHED', 'FINISHED', 'CANCELLED'].includes(body.status)) {
       update.status = body.status;
     }
-    if (body.hasBar !== undefined) update.has_bar = !!body.hasBar;
+
+    // Clasificación de edad: si este pedido la cambia, "nextIsAdultsOnly"
+    // guarda el valor nuevo para usarlo más abajo al validar la barra sin
+    // tener que volver a leer la base.
+    let nextIsAdultsOnly: boolean | undefined;
+    if (body.isAdultsOnly !== undefined) {
+      if (typeof body.isAdultsOnly !== 'boolean') {
+        return NextResponse.json({ error: 'Valor inválido para "mayores de 18".' }, { status: 400 });
+      }
+      nextIsAdultsOnly = body.isAdultsOnly;
+      update.is_adults_only = body.isAdultsOnly;
+
+      if (!body.isAdultsOnly) {
+        const parsedMinAge = Number(body.minAge);
+        if (body.minAge === undefined || body.minAge === null || body.minAge === '' || !Number.isFinite(parsedMinAge) || parsedMinAge < 0 || parsedMinAge > 17) {
+          return NextResponse.json({ error: 'Indicá la edad mínima permitida (0 a 17) para un evento que no es solo para mayores.' }, { status: 400 });
+        }
+        update.min_age = Math.round(parsedMinAge);
+      } else {
+        update.min_age = null;
+      }
+    }
+
+    // La barra sirve alcohol — nunca puede quedar habilitada en un evento
+    // que no sea exclusivo para mayores de 18.
+    if (body.hasBar !== undefined) {
+      if (body.hasBar) {
+        const allowsBar =
+          nextIsAdultsOnly !== undefined
+            ? nextIsAdultsOnly
+            : (await supabaseAdmin.from('events').select('is_adults_only').eq('id', eventId).maybeSingle()).data
+                ?.is_adults_only;
+
+        if (!allowsBar) {
+          return NextResponse.json(
+            { error: 'Evento para menores de edad: la barra no se puede habilitar.' },
+            { status: 400 }
+          );
+        }
+        update.has_bar = true;
+      } else {
+        update.has_bar = false;
+      }
+    }
 
     if (Object.keys(update).length === 0) {
       return NextResponse.json({ error: 'Nada para actualizar' }, { status: 400 });
