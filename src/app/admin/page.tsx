@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import UserMenu from '@/components/UserMenu';
@@ -85,6 +86,12 @@ export default function LiveExperienceAdmin() {
   // el botón ☰. En desktop (md:) el sidebar se ve siempre, sin importar
   // este estado.
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // El drawer se porta a document.body (ver más abajo) en vez de quedar
+  // anidado en el árbol de la página — "mounted" evita el mismatch de
+  // SSR/hidratación, ya que document.body no existe durante el render
+  // en el servidor.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const [prepaidBalances, setPrepaidBalances] = useState<{ [producer: string]: number }>({});
 
@@ -339,6 +346,18 @@ export default function LiveExperienceAdmin() {
       {/* CUERPO PRINCIPAL CON SIDEBAR */}
       <div className="relative z-10 flex flex-1 overflow-hidden font-mono">
 
+        {/* El drawer (y su fondo oscuro) se portan a document.body en vez
+            de quedar anidados en el árbol de la página: tanto este div
+            como el de más arriba tienen overflow-hidden, y un
+            position:fixed anidado dentro de un ancestro con
+            overflow:hidden puede quedar RECORTADO al tamaño de ese
+            ancestro en vez de comportarse como fijo a la pantalla real —
+            un bug conocido de Safari/Chrome mobile que no se reproduce
+            en el emulador de escritorio. Portarlo a <body> lo saca por
+            completo de ese árbol, así ningún overflow-hidden de ningún
+            ancestro lo puede volver a afectar. */}
+        {mounted && createPortal(
+          <>
         {/* Fondo oscuro detrás del drawer en mobile — toca para cerrar.
             Solo existe (en el DOM y visualmente) cuando el drawer está
             abierto y por debajo de md, donde el sidebar pasa a ser un
@@ -456,6 +475,9 @@ export default function LiveExperienceAdmin() {
 
           </nav>
         </aside>
+          </>,
+          document.body
+        )}
 
         {/* CONTENIDO PRINCIPAL */}
         <main className="flex-1 overflow-y-auto p-8 space-y-8">
