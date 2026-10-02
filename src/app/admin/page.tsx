@@ -346,16 +346,24 @@ export default function LiveExperienceAdmin() {
         {sidebarOpen && (
           <div
             onClick={() => setSidebarOpen(false)}
-            className="md:hidden fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
+            className="md:hidden fixed inset-0 z-[55] bg-black/70 backdrop-blur-sm"
             aria-hidden
           />
         )}
 
+        {/* En mobile el drawer va con fondo SÓLIDO (no glass-light) —
+            arranca justo donde está el header de vidrio, y dos capas de
+            blur translúcido superpuestas (header + drawer) hacían que el
+            texto de arriba del menú se viera borroso/poco legible, como
+            si estuviera "tapado". En desktop (md:) sigue siendo el panel
+            de vidrio normal, ahí no hay overlap con nada. z-[60] (por
+            encima del backdrop en z-[55] y del header en z-30) deja la
+            jerarquía sin ninguna ambigüedad. */}
         <aside
-          className={`glass-light border-r border-white/5 flex flex-col justify-between p-4 select-none overflow-y-auto
-            fixed inset-y-0 left-0 z-50 w-72 transition-transform duration-300 ease-out-strong
+          className={`bg-[#070a12] backdrop-blur-xl md:bg-[#0f172a]/30 md:backdrop-blur-md md:backdrop-saturate-150 border-r border-white/5 flex flex-col justify-between p-4 pt-[calc(1rem+env(safe-area-inset-top))] md:pt-4 select-none overflow-y-auto
+            fixed inset-y-0 left-0 z-[60] w-72 shadow-2xl transition-transform duration-300 ease-out-strong
             ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-            md:static md:z-auto md:translate-x-0 md:w-64 md:shrink-0`}
+            md:static md:z-auto md:translate-x-0 md:w-64 md:shrink-0 md:shadow-none`}
         >
           <nav className="space-y-1 text-xs font-medium">
 
