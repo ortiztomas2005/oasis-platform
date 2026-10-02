@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import AuroraBackground from '@/components/fx/AuroraBackground';
 
 interface Tier {
   id?: string;
@@ -316,26 +317,27 @@ export default function ProducerEventsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#05070d] text-white p-6 sm:p-10 font-mono">
-      <div className="max-w-5xl mx-auto space-y-8">
+    <div className="relative min-h-screen bg-[#05070d] text-white p-4 sm:p-10 font-mono overflow-x-hidden">
+      <AuroraBackground />
+      <div className="relative z-10 max-w-5xl mx-auto space-y-6 sm:space-y-8">
         <div className="flex items-center justify-between flex-wrap gap-3">
-          <div>
-            <span className="text-[10px] text-blue-400 uppercase font-bold tracking-widest block">
+          <div className="min-w-0">
+            <span className="text-[10px] text-blue-400 uppercase font-bold tracking-widest block truncate">
               {producerName || 'Tu Productora'}
             </span>
-            <h1 className="text-2xl font-black uppercase text-white">Mis Eventos</h1>
+            <h1 className="text-xl sm:text-2xl font-black uppercase text-white">Mis Eventos</h1>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={() => {
                 if (showForm) resetForm();
                 setShowForm((v) => !v);
               }}
-              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 text-white font-black text-xs uppercase rounded-xl transition cursor-pointer"
+              className="px-3.5 sm:px-4 py-2.5 bg-blue-600 hover:bg-blue-500 active:scale-[0.97] transition-[transform,background-color] duration-150 ease-out-strong text-white font-black text-xs uppercase rounded-xl cursor-pointer whitespace-nowrap"
             >
               {showForm ? 'Cancelar' : '+ Crear Evento'}
             </button>
-            <Link href="/admin" className="text-xs text-neutral-400 hover:text-white">
+            <Link href="/admin" className="text-xs text-neutral-400 hover:text-white transition-colors duration-150 ease-out-strong whitespace-nowrap">
               ← Panel
             </Link>
           </div>
@@ -655,7 +657,7 @@ export default function ProducerEventsPage() {
         ) : error ? (
           <p className="text-xs text-blue-400">{error}</p>
         ) : events.length === 0 ? (
-          <div className="py-16 text-center border border-dashed border-white/10 rounded-3xl text-xs text-neutral-500">
+          <div className="animate-fade-in py-16 text-center border border-dashed border-white/10 rounded-3xl text-xs text-neutral-500">
             Todavía no creaste ningún evento.
           </div>
         ) : (
@@ -663,13 +665,13 @@ export default function ProducerEventsPage() {
             {events.map((ev) => {
               const isExpanded = expandedEventId === ev.id;
               return (
-                <div key={ev.id} className="bg-[#0b1120] border border-white/10 hover:border-white/20 rounded-2xl overflow-hidden transition-colors">
+                <div key={ev.id} className="bg-[#0b1120] border border-white/10 hover:border-blue-500/30 rounded-2xl overflow-hidden transition-colors duration-200 ease-out-strong">
                   {/* CABECERA: estado, nombre y datos clave */}
-                  <div className="p-5 flex items-start justify-between gap-4 flex-wrap">
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-2.5 flex-wrap">
+                  <div className="p-4 sm:p-5 flex items-start justify-between gap-3 sm:gap-4 flex-wrap">
+                    <div className="space-y-1.5 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span
-                          className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${
+                          className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border shrink-0 ${
                             ev.status === 'PUBLISHED' || ev.status === 'ACTIVE'
                               ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
                               : ev.status === 'CANCELLED'
@@ -680,32 +682,32 @@ export default function ProducerEventsPage() {
                           {ev.status === 'CANCELLED' ? 'Suspendido' : ev.status === 'PUBLISHED' || ev.status === 'ACTIVE' ? 'Publicado' : 'Borrador'}
                         </span>
                         {ev.has_bar && (
-                          <span className="px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border border-blue-500/30 bg-blue-500/10 text-blue-300">
+                          <span className="shrink-0 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border border-blue-500/30 bg-blue-500/10 text-blue-300">
                             🍸 Con barra
                           </span>
                         )}
                       </div>
-                      <h3 className="text-base font-bold text-white leading-tight">{ev.name || ev.title}</h3>
-                      <div className="flex items-center gap-3 text-[11px] text-neutral-500 flex-wrap">
-                        <span>📍 {ev.venue}</span>
-                        <span>📅 {ev.date ? new Date(ev.date).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}</span>
-                        <span>🎟️ {(ev.ticket_tiers || []).length} tanda{(ev.ticket_tiers || []).length === 1 ? '' : 's'}</span>
+                      <h3 className="text-base font-bold text-white leading-tight break-words">{ev.name || ev.title}</h3>
+                      <div className="flex items-center gap-x-3 gap-y-1 text-[11px] text-neutral-500 flex-wrap">
+                        <span className="break-words">📍 {ev.venue}</span>
+                        <span className="whitespace-nowrap">📅 {ev.date ? new Date(ev.date).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}</span>
+                        <span className="whitespace-nowrap">🎟️ {(ev.ticket_tiers || []).length} tanda{(ev.ticket_tiers || []).length === 1 ? '' : 's'}</span>
                       </div>
                     </div>
                     <Link
                       href={`/events/${ev.slug}`}
                       target="_blank"
-                      className="shrink-0 text-[11px] px-3.5 py-2 rounded-lg border border-white/10 text-neutral-300 hover:text-white hover:border-white/20 transition"
+                      className="shrink-0 text-[11px] px-3.5 py-2 rounded-lg border border-white/10 text-neutral-300 hover:text-white hover:border-white/20 active:scale-95 transition-[color,border-color,transform] duration-150 ease-out-strong"
                     >
                       Ver página ↗
                     </Link>
                   </div>
 
                   {/* BARRA DE ACCIONES */}
-                  <div className="px-5 py-3 border-t border-white/5 bg-black/20 flex items-center gap-2 flex-wrap">
+                  <div className="px-4 sm:px-5 py-3 border-t border-white/5 bg-black/20 flex items-center gap-2 flex-wrap">
                     <button
                       onClick={() => toggleHasBar(ev)}
-                      className={`text-[11px] px-3 py-1.5 rounded-lg border transition cursor-pointer ${
+                      className={`text-[11px] px-3 py-2 sm:py-1.5 rounded-lg border active:scale-95 transition-[background-color,color,border-color,transform] duration-150 ease-out-strong cursor-pointer ${
                         ev.has_bar
                           ? 'border-blue-500/30 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20'
                           : 'border-white/10 text-neutral-400 hover:text-white'
@@ -714,17 +716,17 @@ export default function ProducerEventsPage() {
                       🍸 {ev.has_bar ? 'Con barra' : 'Sin barra'}
                     </button>
                     {ev.has_bar && (
-                      <Link href="/admin/barra" className="text-[11px] px-3 py-1.5 rounded-lg border border-white/10 text-neutral-400 hover:text-white hover:border-white/20 transition">
+                      <Link href="/admin/barra" className="text-[11px] px-3 py-2 sm:py-1.5 rounded-lg border border-white/10 text-neutral-400 hover:text-white hover:border-white/20 active:scale-95 transition-[color,border-color,transform] duration-150 ease-out-strong">
                         Editar carta
                       </Link>
                     )}
 
-                    <div className="w-px h-4 bg-white/10 mx-1" />
+                    <div className="hidden sm:block w-px h-4 bg-white/10 mx-1" />
 
                     {ev.status === 'CANCELLED' ? (
                       <button
                         onClick={() => setEventStatus(ev, 'DRAFT')}
-                        className="text-[11px] px-3 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 transition cursor-pointer"
+                        className="text-[11px] px-3 py-2 sm:py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 active:scale-95 transition-[background-color,transform] duration-150 ease-out-strong cursor-pointer"
                       >
                         Reactivar (a borrador)
                       </button>
@@ -732,13 +734,13 @@ export default function ProducerEventsPage() {
                       <>
                         <button
                           onClick={() => toggleStatus(ev)}
-                          className="text-[11px] px-3 py-1.5 rounded-lg border border-white/10 text-neutral-300 hover:text-white hover:border-white/20 transition cursor-pointer"
+                          className="text-[11px] px-3 py-2 sm:py-1.5 rounded-lg border border-white/10 text-neutral-300 hover:text-white hover:border-white/20 active:scale-95 transition-[color,border-color,transform] duration-150 ease-out-strong cursor-pointer"
                         >
                           {ev.status === 'PUBLISHED' || ev.status === 'ACTIVE' ? 'Pasar a borrador' : 'Publicar'}
                         </button>
                         <button
                           onClick={() => setEventStatus(ev, 'CANCELLED')}
-                          className="text-[11px] px-3 py-1.5 rounded-lg border border-rose-800/60 bg-rose-950/30 text-rose-300 hover:bg-rose-950/50 transition cursor-pointer"
+                          className="text-[11px] px-3 py-2 sm:py-1.5 rounded-lg border border-rose-800/60 bg-rose-950/30 text-rose-300 hover:bg-rose-950/50 active:scale-95 transition-[background-color,transform] duration-150 ease-out-strong cursor-pointer"
                         >
                           Suspender
                         </button>
@@ -750,7 +752,7 @@ export default function ProducerEventsPage() {
                         setNewTierForm(EMPTY_NEW_TIER_FORM);
                         setExpandedEventId(isExpanded ? null : ev.id);
                       }}
-                      className="ml-auto text-[11px] px-3.5 py-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20 transition cursor-pointer font-bold"
+                      className="w-full sm:w-auto sm:ml-auto text-[11px] px-3.5 py-2 sm:py-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20 active:scale-[0.97] transition-[background-color,transform] duration-150 ease-out-strong cursor-pointer font-bold text-center"
                     >
                       {isExpanded ? 'Cerrar tandas ▲' : 'Gestionar tandas ▾'}
                     </button>
