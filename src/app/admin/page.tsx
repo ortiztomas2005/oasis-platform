@@ -43,6 +43,47 @@ type RealTab =
   | 'cupones'
   | 'pases';
 
+// Compartido entre el sidebar de desktop y el drawer de mobile — antes
+// esta lista vivía escrita una sola vez adentro del <aside>, pero ahora
+// hay dos renders distintos (ver más abajo) y no tiene sentido duplicar
+// 35 líneas de datos dos veces.
+const NAV_GROUPS: { label: string; items: { id: RealTab; icon: string; label: string }[] }[] = [
+  {
+    label: 'Ventas',
+    items: [
+      { id: 'eventos', icon: '🎫', label: 'Eventos' },
+      { id: 'pedidos', icon: '💳', label: 'Confirmar Ventas' },
+      { id: 'comprar', icon: '🎟️', label: 'Comprar Tickets' },
+      { id: 'mercadopago', icon: '💙', label: 'Mercado Pago' },
+    ],
+  },
+  {
+    label: 'En el evento',
+    items: [
+      { id: 'escanear', icon: '📷', label: 'Escanear QR (Puerta)' },
+      { id: 'barra', icon: '🍸', label: 'Escáner de Barra' },
+    ],
+  },
+  {
+    label: 'Público',
+    items: [
+      { id: 'asistentes', icon: '👤', label: 'CRM de Asistentes' },
+      { id: 'cortesias', icon: '🎁', label: 'Guestlist & Cortesías' },
+      { id: 'broadcast', icon: '📢', label: 'Broadcast & Alertas' },
+      { id: 'pases', icon: '📨', label: 'Pases PDF & App' },
+      { id: 'cupones', icon: '🏷️', label: 'Cupones & RRPP' },
+    ],
+  },
+  {
+    label: 'Gestión',
+    items: [
+      { id: 'costos', icon: '🧾', label: 'Cobros & Gastos' },
+      { id: 'metricas', icon: '📊', label: 'Dashboard & Métricas' },
+      { id: 'equipo', icon: '👥', label: 'Equipo' },
+    ],
+  },
+];
+
 export interface TeamMember {
   id: string;
   email: string;
@@ -79,7 +120,7 @@ export default function LiveExperienceAdmin() {
   const [activeProducer, setActiveProducer] = useState<string>('');
 
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-  const [activeRealTab, setActiveRealTab] = useState<RealTab | null>('metricas');
+  const [activeRealTab, setActiveRealTab] = useState<RealTab | null>('eventos');
   // El sidebar es fijo (w-64) desde desktop, pero en mobile se come casi
   // toda la pantalla y el contenido queda amontonado debajo — este estado
   // lo convierte en un drawer que arranca cerrado en mobile y se abre con
@@ -277,6 +318,46 @@ export default function LiveExperienceAdmin() {
     );
   }
 
+  // Contenido del menú, compartido entre el sidebar de desktop (adentro
+  // del layout normal) y el drawer de mobile (portado a document.body) —
+  // closeOnSelect solo cierra el drawer en la versión mobile.
+  const renderNavGroups = (closeOnSelect: boolean) => (
+    <>
+      <div className="mb-2 px-3">
+        <span className="text-[9px] text-emerald-400 uppercase font-bold tracking-widest flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+          Conectado a tu cuenta real
+        </span>
+      </div>
+
+      {NAV_GROUPS.map((group) => (
+        <div key={group.label} className="mb-3.5">
+          <span className="px-3 text-[9px] text-slate-500 uppercase font-bold tracking-widest block mb-1">
+            {group.label}
+          </span>
+          <div className="space-y-0.5">
+            {group.items.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => {
+                  setActiveRealTab(t.id);
+                  if (closeOnSelect) setSidebarOpen(false);
+                }}
+                className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl transition-colors duration-150 ease-out-strong active:scale-[0.98] cursor-pointer text-left ${
+                  activeRealTab === t.id
+                    ? 'text-emerald-300 font-bold bg-emerald-500/10 border border-emerald-500/30'
+                    : 'text-slate-300 hover:bg-white/5 hover:text-emerald-300'
+                }`}
+              >
+                <span>{t.icon}</span><span>{t.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </>
+  );
+
   return (
     <div className="relative min-h-screen bg-[#05070d] text-slate-100 flex flex-col font-sans antialiased selection:bg-blue-500 selection:text-white overflow-hidden">
       <AuroraBackground />
@@ -346,135 +427,56 @@ export default function LiveExperienceAdmin() {
       {/* CUERPO PRINCIPAL CON SIDEBAR */}
       <div className="relative z-10 flex flex-1 overflow-hidden font-mono">
 
-        {/* El drawer (y su fondo oscuro) se portan a document.body en vez
-            de quedar anidados en el árbol de la página: tanto este div
-            como el de más arriba tienen overflow-hidden, y un
-            position:fixed anidado dentro de un ancestro con
-            overflow:hidden puede quedar RECORTADO al tamaño de ese
-            ancestro en vez de comportarse como fijo a la pantalla real —
-            un bug conocido de Safari/Chrome mobile que no se reproduce
-            en el emulador de escritorio. Portarlo a <body> lo saca por
-            completo de ese árbol, así ningún overflow-hidden de ningún
-            ancestro lo puede volver a afectar. */}
-        {mounted && createPortal(
-          <>
-        {/* Fondo oscuro detrás del drawer en mobile — toca para cerrar.
-            Solo existe (en el DOM y visualmente) cuando el drawer está
-            abierto y por debajo de md, donde el sidebar pasa a ser un
-            overlay en vez de un panel fijo al costado. */}
-        {sidebarOpen && (
-          <div
-            onClick={() => setSidebarOpen(false)}
-            className="md:hidden fixed inset-0 z-[55] bg-black/70 backdrop-blur-sm"
-            aria-hidden
-          />
-        )}
-
-        {/* En mobile el drawer va con fondo SÓLIDO (no glass-light) —
-            arranca justo donde está el header de vidrio, y dos capas de
-            blur translúcido superpuestas (header + drawer) hacían que el
-            texto de arriba del menú se viera borroso/poco legible, como
-            si estuviera "tapado". En desktop (md:) sigue siendo el panel
-            de vidrio normal, ahí no hay overlap con nada. z-[60] (por
-            encima del backdrop en z-[55] y del header en z-30) deja la
-            jerarquía sin ninguna ambigüedad. */}
-        <aside
-          className={`bg-[#070a12] backdrop-blur-xl md:bg-[#0f172a]/30 md:backdrop-blur-md md:backdrop-saturate-150 border-r border-white/5 flex flex-col justify-between p-4 pt-[calc(1rem+env(safe-area-inset-top))] md:pt-4 select-none overflow-y-auto
-            fixed inset-y-0 left-0 z-[60] w-72 shadow-2xl transition-transform duration-300 ease-out-strong
-            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-            md:static md:z-auto md:translate-x-0 md:w-64 md:shrink-0 md:shadow-none`}
-        >
+        {/* SIDEBAR DE DESKTOP — panel normal, adentro del layout flex de
+            siempre (no portado). El bug de overflow-hidden + position:fixed
+            es específico de mobile Safari/Chrome; en desktop este div
+            nunca necesitó salir del árbol, y portarlo acá rompía el
+            layout (quedaba como bloque suelto al final de la página,
+            fuera del flex, en vez de al costado — "bugeado abajo"). */}
+        <aside className="hidden md:flex glass-light w-64 border-r border-white/5 flex-col justify-between p-4 shrink-0 select-none overflow-y-auto">
           <nav className="space-y-1 text-xs font-medium">
-
-            {/* Botón de cerrar — solo visible en mobile, donde el sidebar
-                es un drawer superpuesto en vez de un panel fijo. */}
-            <div className="md:hidden flex items-center justify-between mb-3 px-1">
-              <span className="font-luxury text-sm font-black text-white uppercase tracking-widest">Menú</span>
-              <button
-                type="button"
-                onClick={() => setSidebarOpen(false)}
-                aria-label="Cerrar menú"
-                className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 active:scale-90 transition-[background-color,transform] duration-150 ease-out-strong flex items-center justify-center text-white"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Todo lo que se gestiona desde acá ya vive en Supabase, no en
-                localStorage — no hay más sección "local/demo". Agrupado por
-                tema para que sea más fácil de escanear de un vistazo. */}
-            <div className="mb-2 px-3">
-              <span className="text-[9px] text-emerald-400 uppercase font-bold tracking-widest flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
-                Conectado a tu cuenta real
-              </span>
-            </div>
-
-            {(
-              [
-                {
-                  label: 'Ventas',
-                  items: [
-                    { id: 'eventos', icon: '🎫', label: 'Eventos' },
-                    { id: 'pedidos', icon: '💳', label: 'Confirmar Ventas' },
-                    { id: 'comprar', icon: '🎟️', label: 'Comprar Tickets' },
-                    { id: 'mercadopago', icon: '💙', label: 'Mercado Pago' },
-                  ],
-                },
-                {
-                  label: 'En el evento',
-                  items: [
-                    { id: 'escanear', icon: '📷', label: 'Escanear QR (Puerta)' },
-                    { id: 'barra', icon: '🍸', label: 'Escáner de Barra' },
-                  ],
-                },
-                {
-                  label: 'Público',
-                  items: [
-                    { id: 'asistentes', icon: '👤', label: 'CRM de Asistentes' },
-                    { id: 'cortesias', icon: '🎁', label: 'Guestlist & Cortesías' },
-                    { id: 'broadcast', icon: '📢', label: 'Broadcast & Alertas' },
-                    { id: 'pases', icon: '📨', label: 'Pases PDF & App' },
-                    { id: 'cupones', icon: '🏷️', label: 'Cupones & RRPP' },
-                  ],
-                },
-                {
-                  label: 'Gestión',
-                  items: [
-                    { id: 'costos', icon: '🧾', label: 'Cobros & Gastos' },
-                    { id: 'metricas', icon: '📊', label: 'Dashboard & Métricas' },
-                    { id: 'equipo', icon: '👥', label: 'Equipo' },
-                  ],
-                },
-              ] as { label: string; items: { id: RealTab; icon: string; label: string }[] }[]
-            ).map((group) => (
-              <div key={group.label} className="mb-3.5">
-                <span className="px-3 text-[9px] text-slate-500 uppercase font-bold tracking-widest block mb-1">
-                  {group.label}
-                </span>
-                <div className="space-y-0.5">
-                  {group.items.map((t) => (
-                    <button
-                      key={t.id}
-                      onClick={() => {
-                        setActiveRealTab(t.id);
-                        setSidebarOpen(false);
-                      }}
-                      className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl transition-colors duration-150 ease-out-strong active:scale-[0.98] cursor-pointer text-left ${
-                        activeRealTab === t.id
-                          ? 'text-emerald-300 font-bold bg-emerald-500/10 border border-emerald-500/30'
-                          : 'text-slate-300 hover:bg-white/5 hover:text-emerald-300'
-                      }`}
-                    >
-                      <span>{t.icon}</span><span>{t.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-
+            {renderNavGroups(false)}
           </nav>
         </aside>
+
+        {/* DRAWER DE MOBILE — este sí se portea a document.body: tanto
+            este div como el de más arriba tienen overflow-hidden, y un
+            position:fixed anidado dentro de un ancestro con
+            overflow:hidden puede quedar RECORTADO al tamaño de ese
+            ancestro en vez de comportarse como fijo a la pantalla real
+            (bug de mobile Safari/Chrome que no se reproduce en el
+            emulador de escritorio). md:hidden en todo esto asegura que
+            nunca se muestre en desktop, donde ya está el aside de arriba. */}
+        {mounted && createPortal(
+          <>
+            {sidebarOpen && (
+              <div
+                onClick={() => setSidebarOpen(false)}
+                className="md:hidden fixed inset-0 z-[55] bg-black/70 backdrop-blur-sm"
+                aria-hidden
+              />
+            )}
+
+            <aside
+              className={`md:hidden bg-[#070a12] backdrop-blur-xl border-r border-white/5 flex flex-col justify-between p-4 pt-[calc(1rem+env(safe-area-inset-top))] select-none overflow-y-auto
+                fixed inset-y-0 left-0 z-[60] w-72 shadow-2xl transition-transform duration-300 ease-out-strong
+                ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+            >
+              <nav className="space-y-1 text-xs font-medium">
+                <div className="flex items-center justify-between mb-3 px-1">
+                  <span className="font-luxury text-sm font-black text-white uppercase tracking-widest">Menú</span>
+                  <button
+                    type="button"
+                    onClick={() => setSidebarOpen(false)}
+                    aria-label="Cerrar menú"
+                    className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 active:scale-90 transition-[background-color,transform] duration-150 ease-out-strong flex items-center justify-center text-white"
+                  >
+                    ✕
+                  </button>
+                </div>
+                {renderNavGroups(true)}
+              </nav>
+            </aside>
           </>,
           document.body
         )}
