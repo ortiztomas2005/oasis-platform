@@ -136,7 +136,7 @@ export default function ProducerEventsPage() {
     if (next === 2) {
       if (!title.trim()) return setFormError('Falta el nombre del evento.');
       if (!date) return setFormError('Falta la fecha del evento.');
-      if (!venue.trim()) return setFormError('Falta el venue.');
+      if (!venue.trim()) return setFormError('Falta el lugar del evento.');
     }
     if (next === 3) {
       if (tiers.some((t) => !t.name.trim() || t.price < 0 || t.capacity <= 0)) {
@@ -405,7 +405,7 @@ export default function ProducerEventsPage() {
                 </div>
 
                 <div>
-                  <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">Venue *</label>
+                  <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">Lugar (venue) *</label>
                   <input required value={venue} onChange={(e) => setVenue(e.target.value)} className="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500" />
                 </div>
                 <div>
